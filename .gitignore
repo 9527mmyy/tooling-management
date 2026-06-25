@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.db
+*.sqlite
+
+# 忽略上传的文件
+uploads/
+*.log
+
+# 忽略备份目录
+backup*/
+
+# 忽略临时文件
+*.tmp
+*.bak
+temp*/
+
+# 忽略虚拟环境
+venv/
+env/
+
+# 忽略IDE配置
+.vscode/
+.idea/

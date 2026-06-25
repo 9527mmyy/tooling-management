@@ -1,0 +1,155 @@
+from flask import Blueprint, request, jsonify, session
+from models import db, User, OperationLog
+from functools import wraps
+
+auth_bp = Blueprint('auth', __name__)
+
+
+def login_required(f):
+    """登录验证装饰器"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'code': 401, 'msg': '请先登录'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
+def admin_required(f):
+    """管理员权限装饰器"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'code': 401, 'msg': '请先登录'}), 401
+        if session.get('role') != 'admin':
+            return jsonify({'code': 403, 'msg': '需要管理员权限'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
+def add_log(action, detail=''):
+    """记录操作日志"""
+    if 'user_id' in session:
+        log = OperationLog(
+            user_id=session['user_id'],
+            action=action,
+            detail=detail
+        )
+        db.session.add(log)
+        db.session.commit()
+
+
+@auth_bp.route('/login', methods=['POST'])
+def login():
+    """登录"""
+    data = request.get_json()
+    username = data.get('username', '').strip()
+    password = data.get('password', '').strip()
+
+    if not username or not password:
+        return jsonify({'code': 400, 'msg': '用户名和密码不能为空'})
+
+    user = User.query.filter_by(username=username).first()
+    if not user or not user.check_password(password):
+        return jsonify({'code': 401, 'msg': '用户名或密码错误'})
+
+    session['user_id'] = user.id
+    session['username'] = user.username
+    session['role'] = user.role
+
+    add_log('登录', f'用户 {username} 登录')
+
+    return jsonify({
+        'code': 200,
+        'msg': '登录成功',
+        'data': user.to_dict()
+    })
+
+
+@auth_bp.route('/logout', methods=['POST'])
+def logout():
+    """登出"""
+    add_log('登出', f'用户 {session.get("username", "")} 登出')
+    session.clear()
+    return jsonify({'code': 200, 'msg': '已登出'})
+
+
+@auth_bp.route('/info', methods=['GET'])
+def info():
+    """获取当前用户信息"""
+    if 'user_id' not in session:
+        return jsonify({'code': 401, 'msg': '未登录'})
+    user = User.query.get(session['user_id'])
+    if not user:
+        session.clear()
+        return jsonify({'code': 401, 'msg': '用户不存在'})
+    return jsonify({'code': 200, 'data': user.to_dict()})
+
+
+@auth_bp.route('/users', methods=['GET'])
+@admin_required
+def list_users():
+    """获取用户列表（管理员）"""
+    users = User.query.all()
+    return jsonify({
+        'code': 200,
+        'data': [u.to_dict() for u in users]
+    })
+
+
+@auth_bp.route('/users', methods=['POST'])
+@admin_required
+def create_user():
+    """创建用户（管理员）"""
+    data = request.get_json()
+    username = data.get('username', '').strip()
+    password = data.get('password', '').strip()
+    role = data.get('role', 'employee')
+
+    if not username or not password:
+        return jsonify({'code': 400, 'msg': '用户名和密码不能为空'})
+
+    if User.query.filter_by(username=username).first():
+        return jsonify({'code': 400, 'msg': '用户名已存在'})
+
+    user = User(username=username, role=role)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+
+    add_log('创建用户', f'创建用户 {username}，角色 {role}')
+
+    return jsonify({'code': 200, 'msg': '创建成功', 'data': user.to_dict()})
+
+
+@auth_bp.route('/users/<int:user_id>', methods=['PUT'])
+@admin_required
+def update_user(user_id):
+    """更新用户（管理员）"""
+    user = User.query.get_or_404(user_id)
+    data = request.get_json()
+
+    if 'password' in data and data['password'].strip():
+        user.set_password(data['password'])
+    if 'role' in data:
+        user.role = data['role']
+
+    db.session.commit()
+    add_log('更新用户', f'更新用户 {user.username}')
+
+    return jsonify({'code': 200, 'msg': '更新成功', 'data': user.to_dict()})
+
+
+@auth_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@admin_required
+def delete_user(user_id):
+    """删除用户（管理员）"""
+    user = User.query.get_or_404(user_id)
+    if user.username == 'admin':
+        return jsonify({'code': 400, 'msg': '不能删除默认管理员'})
+
+    add_log('删除用户', f'删除用户 {user.username}')
+    db.session.delete(user)
+    db.session.commit()
+
+    return jsonify({'code': 200, 'msg': '删除成功'})
