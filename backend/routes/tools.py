@@ -109,6 +109,67 @@ def create_tool():
     return jsonify({'code': 200, 'msg': '新增成功', 'data': tool.to_dict()})
 
 
+@tools_bp.route('/inspection-reminders', methods=['GET'])
+def get_inspection_reminders():
+    """获取检定提醒列表"""
+    filter_type = request.args.get('filter', 'overdue')  # overdue, 30, 60, all
+    page = request.args.get('page', 1, type=int)
+    page_size = request.args.get('page_size', 20, type=int)
+    
+    today = datetime.now().date()
+    from datetime import timedelta
+    
+    # 构建查询
+    query = Tool.query.filter(Tool.next_inspection_date != None)
+    
+    if filter_type == 'overdue':
+        # 已逾期
+        query = query.filter(Tool.next_inspection_date < today)
+    elif filter_type == '30':
+        # 30天内到期
+        query = query.filter(
+            Tool.next_inspection_date >= today,
+            Tool.next_inspection_date <= today + timedelta(days=30)
+        )
+    elif filter_type == '60':
+        # 60天内到期
+        query = query.filter(
+            Tool.next_inspection_date >= today,
+            Tool.next_inspection_date <= today + timedelta(days=60)
+        )
+    elif filter_type == 'all':
+        # 全部（有检定日期的）
+        pass
+    
+    # 分页
+    total = query.count()
+    tools = query.order_by(Tool.next_inspection_date.asc()).paginate(
+        page=page, per_page=page_size, error_out=False
+    )
+    
+    # 计算剩余天数
+    result = []
+    for tool in tools.items:
+        tool_dict = tool.to_dict()
+        next_date = tool.next_inspection_date
+        if next_date:
+            days_until = (next_date - today).days
+            tool_dict['days_until_inspection'] = days_until
+        else:
+            tool_dict['days_until_inspection'] = None
+        result.append(tool_dict)
+    
+    return jsonify({
+        'code': 200,
+        'data': {
+            'items': result,
+            'total': total,
+            'page': page,
+            'page_size': page_size
+        }
+    })
+
+
 @tools_bp.route('/<int:tool_id>', methods=['PUT'])
 @admin_required
 def update_tool(tool_id):
@@ -225,4 +286,3 @@ def tool_stats():
             'overdue': overdue
         }
     })
-

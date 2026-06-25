@@ -140,6 +140,7 @@ class Attachment(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     tool_id = db.Column(db.Integer, db.ForeignKey('tools.id'), nullable=True)  # 允许为空（临时上传）
+    inspection_id = db.Column(db.Integer, db.ForeignKey('inspections.id'), nullable=True)  # 检定记录ID
     file_name = db.Column(db.String(255), nullable=False)
     file_path = db.Column(db.String(500), nullable=False)
     file_type = db.Column(db.String(50))  # 入库资料/检定报告/其他
@@ -153,6 +154,7 @@ class Attachment(db.Model):
         return {
             'id': self.id,
             'tool_id': self.tool_id,
+            'inspection_id': self.inspection_id or None,
             'file_name': self.file_name,
             'file_type': self.file_type or '',
             'file_size': self.file_size or 0,
@@ -181,6 +183,25 @@ class OperationLog(db.Model):
             'action': self.action,
             'detail': self.detail or '',
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        }
+
+
+class SystemConfig(db.Model):
+    """系统配置表（可配置的选项）"""
+    __tablename__ = 'system_configs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    config_key = db.Column(db.String(50), nullable=False)  # category/factory/team
+    config_value = db.Column(db.String(100), nullable=False)  # 配置值
+    sort_order = db.Column(db.Integer, default=0)  # 排序顺序
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'config_key': self.config_key,
+            'config_value': self.config_value,
+            'sort_order': self.sort_order,
         }
 
 

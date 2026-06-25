@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>测试页</title>
+</head>
+<body>
+    <div id="test-app">
+        <h1>{{ message }}</h1>
+        <el-button type="primary" @click="handleClick">点击我</el-button>
+    </div>
+
+    <script src="/static/libs/vue.min.js"></script>
+    <script src="/static/libs/element-plus.min.js"></script>
+    <script>
+        const { createApp, ref } = Vue;
+        const { ElMessage } = ElementPlus;
+        const app = createApp({
+            setup() {
+                const message = ref('Vue 加载成功!');
+                const handleClick = () => {
+                    ElMessage.success('Element Plus 加载成功!');
+                };
+                return { message, handleClick };
+            }
+        });
+        app.use(ElementPlus);
+        app.mount('#test-app');
+    </script>
+</body>
+</html>

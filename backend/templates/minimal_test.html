@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最小测试页</title>
+    <link rel="stylesheet" href="/static/libs/element-plus.css">
+    <style>
+        body { font-family: 'Microsoft YaHei', sans-serif; padding: 40px; background: #f0f2f5; }
+    </style>
+</head>
+<body>
+    <h1>服务器正常</h1>
+    <div id="test-app">
+        <p>如果 Vue 加载成功，下面会显示一个绿色按钮 👇</p>
+        <el-button type="success" @click="showMsg">点我测试 Vue + Element</el-button>
+    </div>
+
+    <!-- 明确使用完整版 Vue (含模板编译器) -->
+    <script src="https://unpkg.com/vue@3.5.38/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/element-plus@2.9.8/dist/index.full.min.js"></script>
+    <script>
+        // 从 CDN 全局变量中解构所需 API
+        const { createApp, ref, onMounted } = Vue;
+        const ElementPlus = window.ElementPlus;
+        const { ElMessage } = ElementPlus;
+
+        console.log('Vue 版本:', Vue.version);
+        console.log('ElementPlus 已加载:', !!ElementPlus);
+        console.log('ElMessage 类型:', typeof ElMessage);
+        console.log('Vue.compile 是否存在:', typeof Vue.compile);
+
+        const app = createApp({
+            setup() {
+                const msg = ref('测试消息');
+                const showMsg = () => {
+                    ElMessage.success('✅ Vue + ElementPlus 加载成功!');
+                    msg.value = '已点击!';
+                };
+                onMounted(() => {
+                    console.log('Vue 组件已挂载');
+                });
+                return { msg, showMsg };
+            }
+        });
+        app.use(ElementPlus);
+        app.mount('#test-app');
+        console.log('Vue app 已挂载');
+    </script>
+</body>
+</html>

@@ -64,8 +64,10 @@ from routes.inspections import inspections_bp
 from routes.attachments import attachments_bp
 from routes.scraps import scraps_bp
 from routes.org import org_bp
+from routes.configs import configs_bp
 
 app.register_blueprint(org_bp, url_prefix='/api/org')
+app.register_blueprint(configs_bp, url_prefix='/api/configs')
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(tools_bp, url_prefix='/api/tools')
 app.register_blueprint(borrows_bp, url_prefix='/api/borrows')
@@ -76,8 +78,12 @@ app.register_blueprint(scraps_bp, url_prefix='/api/scraps')
 # 前端路由
 @app.route('/')
 def index():
-    """前端首页"""
-    return send_from_directory('templates', 'index.html')
+    """前端首页（禁用缓存，避免前端代码更新后浏览器仍用旧版）"""
+    response = make_response(send_from_directory('templates', 'index.html'))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 with app.app_context():
     db.create_all()
@@ -95,4 +101,6 @@ if __name__ == '__main__':
 
 @app.route('/test')
 def test_page():
-    return send_from_directory('templates', 'test.html')
+    response = make_response(send_from_directory('templates', 'test.html'))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    return response

@@ -36,6 +36,7 @@ def list_attachments():
 def upload():
     """上传附件"""
     tool_id = request.form.get('tool_id', type=int)
+    inspection_id = request.form.get('inspection_id', type=int)  # 新增：检定记录ID
     file_type = request.form.get('file_type', '其他')  # 入库资料/检定报告/其他
 
     if 'file' not in request.files:
@@ -49,27 +50,31 @@ def upload():
     ext = os.path.splitext(file.filename)[1]
     unique_name = f"{uuid.uuid4().hex}{ext}"
 
-    # 临时上传目录（新增工装时tool_id为空）
+    # 目录策略：优先用 tool_id，其次用 inspection_id，最后用 temp
     if tool_id:
         tool = Tool.query.get(tool_id)
         if not tool:
             return jsonify({'code': 404, 'msg': '工装不存在'})
-        tool_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], tool.code)
+        base_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], tool.code)
+    elif inspection_id:
+        # 检定附件，存到 inspections 子目录
+        base_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'inspections', str(inspection_id))
     else:
         # 临时目录
-        tool_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'temp')
+        base_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'temp')
     
-    os.makedirs(tool_dir, exist_ok=True)
+    os.makedirs(base_dir, exist_ok=True)
 
-    file_path = os.path.join(tool_dir, unique_name)
+    file_path = os.path.join(base_dir, unique_name)
     file.save(file_path)
 
     # 获取文件大小
     file_size = os.path.getsize(file_path)
 
-    # 保存附件记录（tool_id可以为空）
+    # 保存附件记录（tool_id 或 inspection_id 可以为空）
     attachment = Attachment(
         tool_id=tool_id,
+        inspection_id=inspection_id,  # 新增
         file_name=file.filename,
         file_path=file_path,
         file_type=file_type,

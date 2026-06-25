@@ -1,0 +1,1308 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工装管理系统</title>
+    <link rel="stylesheet" href="/static/libs/element-plus.css">
+    <script src="/static/libs/vue.min.js"></script>
+    <script src="/static/libs/element-plus.min.js"></script>
+    <script src="/static/libs/axios.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f2f5; }
+        .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .login-box { background: #fff; border-radius: 12px; padding: 40px; width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+        .login-title { text-align: center; font-size: 24px; font-weight: bold; color: #303133; margin-bottom: 30px; }
+        .main-container { display: flex; height: 100vh; }
+        .sidebar { width: 220px; background: #304156; color: #fff; }
+        .sidebar-title { padding: 20px; font-size: 18px; font-weight: bold; text-align: center; border-bottom: 1px solid #3a4a5e; }
+        .sidebar-menu { padding: 10px 0; }
+        .menu-item { padding: 14px 20px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 10px; }
+        .menu-item:hover { background: #263445; }
+        .menu-item.active { background: #409eff; }
+        .menu-group { /* 菜单分组容器 */ }
+        .menu-parent { justify-content: space-between; }
+        .menu-arrow { font-size: 12px; opacity: 0.7; }
+        .submenu { background: #2a3a4e; }
+        .submenu-level2 { background: #1f2d3d; }
+        .submenu-item { padding: 12px 20px 12px 40px; cursor: pointer; transition: all 0.3s; font-size: 14px; display: flex; align-items: center; justify-content: space-between; }
+        .submenu-item:hover { background: #263445; }
+        .submenu-item.active { background: #409eff; color: #fff; }
+        .submenu-parent { padding-left: 40px; }
+        .content { flex: 1; padding: 20px; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 16px 20px; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .header h2 { font-size: 18px; color: #303133; }
+        .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+        .stat-card { background: #fff; border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .stat-card .number { font-size: 32px; font-weight: bold; margin: 8px 0; }
+        .stat-card .label { color: #909399; font-size: 14px; }
+        .stat-card.blue .number { color: #409eff; }
+        .stat-card.green .number { color: #67c23a; }
+        .stat-card.orange .number { color: #e6a23c; }
+        .stat-card.red .number { color: #f56c6c; }
+        .toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+        .page-container { display: flex; justify-content: flex-end; margin-top: 16px; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <!-- 登录页 -->
+    <div class="login-container" v-if="!loggedIn">
+        <div class="login-box">
+            <div class="login-title">🔧 工装管理系统</div>
+            <el-form @submit.prevent="handleLogin">
+                <el-form-item>
+                    <el-input v-model="loginForm.username" placeholder="用户名" prefix-icon="User" size="large"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-input v-model="loginForm.password" type="password" placeholder="密码" prefix-icon="Lock" size="large" @keyup.enter="handleLogin"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" size="large" style="width:100%" @click="handleLogin" :loading="loginLoading">登 录</el-button>
+                </el-form-item>
+            </el-form>
+        </div>
+    </div>
+
+    <!-- 主页面 -->
+    <div class="main-container" v-else>
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-title">🔧 工装管理</div>
+            <div class="sidebar-menu">
+                <div class="menu-item" :class="{active: currentPage==='dashboard'}" @click="currentPage='dashboard'">📊 首页概览</div>
+                <div class="menu-item" :class="{active: currentPage==='tools'}" @click="currentPage='tools'">📦 工装台账</div>
+                <div class="menu-item" :class="{active: currentPage==='borrows'}" @click="currentPage='borrows'">📋 借用记录</div>
+                <div class="menu-item" :class="{active: currentPage==='inspections'}" @click="currentPage='inspections'">🔍 检定记录</div>
+                <div class="menu-item" :class="{active: currentPage==='inspection-reminder'}" @click="currentPage='inspection-reminder'">🔔 检定提醒</div>
+                <div class="menu-item" :class="{active: currentPage==='scraps'}" @click="currentPage='scraps'" v-if="isAdmin">🗑️ 报废审批</div>
+                <!-- 配置管理（父菜单） -->
+                <div v-if="isAdmin" class="menu-group">
+                    <div class="menu-item menu-parent" @click="toggleConfigMenu">
+                        <span>⚙️ 配置管理</span>
+                        <span class="menu-arrow">{{ configMenuOpen ? '▼' : '▶' }}</span>
+                    </div>
+                    <!-- 二级菜单 -->
+                    <div v-show="configMenuOpen || currentPage==='configs'" class="submenu">
+                        <div class="submenu-item" :class="{active: currentSubPage==='config-category'}" @click="goToConfig('config-category')">📋 工装类别</div>
+                        <div class="submenu-item" :class="{active: currentPage==='configs' && (currentSubPage==='config-factory' || currentSubPage.startsWith('config-factory-'))}" @click="goToConfig('config-factory')">
+                            🏭 工厂设置
+                        </div>
+                        <div class="submenu-item" :class="{active: currentSubPage==='config-users'}" @click="goToConfig('config-users')">👥 用户管理</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 内容区 -->
+        <div class="content">
+            <div class="header">
+                <h2>{{ pageTitle }}</h2>
+                <div>
+                    <span style="margin-right:16px;color:#606266">{{ currentUser.username }} ({{ isAdmin ? '管理员' : '员工' }})</span>
+                    <el-button type="danger" size="small" @click="handleLogout">退出</el-button>
+                </div>
+            </div>
+
+            <!-- 首页概览 -->
+            <div v-if="currentPage==='dashboard'">
+                <div class="stat-cards">
+                    <div class="stat-card blue"><div class="label">工装总数</div><div class="number">{{ stats.total || 0 }}</div></div>
+                    <div class="stat-card green"><div class="label">在库</div><div class="number">{{ stats.in_stock || 0 }}</div></div>
+                    <div class="stat-card orange"><div class="label">借出</div><div class="number">{{ stats.borrowed || 0 }}</div></div>
+                    <div class="stat-card red"><div class="label">检定逾期</div><div class="number">{{ stats.overdue || 0 }}</div></div>
+                </div>
+                <div class="card" v-if="stats.due_soon > 0">
+                    <el-alert title="检定提醒" :description="`有 ${stats.due_soon} 个工装将在30天内到期检定`" type="warning" show-icon :closable="false"></el-alert>
+                </div>
+                <div class="card" v-if="stats.overdue > 0">
+                    <el-alert title="逾期警告" :description="`有 ${stats.overdue} 个工装检定已逾期，请尽快处理`" type="error" show-icon :closable="false"></el-alert>
+                </div>
+            </div>
+
+            <!-- 工装台账 -->
+            <div v-if="currentPage==='tools'">
+                <div class="toolbar">
+                    <el-input v-model="toolSearch.keyword" placeholder="搜索编号/名称/规格" style="width:250px" clearable @clear="loadTools" @keyup.enter="loadTools"></el-input>
+                    <el-select v-model="toolSearch.status" placeholder="状态筛选" style="width:140px" clearable @change="loadTools">
+                        <el-option label="在库" value="在库"></el-option>
+                        <el-option label="借出" value="借出"></el-option>
+                        <el-option label="维修" value="维修"></el-option>
+                        <el-option label="报废" value="报废"></el-option>
+                    </el-select>
+                    <el-select v-model="toolSearch.factory" placeholder="分厂筛选" style="width:150px" clearable @change="toolSearch.team=''; loadTools()">
+                        <el-option v-for="f in factories" :key="f" :label="f" :value="f"></el-option>
+                    </el-select>
+                    <el-select v-model="toolSearch.team" placeholder="班组筛选" style="width:150px" clearable @change="loadTools">
+                        <el-option v-for="t in allTeams" :key="t" :label="t" :value="t"></el-option>
+                    </el-select>
+                    <el-button type="primary" @click="loadTools">搜索</el-button>
+                    <el-switch v-model="showScrapped" active-text="显示报废" inactive-text="" @change="loadTools" style="margin-left:10px"></el-switch>
+                    <el-button type="success" @click="openToolDialog()" v-if="isAdmin">新增工装</el-button>
+                </div>
+                <el-table :data="tools" stripe border style="width:100%">
+                    <el-table-column prop="code" label="编号" width="120"></el-table-column>
+                    <el-table-column prop="drawing_no" label="图号" width="120"></el-table-column>
+                    <el-table-column prop="name" label="名称" width="150"></el-table-column>
+                    <el-table-column prop="spec" label="规格型号" width="120"></el-table-column>
+                    <el-table-column prop="category" label="类别" width="100"></el-table-column>
+                    <el-table-column prop="level" label="等级" width="80"></el-table-column>
+                    <el-table-column prop="factory" label="使用分厂" width="100"></el-table-column>
+                    <el-table-column prop="team" label="使用班组" width="90"></el-table-column>
+                    <el-table-column prop="receiver" label="领用人" width="90"></el-table-column>
+                    <el-table-column prop="status" label="状态" width="70">
+                        <template #default="scope">
+                            <el-tag :type="statusTagType(scope.row.status)" size="small">{{ scope.row.status }}</el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="purchase_date" label="购置日期" width="110"></el-table-column>
+                    <el-table-column prop="next_inspection_date" label="下次检定" width="110">
+                        <template #default="scope">
+                            <span :style="{color: isOverdue(scope.row.next_inspection_date) ? '#f56c6c' : ''}">{{ scope.row.next_inspection_date || '-' }}</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="remark" label="备注" show-overflow-tooltip></el-table-column>
+                    <el-table-column label="操作" width="360" fixed="right">
+                        <template #default="scope">
+                            <el-button size="small" @click="viewTool(scope.row)">详情</el-button>
+                            <el-button size="small" type="primary" @click="openBorrowDialog(scope.row)" v-if="scope.row.status==='在库'">借用</el-button>
+                            <el-button size="small" type="warning" @click="openInspectionDialog(scope.row)" v-if="isAdmin">检定</el-button>
+                            <el-button size="small" type="info" @click="scrapTool(scope.row)" v-if="scope.row.status!=='报废'">报废</el-button>
+                            <el-button size="small" type="danger" @click="deleteTool(scope.row)" v-if="isAdmin">删除</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+                <div class="page-container">
+                    <el-pagination background layout="total, prev, pager, next" :total="toolTotal" :page-size="20" @current-change="onToolPageChange"></el-pagination>
+                </div>
+            </div>
+
+            <!-- 工装详情弹窗 -->
+            <el-dialog v-model="toolDetailVisible" :title="toolDetailEditing ? '编辑工装' : '工装详情'" width="700px">
+                <template v-if="currentTool">
+                    <!-- 查看模式 -->
+                    <el-descriptions :column="2" border v-if="!toolDetailEditing">
+                        <el-descriptions-item label="编号">{{ currentTool.code }}</el-descriptions-item>
+                        <el-descriptions-item label="图号">{{ currentTool.drawing_no || '-' }}</el-descriptions-item>
+                        <el-descriptions-item label="名称">{{ currentTool.name }}</el-descriptions-item>
+                        <el-descriptions-item label="规格型号">{{ currentTool.spec || '-' }}</el-descriptions-item>
+                        <el-descriptions-item label="类别">{{ currentTool.category || '-' }}</el-descriptions-item>
+                        <el-descriptions-item label="等级">{{ currentTool.level || '-' }}</el-descriptions-item>
+                        <el-descriptions-item label="使用分厂">{{ currentTool.factory || '-' }}</el-descriptions-item>
+                        <el-descriptions-item label="使用班组">{{ currentTool.team || '-' }}</el-descriptions-item>
+                        <el-descriptions-item label="领用人">{{ currentTool.receiver || '-' }}</el-descriptions-item>
+                        <el-descriptions-item label="状态"><el-tag :type="statusTagType(currentTool.status)">{{ currentTool.status }}</el-tag></el-descriptions-item>
+                        <el-descriptions-item label="购置日期">{{ currentTool.purchase_date || '-' }}</el-descriptions-item>
+                        <el-descriptions-item label="下次检定">{{ currentTool.next_inspection_date || '-' }}</el-descriptions-item>
+                        <el-descriptions-item label="备注" :span="2">{{ currentTool.remark || '-' }}</el-descriptions-item>
+                    </el-descriptions>
+                    
+                    <!-- 编辑模式（借用相关字段只读展示） -->
+                    <el-form :model="currentTool" label-width="90px" v-else>
+                        <el-row :gutter="20">
+                            <el-col :span="12">
+                                <el-form-item label="编号"><el-input v-model="currentTool.code" disabled></el-input></el-form-item>
+                            </el-col>
+                            <el-col :span="12">
+                                <el-form-item label="图号"><el-input v-model="currentTool.drawing_no" placeholder="请输入图号"></el-input></el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="12">
+                                <el-form-item label="名称"><el-input v-model="currentTool.name"></el-input></el-form-item>
+                            </el-col>
+                            <el-col :span="12">
+                                <el-form-item label="规格型号"><el-input v-model="currentTool.spec"></el-input></el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="12">
+                                <el-form-item label="类别">
+                                    <el-select v-model="currentTool.category" placeholder="请选择类别" clearable style="width:100%">
+                                        <el-option v-for="c in configLists.category" :key="c.id" :label="c.config_value" :value="c.config_value"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="12">
+                                <el-form-item label="等级">
+                                    <el-select v-model="currentTool.level" placeholder="请选择等级" style="width:100%">
+                                        <el-option label="A类" value="A类"></el-option>
+                                        <el-option label="B类" value="B类"></el-option>
+                                        <el-option label="C类" value="C类"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="12">
+                                <el-form-item label="使用分厂"><el-input :model-value="currentTool.factory || '-（借用记录管理）'" disabled></el-input></el-form-item>
+                            </el-col>
+                            <el-col :span="12">
+                                <el-form-item label="使用班组"><el-input :model-value="currentTool.team || '-（借用记录管理）'" disabled></el-input></el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="12">
+                                <el-form-item label="领用人"><el-input :model-value="currentTool.receiver || '-（借用记录管理）'" disabled></el-input></el-form-item>
+                            </el-col>
+                            <el-col :span="12">
+                                <el-form-item label="购置日期">
+                                    <el-date-picker v-model="currentTool.purchase_date" type="date" value-format="YYYY-MM-DD" style="width:100%"></el-date-picker>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="12">
+                                <el-form-item label="下次检定">
+                                    <el-date-picker v-model="currentTool.next_inspection_date" type="date" value-format="YYYY-MM-DD" style="width:100%"></el-date-picker>
+                                </el-form-item>
+                            </el-col>
+                            <el-col :span="12">
+                                <el-form-item label="备注"><el-input v-model="currentTool.remark" placeholder="请输入备注"></el-input></el-form-item>
+                            </el-col>
+                        </el-row>
+                    </el-form>
+
+                    <!-- 附件区 -->
+                    <h4 style="margin:20px 0 10px">📎 附件资料</h4>
+                    <el-upload :action="`/api/attachments/upload`" :data="{tool_id: currentTool.id, file_type: uploadFileType}" :headers="{}" :on-success="onUploadSuccess" :before-upload="beforeUpload" :show-file-list="false" v-if="isAdmin">
+                        <el-button size="small" type="primary">上传资料</el-button>
+                        <el-select v-model="uploadFileType" size="small" style="width:120px;margin-left:8px">
+                            <el-option label="入库资料" value="入库资料"></el-option>
+                            <el-option label="检定报告" value="检定报告"></el-option>
+                            <el-option label="其他" value="其他"></el-option>
+                        </el-select>
+                    </el-upload>
+                    <el-table :data="currentTool.attachments" stripe size="small" style="margin-top:10px" v-if="currentTool.attachments && currentTool.attachments.length">
+                        <el-table-column prop="file_name" label="文件名"></el-table-column>
+                        <el-table-column prop="file_type" label="类型" width="100"></el-table-column>
+                        <el-table-column prop="uploader" label="上传人" width="80"></el-table-column>
+                        <el-table-column prop="upload_time" label="上传时间" width="160"></el-table-column>
+                        <el-table-column label="操作" width="120">
+                            <template #default="scope">
+                                <el-button size="small" link type="primary" @click="downloadFile(scope.row)">下载</el-button>
+                                <el-button size="small" link type="danger" @click="deleteAttachment(scope.row)" v-if="isAdmin">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    <div v-else style="color:#909399;padding:10px 0">暂无附件</div>
+
+                    <!-- 检定记录 -->
+                    <h4 style="margin:20px 0 10px">🔍 检定记录</h4>
+                    <el-table :data="currentTool.inspections" stripe size="small" v-if="currentTool.inspections && currentTool.inspections.length">
+                        <el-table-column prop="inspect_date" label="检定日期" width="110"></el-table-column>
+                        <el-table-column prop="result" label="结果" width="80">
+                            <template #default="scope">
+                                <el-tag :type="scope.row.result==='合格'?'success':scope.row.result==='不合格'?'danger':'warning'" size="small">{{ scope.row.result }}</el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="next_date" label="下次检定" width="110"></el-table-column>
+                        <el-table-column prop="inspector" label="检定人" width="80"></el-table-column>
+                        <el-table-column prop="remark" label="备注" show-overflow-tooltip></el-table-column>
+                    </el-table>
+                    <div v-else style="color:#909399;padding:10px 0">暂无检定记录</div>
+                </template>
+                <template #footer>
+                    <template v-if="!toolDetailEditing">
+                        <el-button @click="toolDetailVisible=false">关闭</el-button>
+                        <el-button type="primary" @click="toolDetailEditing=true">编辑</el-button>
+                    </template>
+                    <template v-else>
+                        <el-button @click="toolDetailEditing=false">取消</el-button>
+                        <el-button type="primary" @click="saveToolDetail" :loading="saving">保存</el-button>
+                    </template>
+                </template>
+            </el-dialog>
+
+            <!-- 新增/编辑工装弹窗 -->
+            <el-dialog v-model="toolDialogVisible" :title="toolForm.id ? '编辑工装' : '新增工装'" width="500px">
+                <el-form :model="toolForm" label-width="90px">
+                    <el-form-item label="编号" required><el-input v-model="toolForm.code"></el-input></el-form-item>
+                    <el-form-item label="图号"><el-input v-model="toolForm.drawing_no" placeholder="请输入图号"></el-input></el-form-item>
+                    <el-form-item label="名称" required><el-input v-model="toolForm.name"></el-input></el-form-item>
+                    <el-form-item label="规格型号"><el-input v-model="toolForm.spec"></el-input></el-form-item>
+                    <el-form-item label="类别">
+                        <el-select v-model="toolForm.category" placeholder="请选择类别" clearable style="width:100%">
+                            <el-option v-for="c in configLists.category" :key="c.id" :label="c.config_value" :value="c.config_value"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="等级">
+                        <el-select v-model="toolForm.level" placeholder="请选择等级" style="width:100%">
+                            <el-option label="A类" value="A类"></el-option>
+                            <el-option label="B类" value="B类"></el-option>
+                            <el-option label="C类" value="C类"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="使用分厂" v-if="toolForm.id != null">
+                        <el-select v-model="toolForm.factory" placeholder="请选择分厂" clearable style="width:100%" @change="toolForm.team=''">
+                            <el-option v-for="f in factories" :key="f" :label="f" :value="f"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="使用班组" v-if="toolForm.id != null && teamsByFactory(toolForm.factory).length > 0">
+                        <el-select v-model="toolForm.team" placeholder="请选择班组" clearable style="width:100%">
+                            <el-option v-for="t in teamsByFactory(toolForm.factory)" :key="t" :label="t" :value="t"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="领用人" v-if="toolForm.id != null"><el-input v-model="toolForm.receiver" placeholder="请输入领用人"></el-input></el-form-item>
+                    <el-form-item label="状态"><el-select v-model="toolForm.status"><el-option label="在库" value="在库"></el-option><el-option label="借出" value="借出"></el-option><el-option label="维修" value="维修"></el-option><el-option label="报废" value="报废"></el-option></el-select></el-form-item>
+                    <el-form-item label="完工时间"><el-date-picker v-model="toolForm.purchase_date" type="date" value-format="YYYY-MM-DD"></el-date-picker></el-form-item>
+                    <el-form-item label="下次检定"><el-date-picker v-model="toolForm.next_inspection_date" type="date" value-format="YYYY-MM-DD"></el-date-picker></el-form-item>
+                    <el-form-item label="备注"><el-input v-model="toolForm.remark" type="textarea" :rows="2"></el-input></el-form-item>
+                </el-form>
+                <template #footer>
+                    <el-button @click="toolDialogVisible=false">取消</el-button>
+                    <el-button type="primary" @click="saveTool" :loading="saving">保存</el-button>
+                </template>
+            </el-dialog>
+
+            <!-- 借用弹窗 -->
+            <el-dialog v-model="borrowDialogVisible" title="借用工装" width="480px">
+                <el-form label-width="80px">
+                    <el-form-item label="工装">{{ borrowForm.tool_name }} ({{ borrowForm.tool_code }})</el-form-item>
+                    <el-form-item label="借用人"><el-input v-model="borrowForm.borrower" :placeholder="currentUser.username"></el-input></el-form-item>
+                    <el-form-item label="使用分厂">
+                        <el-select v-model="borrowForm.factory" placeholder="请选择分厂" clearable style="width:100%" @change="borrowForm.team=''">
+                            <el-option v-for="f in factories" :key="f" :label="f" :value="f"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="使用班组" v-if="teamsByFactory(borrowForm.factory).length > 0">
+                        <el-select v-model="borrowForm.team" placeholder="请选择班组" clearable style="width:100%">
+                            <el-option v-for="t in teamsByFactory(borrowForm.factory)" :key="t" :label="t" :value="t"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="领用人"><el-input v-model="borrowForm.receiver" placeholder="请输入领用人"></el-input></el-form-item>
+                </el-form>
+                <template #footer>
+                    <el-button @click="borrowDialogVisible=false">取消</el-button>
+                    <el-button type="primary" @click="submitBorrow" :loading="saving">确认借用</el-button>
+                </template>
+            </el-dialog>
+
+            <!-- 检定弹窗 -->
+            <el-dialog v-model="inspectionDialogVisible" title="新增检定记录" width="500px">
+                <el-form :model="inspectionForm" label-width="90px">
+                    <el-form-item label="工装">{{ inspectionForm.tool_name }} ({{ inspectionForm.tool_code }})</el-form-item>
+                    <el-form-item label="检定日期" required><el-date-picker v-model="inspectionForm.inspect_date" type="date" value-format="YYYY-MM-DD"></el-date-picker></el-form-item>
+                    <el-form-item label="检定结果" required>
+                        <el-select v-model="inspectionForm.result"><el-option label="合格" value="合格"></el-option><el-option label="不合格" value="不合格"></el-option><el-option label="待修" value="待修"></el-option></el-select>
+                    </el-form-item>
+                    <el-form-item label="下次检定"><el-date-picker v-model="inspectionForm.next_date" type="date" value-format="YYYY-MM-DD"></el-date-picker></el-form-item>
+                    <el-form-item label="检定人"><el-input v-model="inspectionForm.inspector"></el-input></el-form-item>
+                    <el-form-item label="备注"><el-input v-model="inspectionForm.remark" type="textarea" :rows="2"></el-input></el-form-item>
+                    <el-form-item label="附件">
+                        <el-upload ref="inspectionUploadRef" :auto-upload="false" :limit="3" :on-change="onInspectionFileChange" :file-list="inspectionFiles" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
+                            <el-button size="small" type="primary">选择文件</el-button>
+                            <template #tip>
+                                <div style="font-size:12px;color:#999;margin-top:5px;">
+                                    支持 pdf/jpg/png/doc/xls，最多3个文件
+                                </div>
+                            </template>
+                        </el-upload>
+                    </el-form-item>
+                </el-form>
+                <template #footer>
+                    <el-button @click="inspectionDialogVisible=false">取消</el-button>
+                    <el-button type="primary" @click="submitInspection" :loading="saving">保存</el-button>
+                </template>
+            </el-dialog>
+
+            <!-- 报废申请弹窗 -->
+            <el-dialog v-model="scrapDialogVisible" title="报废申请" width="400px">
+                <el-form label-width="80px">
+                    <el-form-item label="工装">{{ scrapForm.tool_name }} ({{ scrapForm.tool_code }})</el-form-item>
+                    <el-form-item label="报废原因"><el-input v-model="scrapForm.reason" type="textarea" :rows="3" placeholder="请填写报废原因"></el-input></el-form-item>
+                </el-form>
+                <template #footer>
+                    <el-button @click="scrapDialogVisible=false">取消</el-button>
+                    <el-button type="primary" @click="submitScrap" :loading="saving">提交申请</el-button>
+                </template>
+            </el-dialog>
+
+            <!-- 借用记录页 -->
+            <div v-if="currentPage==='borrows'">
+                <div class="toolbar">
+                    <el-select v-model="borrowSearch.status" placeholder="状态筛选" style="width:140px" clearable @change="loadBorrows">
+                        <el-option label="借用中" value="借用中"></el-option>
+                        <el-option label="已归还" value="已归还"></el-option>
+                    </el-select>
+                    <el-select v-model="borrowSearch.team" placeholder="班组筛选" style="width:150px" clearable @change="loadBorrows">
+                        <el-option v-for="t in allTeams" :key="t" :label="t" :value="t"></el-option>
+                    </el-select>
+                    <el-input v-model="borrowSearch.borrower" placeholder="搜索借用人" style="width:200px" clearable @clear="loadBorrows" @keyup.enter="loadBorrows"></el-input>
+                    <el-button type="primary" @click="loadBorrows">搜索</el-button>
+                </div>
+                <el-table :data="borrows" stripe border style="width:100%">
+                    <el-table-column prop="tool_code" label="工装编号" width="110"></el-table-column>
+                    <el-table-column prop="tool_name" label="工装名称" width="120"></el-table-column>
+                    <el-table-column prop="factory" label="使用分厂" width="100"></el-table-column>
+                    <el-table-column prop="team" label="使用班组" width="90"></el-table-column>
+                    <el-table-column prop="receiver" label="领用人" width="90"></el-table-column>
+                    <el-table-column prop="borrower" label="借用人" width="90"></el-table-column>
+                    <el-table-column prop="borrow_time" label="借用时间" width="170"></el-table-column>
+                    <el-table-column prop="return_time" label="归还时间" width="170"></el-table-column>
+                    <el-table-column prop="status" label="状态" width="90">
+                        <template #default="scope">
+                            <el-tag :type="scope.row.status==='借用中'?'warning':'success'" size="small">{{ scope.row.status }}</el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="100">
+                        <template #default="scope">
+                            <el-button size="small" type="success" @click="returnTool(scope.row)" v-if="scope.row.status==='借用中'">归还</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+                <div class="page-container">
+                    <el-pagination background layout="total, prev, pager, next" :total="borrowTotal" :page-size="20" @current-change="onBorrowPageChange"></el-pagination>
+                </div>
+            </div>
+
+            <!-- 检定记录页 -->
+            <div v-if="currentPage==='inspections'">
+                <div class="toolbar">
+                    <el-select v-model="inspectionSearch.result" placeholder="检定结果" style="width:140px" clearable @change="loadInspections">
+                        <el-option label="合格" value="合格"></el-option>
+                        <el-option label="不合格" value="不合格"></el-option>
+                        <el-option label="待修" value="待修"></el-option>
+                    </el-select>
+                    <el-button type="primary" @click="loadInspections">搜索</el-button>
+                </div>
+                <el-table :data="inspections" stripe border style="width:100%">
+                    <el-table-column prop="tool_code" label="工装编号" width="120"></el-table-column>
+                    <el-table-column prop="tool_name" label="工装名称" width="150"></el-table-column>
+                    <el-table-column prop="inspect_date" label="检定日期" width="110"></el-table-column>
+                    <el-table-column prop="result" label="结果" width="80">
+                        <template #default="scope">
+                            <el-tag :type="scope.row.result==='合格'?'success':scope.row.result==='不合格'?'danger':'warning'" size="small">{{ scope.row.result }}</el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="next_date" label="下次检定" width="110"></el-table-column>
+                    <el-table-column prop="inspector" label="检定人" width="80"></el-table-column>
+                    <el-table-column prop="remark" label="备注" show-overflow-tooltip></el-table-column>
+                </el-table>
+                <div class="page-container">
+                    <el-pagination background layout="total, prev, pager, next" :total="inspectionTotal" :page-size="20" @current-change="onInspectionPageChange"></el-pagination>
+                </div>
+            </div>
+
+            <!-- 检定提醒页 -->
+            <div v-if="currentPage==='inspection-reminder'">
+                <div class="toolbar">
+                    <el-radio-group v-model="reminderFilter" @change="loadInspectionReminders">
+                        <el-radio-button value="overdue">已逾期</el-radio-button>
+                        <el-radio-button value="30">30天内到期</el-radio-button>
+                        <el-radio-button value="60">60天内到期</el-radio-button>
+                        <el-radio-button value="all">全部</el-radio-button>
+                    </el-radio-group>
+                    <el-button type="primary" @click="loadInspectionReminders" style="margin-left:10px">刷新</el-button>
+                </div>
+                <el-table :data="inspectionReminders" stripe border style="width:100%">
+                    <el-table-column prop="code" label="工装编号" width="120"></el-table-column>
+                    <el-table-column prop="name" label="工装名称" width="150"></el-table-column>
+                    <el-table-column prop="spec" label="规格" width="120"></el-table-column>
+                    <el-table-column prop="factory" label="使用分厂" width="100"></el-table-column>
+                    <el-table-column prop="next_inspection_date" label="下次检定日期" width="130">
+                        <template #default="scope">
+                            <span :style="{color: isOverdue(scope.row.next_inspection_date) ? '#f56c6c' : ''}">{{ scope.row.next_inspection_date }}</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="days_until_inspection" label="剩余天数" width="100">
+                        <template #default="scope">
+                            <el-tag :type="scope.row.days_until_inspection < 0 ? 'danger' : scope.row.days_until_inspection <= 30 ? 'warning' : 'success'" size="small">
+                                {{ scope.row.days_until_inspection < 0 ? '逾期' + Math.abs(scope.row.days_until_inspection) + '天' : scope.row.days_until_inspection + '天' }}
+                            </el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="status" label="状态" width="70">
+                        <template #default="scope">
+                            <el-tag :type="statusTagType(scope.row.status)" size="small">{{ scope.row.status }}</el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="150" fixed="right">
+                        <template #default="scope">
+                            <el-button size="small" @click="viewTool(scope.row)">详情</el-button>
+                            <el-button size="small" type="warning" @click="openInspectionDialog(scope.row)" v-if="isAdmin">检定</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+                <div class="page-container">
+                    <el-pagination background layout="total, prev, pager, next" :total="reminderTotal" :page-size="20" @current-change="onReminderPageChange"></el-pagination>
+                </div>
+            </div>
+
+            <!-- 用户管理页 -->
+            <div v-if="currentPage==='users'">
+                <div class="toolbar">
+                    <el-button type="success" @click="openUserDialog()">新增用户</el-button>
+                </div>
+                <el-table :data="users" stripe border style="width:100%">
+                    <el-table-column prop="username" label="用户名" width="200"></el-table-column>
+                    <el-table-column prop="role" label="角色" width="120">
+                        <template #default="scope">
+                            <el-tag :type="scope.row.role==='admin'?'danger':''" size="small">{{ scope.row.role==='admin'?'管理员':'普通员工' }}</el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="created_at" label="创建时间"></el-table-column>
+                    <el-table-column label="操作" width="200">
+                        <template #default="scope">
+                            <el-button size="small" @click="openUserDialog(scope.row)">编辑</el-button>
+                            <el-button size="small" type="danger" @click="deleteUser(scope.row)" v-if="scope.row.username!=='admin'">删除</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </div>
+
+            <!-- 报废审批页 -->
+            <div v-if="currentPage==='scraps'">
+                <div class="toolbar">
+                    <el-select v-model="scrapSearch.status" placeholder="状态筛选" style="width:140px" clearable @change="loadScraps">
+                        <el-option label="待审核" value="待审核"></el-option>
+                        <el-option label="已批准" value="已批准"></el-option>
+                        <el-option label="已拒绝" value="已拒绝"></el-option>
+                    </el-select>
+                    <el-button type="primary" @click="loadScraps">刷新</el-button>
+                </div>
+                <el-table :data="scraps" stripe border style="width:100%">
+                    <el-table-column prop="tool_code" label="工装编号" width="120"></el-table-column>
+                    <el-table-column prop="tool_name" label="工装名称" width="150"></el-table-column>
+                    <el-table-column prop="requester_name" label="申请人" width="100"></el-table-column>
+                    <el-table-column prop="reason" label="报废原因" show-overflow-tooltip min-width="150"></el-table-column>
+                    <el-table-column prop="status" label="状态" width="90">
+                        <template #default="scope">
+                            <el-tag :type="scope.row.status==='待审核'?'warning':scope.row.status==='已批准'?'success':'danger'" size="small">{{ scope.row.status }}</el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="created_at" label="申请时间" width="170"></el-table-column>
+                    <el-table-column prop="reviewer_name" label="审批人" width="100"></el-table-column>
+                    <el-table-column prop="reject_reason" label="拒绝原因" show-overflow-tooltip min-width="120"></el-table-column>
+                    <el-table-column label="操作" width="180" v-if="isAdmin">
+                        <template #default="scope">
+                            <el-button size="small" type="success" @click="approveScrap(scope.row)" v-if="scope.row.status==='待审核'">批准</el-button>
+                            <el-button size="small" type="danger" @click="rejectScrap(scope.row)" v-if="scope.row.status==='待审核'">拒绝</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+                <div class="page-container">
+                    <el-pagination background layout="total, prev, pager, next" :total="scrapTotal" :page-size="20" @current-change="onScrapPageChange"></el-pagination>
+                </div>
+            </div>
+
+            <!-- 用户弹窗 -->
+            <el-dialog v-model="userDialogVisible" :title="userForm.id ? '编辑用户' : '新增用户'" width="400px">
+                <el-form :model="userForm" label-width="80px">
+                    <el-form-item label="用户名"><el-input v-model="userForm.username" :disabled="!!userForm.id"></el-input></el-form-item>
+                    <el-form-item :label="userForm.id ? '新密码' : '密码'"><el-input v-model="userForm.password" type="password" :placeholder="userForm.id ? '留空不修改' : '请输入密码'"></el-input></el-form-item>
+                    <el-form-item label="角色"><el-select v-model="userForm.role"><el-option label="管理员" value="admin"></el-option><el-option label="普通员工" value="employee"></el-option></el-select></el-form-item>
+                </el-form>
+                <template #footer>
+                    <el-button @click="userDialogVisible=false">取消</el-button>
+                    <el-button type="primary" @click="saveUser" :loading="saving">保存</el-button>
+                </template>
+            </el-dialog>
+
+            <!-- 配置管理页（二级菜单） -->
+            <div v-if="currentPage==='configs'" class="page-content">
+                <!-- 子页面1：工装类别 -->
+                <div v-show="currentSubPage==='config-category'">
+                    <div style="margin-bottom:16px">
+                        <el-button type="primary" @click="openConfigDialog('category')">新增类别</el-button>
+                    </div>
+                    <el-table :data="configLists.category" stripe>
+                        <el-table-column prop="config_value" label="类别名称"></el-table-column>
+                        <el-table-column prop="sort_order" label="排序" width="80"></el-table-column>
+                        <el-table-column label="操作" width="150">
+                            <template #default="scope">
+                                <el-button size="small" link type="primary" @click="openConfigDialog('category', scope.row)">编辑</el-button>
+                                <el-button size="small" link type="danger" @click="deleteConfig(scope.row)">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+
+                <!-- 子页面2：工厂设置 - 卡片布局 -->
+                <div v-if="currentPage==='configs'" v-show="currentSubPage==='config-factory' || currentSubPage.startsWith('config-factory-')">
+                    <!-- 顶部：分厂管理 -->
+                    <div style="margin-bottom:24px">
+                        <h3 style="margin-top:0;display:flex;align-items:center;justify-content:space-between">
+                            <span>分厂管理</span>
+                            <el-button type="primary" size="small" @click="openConfigDialog('factory')">+ 新增分厂</el-button>
+                        </h3>
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0">
+                            <el-tag v-for="f in configLists.factory" :key="f.id" closable @click="openConfigDialog('factory', f)" @close="deleteConfig(f)" style="cursor:pointer;padding:6px 12px;font-size:14px">
+                                {{ f.config_value }}
+                            </el-tag>
+                            <span v-if="configLists.factory.length===0" style="color:#909399">暂无分厂，点击右上角"新增分厂"</span>
+                        </div>
+                    </div>
+                    <!-- 分厂卡片网格 -->
+                    <el-row :gutter="16">
+                        <el-col v-for="f in configLists.factory" :key="f.id" :xs="24" :sm="12" :md="8" :lg="8" style="margin-bottom:16px">
+                            <el-card shadow="hover" style="min-height:200px">
+                                <div slot="header" style="display:flex;align-items:center;justify-content:space-between">
+                                    <span style="font-weight:bold;font-size:16px">🏭 {{ f.config_value }}</span>
+                                    <el-button type="primary" size="mini" @click="openConfigDialog('team', null, f.config_value)">+ 新增班组</el-button>
+                                </div>
+                                <div v-if="teamsOfFactory(f.config_value).length===0" style="color:#909399;text-align:center;padding:20px 0">
+                                    暂无班组
+                                </div>
+                                <div v-else>
+                                    <div v-for="t in teamsOfFactory(f.config_value)" :key="t.id" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #eee">
+                                        <span>{{ getTeamName(t.config_value) }}</span>
+                                        <div>
+                                            <el-button size="mini" type="text" @click="openConfigDialog('team', t)">编辑</el-button>
+                                            <el-button size="mini" type="text" style="color:#f56c6c" @click="deleteConfig(t)">删除</el-button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </el-card>
+                        </el-col>
+                    </el-row>
+                </div>
+
+                <!-- 子页面3：用户管理 -->
+                <div v-show="currentSubPage==='config-users'">
+                    <div style="margin-bottom:16px">
+                        <el-button type="primary" @click="openUserDialog()">新增用户</el-button>
+                    </div>
+                    <el-table :data="users" stripe>
+                        <el-table-column prop="username" label="用户名"></el-table-column>
+                        <el-table-column prop="role" label="角色" width="100" :formatter="formatRole"></el-table-column>
+                        <el-table-column prop="created_at" label="创建时间" width="180"></el-table-column>
+                        <el-table-column label="操作" width="150">
+                            <template #default="scope">
+                                <el-button size="small" link type="primary" @click="openUserDialog(scope.row)">编辑</el-button>
+                                <el-button size="small" link type="danger" @click="deleteUser(scope.row)">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+            </div>
+
+            <!-- 配置编辑弹窗 -->
+            <el-dialog v-model="configDialogVisible" :title="(configForm.id ? '编辑' : '新增') + ' ' + (configTypeNames[configTab] || '')" width="400px">
+                <el-form :model="configForm" label-width="80px">
+                    <!-- 班组时：先选分厂，再输入班组名 -->
+                    <template v-if="configTab === 'team'">
+                        <el-form-item label="所属分厂" required>
+                            <el-select v-model="configForm.team_factory" placeholder="请选择分厂" style="width:100%">
+                                <el-option v-for="f in factories" :key="f" :label="f" :value="f"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="班组名称" required>
+                            <el-input v-model="configForm.team_name" placeholder="请输入班组名称"></el-input>
+                        </el-form-item>
+                    </template>
+                    <!-- 分厂/类别时：直接输入名称 -->
+                    <template v-else>
+                        <el-form-item label="名称" required>
+                            <el-input v-model="configForm.config_value" placeholder="请输入名称"></el-input>
+                        </el-form-item>
+                    </template>
+                    <el-form-item label="排序">
+                        <el-input-number v-model="configForm.sort_order" :min="0" :max="999"></el-input-number>
+                    </el-form-item>
+                </el-form>
+                <template #footer>
+                    <el-button @click="configDialogVisible=false">取消</el-button>
+                    <el-button type="primary" @click="saveConfig" :loading="saving">保存</el-button>
+                </template>
+            </el-dialog>
+        </div>
+    </div>
+</div>
+
+<script>
+const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
+
+const api = axios.create({ 
+    baseURL: '/api', 
+    withCredentials: true,
+    timeout: 10000  // 10秒超时
+});
+
+const app = createApp({
+    setup() {
+        const loggedIn = ref(false);
+        const loginLoading = ref(false);
+        const loginForm = reactive({ username: '', password: '' });
+        const currentUser = reactive({ username: '', role: '' });
+        const currentPage = ref('dashboard');
+        const saving = ref(false);
+
+        const isAdmin = computed(() => currentUser.role === 'admin');
+        // 二级菜单状态
+        const currentSubPage = ref('config-category');
+        const configMenuOpen = ref(true);  // 默认展开
+        const factoryMenuOpen = ref(true);
+        const toggleConfigMenu = () => { configMenuOpen.value = !configMenuOpen.value; };
+        const toggleFactoryMenu = () => { factoryMenuOpen.value = !factoryMenuOpen.value; };
+        const goToConfig = (sub) => {
+            currentSubPage.value = sub;
+            currentPage.value = 'configs';
+            configMenuOpen.value = true;
+        };
+        const pageTitle = computed(() => {
+            if (currentPage.value === 'configs') {
+                if (currentSubPage.value === 'config-category') return '⚙️ 配置管理 / 📋 工装类别';
+                if (currentSubPage.value === 'config-users') return '⚙️ 配置管理 / 👥 用户管理';
+                if (currentSubPage.value === 'config-factory') return '⚙️ 配置管理 / 🏭 工厂设置';
+                if (currentSubPage.value.startsWith('config-factory-')) {
+                    const factory = currentSubPage.value.replace('config-factory-', '');
+                    return `⚙️ 配置管理 / 🏭 工厂设置 / ${factory}`;
+                }
+                return '⚙️ 配置管理';
+            }
+            const map = { dashboard: '首页概览', tools: '工装台账', borrows: '借用记录', inspections: '检定记录', 'inspection-reminder': '检定提醒', users: '用户管理', scraps: '报废审批', configs: '配置管理' };
+            return map[currentPage.value] || '';
+        });
+
+        // 统计
+        const stats = reactive({ total: 0, in_stock: 0, borrowed: 0, repairing: 0, scrapped: 0, due_soon: 0, overdue: 0 });
+        const loadStats = async () => { try { const r = await api.get('/tools/stats'); Object.assign(stats, r.data.data); } catch(e) {} };
+
+        // 工装
+        const tools = ref([]);
+        const toolTotal = ref(0);
+        const toolSearch = reactive({ keyword: '', status: '', factory: '', team: '', page: 1 });
+        const showScrapped = ref(false);  // 默认不显示报废
+
+        const loadTools = async () => {
+            try {
+                const params = { ...toolSearch };
+                if (!showScrapped.value && !toolSearch.status) {
+                    params.exclude_status = '报废';
+                } else if (showScrapped.value) {
+                    delete params.exclude_status;
+                }
+                const r = await api.get('/tools/', { params });
+                tools.value = r.data.data.items;
+                toolTotal.value = r.data.data.total;
+            } catch(e) { ElMessage.error('加载失败'); }
+        };
+        const toolDialogVisible = ref(false);
+        const toolDetailVisible = ref(false);
+        const currentTool = ref(null);
+        const uploadFileType = ref('入库资料');
+        const toolForm = reactive({ id: null, code: '', drawing_no: '', name: '', spec: '', category: '', level: 'A类', factory: '', team: '', receiver: '', status: '在库', purchase_date: '', next_inspection_date: '', remark: '' });
+
+        const openToolDialog = (tool = null) => {
+            if (tool) { Object.assign(toolForm, { id: tool.id, code: tool.code, drawing_no: tool.drawing_no || '', name: tool.name, spec: tool.spec, category: tool.category || '', level: tool.level || 'A类', factory: tool.factory, team: tool.team, receiver: tool.receiver, status: tool.status, purchase_date: tool.purchase_date, next_inspection_date: tool.next_inspection_date, remark: tool.remark }); }
+            else { Object.assign(toolForm, { id: null, code: '', drawing_no: '', name: '', spec: '', category: '', level: 'A类', factory: '', team: '', receiver: '', status: '在库', purchase_date: '', next_inspection_date: '', remark: '' }); }
+            toolDialogVisible.value = true;
+        };
+
+        const saveTool = async () => {
+            if (!toolForm.code || !toolForm.name) { ElMessage.warning('编号和名称不能为空'); return; }
+            saving.value = true;
+            try {
+                const res = toolForm.id 
+                    ? await api.put(`/tools/${toolForm.id}`, toolForm)
+                    : await api.post('/tools/', toolForm);
+                console.log('保存响应:', res);
+                if (res.data.code === 200) {
+                    ElMessage.success('保存成功');
+                    toolDialogVisible.value = false;
+                    loadTools();
+                    loadStats();
+                } else {
+                    ElMessage.error(res.data.msg || '保存失败');
+                }
+            } catch(e) { 
+                console.error('保存失败:', e);
+                ElMessage.error(e.response?.data?.msg || e.message || '保存失败'); 
+            } finally {
+                saving.value = false;
+            }
+        };
+
+        const deleteTool = async (tool) => {
+            try { 
+                await ElMessageBox.confirm(`确定删除工装 ${tool.code} ${tool.name}？`, '确认', { type: 'warning' }); 
+            } catch { 
+                return; 
+            }
+            try { 
+                const res = await api.delete(`/tools/${tool.id}`);
+                console.log('删除响应:', res);
+                if (res.data.code === 200) {
+                    ElMessage.success('删除成功'); 
+                    loadTools(); 
+                    loadStats();
+                } else {
+                    ElMessage.error(res.data.msg || '删除失败');
+                }
+            } catch(e) { 
+                console.error('删除失败:', e);
+                ElMessage.error(e.response?.data?.msg || '删除失败'); 
+            }
+        };
+
+        const viewTool = async (tool) => {
+            try { 
+                const r = await api.get(`/tools/${tool.id}`); 
+                currentTool.value = r.data.data; 
+                toolDetailEditing.value = false;
+                toolDetailVisible.value = true; 
+            } catch(e) { ElMessage.error('加载失败'); }
+        };
+        
+        const toolDetailEditing = ref(false);
+        
+        const saveToolDetail = async () => {
+            if (!currentTool.value.name) { ElMessage.warning('名称不能为空'); return; }
+            saving.value = true;
+            try {
+                const res = await api.put(`/tools/${currentTool.value.id}`, currentTool.value);
+                if (res.data.code === 200) {
+                    ElMessage.success('保存成功');
+                    toolDetailEditing.value = false;
+                    loadTools();
+                    loadStats();
+                } else {
+                    ElMessage.error(res.data.msg || '保存失败');
+                }
+            } catch(e) { 
+                ElMessage.error(e.response?.data?.msg || '保存失败'); 
+            } finally {
+                saving.value = false;
+            }
+        };
+
+        // 借用
+        const borrows = ref([]);
+        const borrowTotal = ref(0);
+        const borrowSearch = reactive({ status: '', borrower: '', factory: '', team: '', page: 1 });
+        const borrowDialogVisible = ref(false);
+        const borrowForm = reactive({ tool_id: null, tool_code: '', tool_name: '', borrower: '', factory: '', team: '', receiver: '' });
+
+        const loadBorrows = async () => {
+            try { const r = await api.get('/borrows/', { params: borrowSearch }); borrows.value = r.data.data.items; borrowTotal.value = r.data.data.total; } catch(e) { ElMessage.error('加载失败'); }
+        };
+
+        const openBorrowDialog = (tool) => {
+            Object.assign(borrowForm, { tool_id: tool.id, tool_code: tool.code, tool_name: tool.name, borrower: currentUser.username, factory: tool.factory || '', team: tool.team || '', receiver: tool.receiver || currentUser.username });
+            borrowDialogVisible.value = true;
+        };
+
+        const submitBorrow = async () => {
+            saving.value = true;
+            try { 
+                const res = await api.post('/borrows/', borrowForm);
+                console.log('借用响应:', res);
+                if (res.data.code === 200) {
+                    ElMessage.success('借用成功'); 
+                    borrowDialogVisible.value = false; 
+                    loadTools(); 
+                    loadBorrows(); 
+                    loadStats();
+                } else {
+                    ElMessage.error(res.data.msg || '借用失败');
+                }
+            } catch(e) { 
+                console.error('借用失败:', e);
+                ElMessage.error(e.response?.data?.msg || '借用失败'); 
+            } finally {
+                saving.value = false;
+            }
+        };
+
+        const returnTool = async (record) => {
+            try { await api.post(`/borrows/${record.id}/return`); ElMessage.success('归还成功'); loadBorrows(); loadTools(); loadStats(); } catch(e) { ElMessage.error(e.response?.data?.msg || '归还失败'); }
+        };
+
+        // 检定
+        const inspections = ref([]);
+        const inspectionTotal = ref(0);
+        const inspectionSearch = reactive({ result: '', page: 1 });
+        const scrapDialogVisible = ref(false);
+        const scrapForm = reactive({ tool_id: null, tool_code: '', tool_name: '', reason: '' });
+        const scrapSearch = reactive({ status: '', page: 1 });
+        const scraps = ref([]);
+        const scrapTotal = ref(0);
+
+        const inspectionDialogVisible = ref(false);
+        const inspectionUploadRef = ref(null);  // 新增：检定附件上传组件引用
+        const inspectionFiles = ref([]);  // 新增：检定附件文件列表
+        const inspectionForm = reactive({ tool_id: null, tool_code: '', tool_name: '', inspect_date: '', result: '合格', next_date: '', inspector: '', remark: '' });
+
+        const loadInspections = async () => {
+            try { const r = await api.get('/inspections/', { params: inspectionSearch }); inspections.value = r.data.data.items; inspectionTotal.value = r.data.data.total; } catch(e) { ElMessage.error('加载失败'); }
+        };
+
+        // 检定提醒
+        const inspectionReminders = ref([]);
+        const reminderTotal = ref(0);
+        const reminderFilter = ref('overdue');
+        const reminderPage = ref(1);
+
+        const loadInspectionReminders = async () => {
+            try {
+                const params = { filter: reminderFilter.value, page: reminderPage.value, page_size: 20 };
+                console.log('检定提醒请求:', params);  // 调试
+                const r = await api.get('/tools/inspection-reminders', { params });
+                console.log('检定提醒响应:', r.data);  // 调试
+                inspectionReminders.value = r.data.data.items;
+                reminderTotal.value = r.data.data.total;
+            } catch(e) { 
+                console.error('检定提醒加载失败:', e);
+                if (e.response) {
+                    ElMessage.error(`加载失败: ${e.response.status} ${e.response.data?.msg || ''}`);
+                } else {
+                    ElMessage.error('加载检定提醒失败: ' + (e.message || '网络错误'));
+                }
+            }
+        };
+
+        // 报废
+        const scrapTool = async (tool) => {
+            if (isAdmin.value) {
+                // admin: 直接报废
+                try { await ElMessageBox.confirm(`确定报废工装 ${tool.code} ${tool.name}？`, '确认报废', { type: 'warning' }); } catch { return; }
+                try {
+                    const res = await api.post('/scraps/', { tool_id: tool.id, reason: 'admin直接报废' });
+                    if (res.data.code === 200) { ElMessage.success(res.data.msg); loadTools(); loadStats(); }
+                    else { ElMessage.error(res.data.msg); }
+                } catch(e) { ElMessage.error(e.response?.data?.msg || '报废失败'); }
+            } else {
+                // 普通员工: 提交报废申请
+                Object.assign(scrapForm, { tool_id: tool.id, tool_code: tool.code, tool_name: tool.name, reason: '' });
+                scrapDialogVisible.value = true;
+            }
+        };
+
+        const submitScrap = async () => {
+            saving.value = true;
+            try {
+                const res = await api.post('/scraps/', scrapForm);
+                if (res.data.code === 200) { ElMessage.success(res.data.msg); scrapDialogVisible.value = false; loadTools(); loadStats(); }
+                else { ElMessage.error(res.data.msg); }
+            } catch(e) { ElMessage.error(e.response?.data?.msg || '提交失败'); }
+            saving.value = false;
+        };
+
+        const loadScraps = async () => {
+            try { const r = await api.get('/scraps/', { params: scrapSearch }); scraps.value = r.data.data.items; scrapTotal.value = r.data.data.total; } catch(e) { ElMessage.error('加载失败'); }
+        };
+
+        const approveScrap = async (req) => {
+            try { await ElMessageBox.confirm(`批准报废工装 ${req.tool_code} ${req.tool_name}？`, '确认批准', { type: 'warning' }); } catch { return; }
+            try {
+                const res = await api.put(`/scraps/${req.id}/approve`);
+                if (res.data.code === 200) { ElMessage.success(res.data.msg); loadScraps(); loadTools(); loadStats(); }
+                else { ElMessage.error(res.data.msg); }
+            } catch(e) { ElMessage.error(e.response?.data?.msg || '审批失败'); }
+        };
+
+        const rejectScrap = async (req) => {
+            try { await ElMessageBox.confirm(`拒绝报废工装 ${req.tool_code} ${req.tool_name}？`, '确认拒绝', { type: 'warning' }); } catch { return; }
+            try {
+                const res = await api.put(`/scraps/${req.id}/reject`, { reject_reason: '管理员拒绝' });
+                if (res.data.code === 200) { ElMessage.success(res.data.msg); loadScraps(); loadTools(); }
+                else { ElMessage.error(res.data.msg); }
+            } catch(e) { ElMessage.error(e.response?.data?.msg || '审批失败'); }
+        };
+
+        const openInspectionDialog = (tool) => {
+            Object.assign(inspectionForm, { tool_id: tool.id, tool_code: tool.code, tool_name: tool.name, inspect_date: '', result: '合格', next_date: '', inspector: '', remark: '' });
+            inspectionFiles.value = [];  // 清空文件列表
+            inspectionDialogVisible.value = true;
+        };
+
+        const submitInspection = async () => {
+            if (!inspectionForm.inspect_date || !inspectionForm.result) { ElMessage.warning('请填写检定日期和结果'); return; }
+            saving.value = true;
+            try { 
+                const res = await api.post('/inspections/', inspectionForm);
+                console.log('检定响应:', res);
+                if (res.data.code === 200) {
+                    const inspectionId = res.data.data.id;
+                    // 上传附件
+                    for (const file of inspectionFiles.value) {
+                        const formData = new FormData();
+                        formData.append('file', file.raw);
+                        formData.append('inspection_id', inspectionId);
+                        formData.append('file_type', '检定报告');
+                        await api.post('/attachments/upload', formData, {
+                            headers: { 'Content-Type': 'multipart/form-data' }
+                        });
+                    }
+                    ElMessage.success('检定记录添加成功'); 
+                    inspectionDialogVisible.value = false; 
+                    loadTools(); 
+                    loadInspections(); 
+                    loadStats();
+                } else {
+                    ElMessage.error(res.data.msg || '添加失败');
+                }
+            } catch(e) { 
+                console.error('检定失败:', e);
+                ElMessage.error(e.response?.data?.msg || '添加失败'); 
+            } finally {
+                saving.value = false;
+            }
+        };
+
+        // 附件
+        const onUploadSuccess = (response) => {
+            if (response.code === 200) { ElMessage.success('上传成功'); viewTool(currentTool.value); }
+            else { ElMessage.error(response.msg || '上传失败'); }
+        };
+        const beforeUpload = (file) => { return true; };
+        const downloadFile = (att) => { window.open(`/api/attachments/${att.id}/download`); };
+        const deleteAttachment = async (att) => {
+            try { await ElMessageBox.confirm('确定删除此附件？', '确认', { type: 'warning' }); } catch { return; }
+            try { await api.delete(`/attachments/${att.id}`); ElMessage.success('删除成功'); viewTool(currentTool.value); } catch(e) { ElMessage.error('删除失败'); }
+        };
+
+        // 用户
+        const users = ref([]);
+        const userDialogVisible = ref(false);
+        const userForm = reactive({ id: null, username: '', password: '', role: 'employee' });
+
+        const loadUsers = async () => {
+            try { const r = await api.get('/auth/users'); users.value = r.data.data; } catch(e) {}
+        };
+
+        const openUserDialog = (user = null) => {
+            if (user) { Object.assign(userForm, { id: user.id, username: user.username, password: '', role: user.role }); }
+            else { Object.assign(userForm, { id: null, username: '', password: '', role: 'employee' }); }
+            userDialogVisible.value = true;
+        };
+
+        const saveUser = async () => {
+            if (!userForm.id && !userForm.password) { ElMessage.warning('请输入密码'); return; }
+            saving.value = true;
+            try {
+                if (userForm.id) { await api.put(`/auth/users/${userForm.id}`, userForm); }
+                else { await api.post('/auth/users', userForm); }
+                ElMessage.success('保存成功');
+                userDialogVisible.value = false;
+                loadUsers();
+            } catch(e) { ElMessage.error(e.response?.data?.msg || '保存失败'); }
+            saving.value = false;
+        };
+
+        const deleteUser = async (user) => {
+            try { await ElMessageBox.confirm(`确定删除用户 ${user.username}？`, '确认', { type: 'warning' }); } catch { return; }
+            try { await api.delete(`/auth/users/${user.id}`); ElMessage.success('删除成功'); loadUsers(); } catch(e) { ElMessage.error(e.response?.data?.msg || '删除失败'); }
+        };
+
+        // 组织架构
+        const factories = ref([]);
+        const allTeams = ref([]);
+        const orgTeamsMap = reactive({});
+
+        const teamsByFactory = (factory) => {
+            if (!factory) return [];
+            return orgTeamsMap[factory] || [];
+        };
+
+        const loadOrgStructure = async () => {
+            try {
+                const r = await api.get('/org/structure');
+                if (r.data.code === 200) {
+                    const list = r.data.data.factories;
+                    factories.value = list.map(f => f.name);
+                    const allT = [];
+                    list.forEach(f => {
+                        orgTeamsMap[f.name] = f.teams;
+                        allT.push(...f.teams);
+                    });
+                    allTeams.value = [...new Set(allT)];
+                }
+            } catch(e) { console.warn('加载组织架构失败', e); }
+        };
+
+        // 系统配置（类别/分厂/班组）
+        const configTab = ref('category');
+        const configTypeNames = { category: '类别', factory: '分厂', team: '班组' };
+        const configLists = reactive({ category: [], factory: [], team: [] });
+        const configDialogVisible = ref(false);
+        const configForm = reactive({ id: null, config_key: '', config_value: '', sort_order: 0, team_factory: '', team_name: '' });
+
+        // 当前分厂下的班组
+        const teamsInCurrentFactory = computed(() => {
+            if (!currentSubPage.value.startsWith('config-factory-')) return [];
+            const factory = currentSubPage.value.replace('config-factory-', '');
+            return configLists.team.filter(t => t.config_value.startsWith(factory + '/'));
+        });
+
+        // 通用：获取某分厂下的班组
+        const teamsOfFactory = (factoryName) => {
+            return configLists.team.filter(t => t.config_value.startsWith(factoryName + '/'));
+        };
+
+        const loadConfigs = async () => {
+            try {
+                const r = await api.get('/configs');
+                if (r.data.success) {
+                    Object.assign(configLists, r.data.data);
+                }
+            } catch(e) { console.warn('加载配置失败', e); }
+        };
+
+        const openConfigDialog = (key, row = null, factoryName = null) => {
+            configTab.value = key;
+            if (row) {
+                configForm.id = row.id;
+                configForm.sort_order = row.sort_order || 0;
+                if (key === 'team') {
+                    // 解析 "分厂名/班组名" 格式
+                    const parts = row.config_value.includes('/') 
+                        ? row.config_value.split('/', 2) 
+                        : ['', row.config_value];
+                    configForm.team_factory = parts[0];
+                    configForm.team_name = parts[1] || row.config_value;
+                    configForm.config_value = '';
+                } else {
+                    configForm.config_value = row.config_value;
+                }
+            } else {
+                configForm.id = null;
+                configForm.sort_order = 0;
+                if (key === 'team') {
+                    // 优先用传入的 factoryName，其次用当前分厂
+                    configForm.team_factory = factoryName || (currentSubPage.value.startsWith('config-factory-') ? currentSubPage.value.replace('config-factory-', '') : factories.value[0] || '');
+                    configForm.team_name = '';
+                    configForm.config_value = '';
+                } else {
+                    configForm.config_value = '';
+                }
+            }
+            configDialogVisible.value = true;
+        };
+
+        const saveConfig = async () => {
+            // 组装最终保存的值
+            let finalValue;
+            if (configTab.value === 'team') {
+                if (!configForm.team_factory) { ElMessage.warning('请选择所属分厂'); return; }
+                if (!configForm.team_name?.trim()) { ElMessage.warning('班组名称不能为空'); return; }
+                finalValue = `${configForm.team_factory}/${configForm.team_name.trim()}`;
+            } else {
+                if (!configForm.config_value.trim()) { ElMessage.warning('名称不能为空'); return; }
+                finalValue = configForm.config_value.trim();
+            }
+            saving.value = true;
+            try {
+                const data = { config_key: configTab.value, config_value: finalValue, sort_order: configForm.sort_order };
+                const res = configForm.id
+                    ? await api.put(`/configs/${configForm.id}`, data)
+                    : await api.post('/configs', data);
+                if (res.data.success) {
+                    ElMessage.success('保存成功');
+                    configDialogVisible.value = false;
+                    loadConfigs();
+                    loadOrgStructure();  // 刷新组织架构
+                } else {
+                    ElMessage.error(res.data.message || '保存失败');
+                }
+            } catch(e) { ElMessage.error(e.response?.data?.message || '保存失败'); }
+            finally { saving.value = false; }
+        };
+
+        const deleteConfig = async (row) => {
+            try {
+                await ElMessageBox.confirm(`确定删除 "${row.config_value}"？`, '确认', { type: 'warning' });
+                await api.delete(`/configs/${row.id}`);
+                ElMessage.success('删除成功');
+                loadConfigs();
+                loadOrgStructure();
+            } catch(e) { if (e !== 'cancel') ElMessage.error('删除失败'); }
+        };
+
+        // 登录/登出
+        const handleLogin = async () => {
+            if (!loginForm.username || !loginForm.password) { ElMessage.warning('请输入用户名和密码'); return; }
+            loginLoading.value = true;
+            try {
+                const r = await api.post('/auth/login', loginForm);
+                if (r.data.code === 200) {
+                    loggedIn.value = true;
+                    Object.assign(currentUser, r.data.data);
+                    loadStats();
+                    loadOrgStructure();
+                    loadConfigs();
+                    ElMessage.success('登录成功');
+                } else { ElMessage.error(r.data.msg); }
+            } catch(e) { ElMessage.error(e.response?.data?.msg || '登录失败'); }
+            loginLoading.value = false;
+        };
+
+        const handleLogout = async () => {
+            try { await api.post('/auth/logout'); } catch {}
+            loggedIn.value = false;
+            currentPage.value = 'dashboard';
+        };
+
+        // 工具函数
+        const statusTagType = (status) => ({ '在库': 'success', '借出': 'warning', '维修': 'danger', '报废': 'info' }[status] || '');
+        const isOverdue = (dateStr) => { if (!dateStr) return false; return new Date(dateStr) < new Date(); };
+        const formatRole = (row) => row.role === 'admin' ? '管理员' : '员工';
+        const getTeamName = (configValue) => { const parts = configValue.split('/'); return parts.length > 1 ? parts[1] : configValue; };
+        const onToolPageChange = (p) => { toolSearch.page = p; loadTools(); };
+        const onBorrowPageChange = (p) => { borrowSearch.page = p; loadBorrows(); };
+        const onInspectionPageChange = (p) => { inspectionSearch.page = p; loadInspections(); };
+        const onReminderPageChange = (p) => { reminderPage = p; loadInspectionReminders(); };
+        const onScrapPageChange = (p) => { scrapSearch.page = p; loadScraps(); };
+
+        // 页面切换加载
+        watch(currentPage, (page) => {
+            if (page === 'dashboard') loadStats();
+            if (page === 'tools') loadTools();
+            if (page === 'borrows') loadBorrows();
+            if (page === 'inspections') loadInspections();
+            if (page === 'inspection-reminder') loadInspectionReminders();
+            if (page === 'users') loadUsers();
+            if (page === 'configs') loadConfigs();
+        });
+
+        onMounted(() => {
+            loadOrgStructure();
+            loadConfigs();
+            api.get('/auth/info').then(r => { if (r.data.code === 200) { loggedIn.value = true; Object.assign(currentUser, r.data.data); loadStats(); } }).catch(() => {});
+            // 监听 api 拦截器发出的 401 登出事件
+            window.addEventListener('app:logout', () => { loggedIn.value = false; currentPage.value = 'dashboard'; });
+        });
+
+        return {
+            loggedIn, loginLoading, loginForm, currentUser, currentPage, saving, isAdmin, pageTitle,
+            stats, loadStats,
+            tools, toolTotal, toolSearch, loadTools, toolDialogVisible, toolDetailVisible, currentTool, toolForm, openToolDialog, saveTool, deleteTool, viewTool, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail,
+            showScrapped,
+            borrows, borrowTotal, borrowSearch, loadBorrows, borrowDialogVisible, borrowForm, openBorrowDialog, submitBorrow, returnTool,
+            scrapDialogVisible, scrapForm, scrapSearch, scraps, scrapTotal,
+            loadScraps, approveScrap, rejectScrap, scrapTool, submitScrap,
+            inspections, inspectionTotal, inspectionSearch, loadInspections, inspectionDialogVisible, inspectionForm, openInspectionDialog, submitInspection,
+            inspectionReminders, reminderTotal, reminderFilter, reminderPage, loadInspectionReminders,
+            users, loadUsers, userDialogVisible, userForm, openUserDialog, saveUser, deleteUser,
+            handleLogin, handleLogout, statusTagType, isOverdue, formatRole, getTeamName,
+            onToolPageChange, onBorrowPageChange, onInspectionPageChange, onReminderPageChange, onScrapPageChange,
+            factories, allTeams, teamsByFactory,
+            configTab, configTypeNames, configLists, loadConfigs, openConfigDialog, saveConfig, deleteConfig, configDialogVisible, configForm, teamsInCurrentFactory, teamsOfFactory,
+            currentSubPage, configMenuOpen, factoryMenuOpen, toggleConfigMenu, toggleFactoryMenu, goToConfig
+        };
+    }
+});
+
+const { ElMessage, ElMessageBox } = ElementPlus;
+
+app.use(ElementPlus);
+app.mount('#app');
+
+// 拦截器必须在 app 创建之后（moveToEnd 之后）才能引用 app
+api.interceptors.response.use(res => res, err => {
+    if (err.code === 'ECONNABORTED') {
+        ElMessage.error('请求超时，请检查网络');
+    }
+    if (err.response && err.response.status === 401) {
+        window.dispatchEvent(new Event('app:logout'));
+        ElMessage.error('登录已过期，请重新登录');
+    }
+    return Promise.reject(err);
+});
+</script>
+</body>
+</html>
+
