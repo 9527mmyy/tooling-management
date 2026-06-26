@@ -142,6 +142,7 @@
                     <el-button type="primary" @click="loadTools">搜索</el-button>
                     <el-switch v-model="showScrapped" active-text="显示报废" inactive-text="" @change="loadTools" style="margin-left:10px"></el-switch>
                     <el-button type="success" @click="openToolDialog()" v-if="canEdit">新增工装</el-button>
+                    <el-button type="info" @click="exportTools" style="margin-left:4px">导出Excel</el-button>
                 </div>
                 <el-table :data="tools" stripe border style="width:100%">
                     <el-table-column prop="code" label="编号" width="120"></el-table-column>
@@ -442,6 +443,7 @@
                     </el-select>
                     <el-input v-model="borrowSearch.borrower" placeholder="搜索借用人" style="width:200px" clearable @clear="loadBorrows" @keyup.enter="loadBorrows"></el-input>
                     <el-button type="primary" @click="loadBorrows">搜索</el-button>
+                    <el-button type="info" @click="exportBorrows" style="margin-left:4px">导出Excel</el-button>
                 </div>
                 <el-table :data="borrows" stripe border style="width:100%">
                     <el-table-column prop="tool_code" label="工装编号" width="110"></el-table-column>
@@ -481,6 +483,7 @@
                         <el-option label="待修" value="待修"></el-option>
                     </el-select>
                     <el-button type="primary" @click="loadInspections">搜索</el-button>
+                    <el-button type="info" @click="exportInspections" style="margin-left:4px">导出Excel</el-button>
                 </div>
                 <el-table :data="inspections" stripe border style="width:100%">
                     <el-table-column prop="tool_code" label="工装编号" width="120"></el-table-column>
@@ -1327,6 +1330,52 @@ const app = createApp({
             }
         });
         const getTeamName = (configValue) => { const parts = configValue.split('/'); return parts.length > 1 ? parts[1] : configValue; };
+
+        // 导出Excel（触发浏览器下载）
+        const exportTools = async () => {
+            try {
+                const params = { ...toolSearch };
+                if (!showScrapped.value && !toolSearch.status) params.exclude_status = '报废';
+                else if (showScrapped.value) delete params.exclude_status;
+                const res = await api.get('/export/tools', { params, responseType: 'blob' });
+                const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const cd = res.headers['content-disposition'];
+                a.href = url;
+                a.download = cd ? decodeURIComponent(cd.match(/filename\*=UTF-8\'\'(.+)/)?.[1] || '工装台账.xlsx') : '工装台账.xlsx';
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch(e) { ElMessage.error('导出失败'); }
+        };
+        const exportBorrows = async () => {
+            try {
+                const params = { ...borrowSearch };
+                const res = await api.get('/export/borrows', { params, responseType: 'blob' });
+                const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const cd = res.headers['content-disposition'];
+                a.href = url;
+                a.download = cd ? decodeURIComponent(cd.match(/filename\*=UTF-8\'\'(.+)/)?.[1] || '借用记录.xlsx') : '借用记录.xlsx';
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch(e) { ElMessage.error('导出失败'); }
+        };
+        const exportInspections = async () => {
+            try {
+                const params = { ...inspectionSearch };
+                const res = await api.get('/export/inspections', { params, responseType: 'blob' });
+                const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const cd = res.headers['content-disposition'];
+                a.href = url;
+                a.download = cd ? decodeURIComponent(cd.match(/filename\*=UTF-8\'\'(.+)/)?.[1] || '检定记录.xlsx') : '检定记录.xlsx';
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch(e) { ElMessage.error('导出失败'); }
+        };
         const onToolPageChange = (p) => { toolSearch.page = p; loadTools(); };
         const onBorrowPageChange = (p) => { borrowSearch.page = p; loadBorrows(); };
         const onInspectionPageChange = (p) => { inspectionSearch.page = p; loadInspections(); };
@@ -1366,7 +1415,7 @@ const app = createApp({
             borrows, borrowTotal, borrowSearch, loadBorrows, borrowDialogVisible, borrowForm, openBorrowDialog, submitBorrow, returnTool,
             scrapDialogVisible, scrapForm, scrapSearch, scraps, scrapTotal,
             loadScraps, approveScrap, rejectScrap, scrapTool, submitScrap,
-            inspections, inspectionTotal, inspectionSearch, loadInspections, inspectionDialogVisible, inspectionForm, openInspectionDialog, submitInspection,
+            inspections, inspectionTotal, inspectionSearch, loadInspections, inspectionDialogVisible, inspectionForm, openInspectionDialog, submitInspection, exportTools, exportBorrows, exportInspections,
             inspectionReminders, reminderTotal, reminderFilter, reminderPage, loadInspectionReminders,
             users, loadUsers, userDialogVisible, userForm, openUserDialog, saveUser, deleteUser,
             changePwdDialogVisible, changePwdForm, submitChangePwd,
