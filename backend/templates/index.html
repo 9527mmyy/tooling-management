@@ -157,7 +157,7 @@
                             <el-tag :type="statusTagType(scope.row.status)" size="small">{{ scope.row.status }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="purchase_date" label="购置日期" width="110"></el-table-column>
+                    <el-table-column prop="purchase_date" label="完工日期" width="110"></el-table-column>
                     <el-table-column prop="next_inspection_date" label="下次检定" width="110">
                         <template #default="scope">
                             <span :style="{color: isOverdue(scope.row.next_inspection_date) ? '#f56c6c' : ''}">{{ scope.row.next_inspection_date || '-' }}</span>
@@ -194,7 +194,7 @@
                         <el-descriptions-item label="使用班组">{{ currentTool.team || '-' }}</el-descriptions-item>
                         <el-descriptions-item label="领用人">{{ currentTool.receiver || '-' }}</el-descriptions-item>
                         <el-descriptions-item label="状态"><el-tag :type="statusTagType(currentTool.status)">{{ currentTool.status }}</el-tag></el-descriptions-item>
-                        <el-descriptions-item label="购置日期">{{ currentTool.purchase_date || '-' }}</el-descriptions-item>
+                        <el-descriptions-item label="完工日期">{{ currentTool.purchase_date || '-' }}</el-descriptions-item>
                         <el-descriptions-item label="下次检定">{{ currentTool.next_inspection_date || '-' }}</el-descriptions-item>
                         <el-descriptions-item label="备注" :span="2">{{ currentTool.remark || '-' }}</el-descriptions-item>
                     </el-descriptions>
@@ -248,7 +248,7 @@
                                 <el-form-item label="领用人"><el-input :model-value="currentTool.receiver || '-（借用记录管理）'" disabled></el-input></el-form-item>
                             </el-col>
                             <el-col :span="12">
-                                <el-form-item label="购置日期">
+                                <el-form-item label="完工日期">
                                     <el-date-picker v-model="currentTool.purchase_date" type="date" value-format="YYYY-MM-DD" style="width:100%"></el-date-picker>
                                 </el-form-item>
                             </el-col>
@@ -265,9 +265,9 @@
                         </el-row>
                     </el-form>
 
-                    <!-- 附件区 -->
-                    <h4 style="margin:20px 0 10px">📎 附件资料</h4>
-                    <el-upload :action="`/api/attachments/upload`" :data="{tool_id: currentTool.id, file_type: uploadFileType}" :headers="{}" :on-success="onUploadSuccess" :before-upload="beforeUpload" :show-file-list="false" v-if="isAdmin">
+                    <!-- 完工资料区（编辑模式下显示上传按钮） -->
+                    <h4 style="margin:20px 0 10px">📎 完工资料</h4>
+                    <el-upload :action="`/api/attachments/upload`" :data="{tool_id: currentTool.id, file_type: uploadFileType}" :headers="{}" :on-success="onUploadSuccess" :before-upload="beforeUpload" :show-file-list="false" v-if="isAdmin && toolDetailEditing">
                         <el-button size="small" type="primary">上传资料</el-button>
                         <el-select v-model="uploadFileType" size="small" style="width:120px;margin-left:8px">
                             <el-option label="入库资料" value="入库资料"></el-option>
@@ -360,8 +360,7 @@
             <!-- 借用弹窗 -->
             <el-dialog v-model="borrowDialogVisible" title="借用工装" width="480px">
                 <el-form label-width="80px">
-                    <el-form-item label="工装">{{ borrowForm.tool_name }} ({{ borrowForm.tool_code }})</el-form-item>
-                    <el-form-item label="借用人"><el-input v-model="borrowForm.borrower" :placeholder="currentUser.username"></el-input></el-form-item>
+                    <el-form-item>{{ borrowForm.tool_name }} ({{ borrowForm.tool_code }})</el-form-item>
                     <el-form-item label="使用分厂">
                         <el-select v-model="borrowForm.factory" placeholder="请选择分厂" clearable style="width:100%" @change="borrowForm.team=''">
                             <el-option v-for="f in factories" :key="f" :label="f" :value="f"></el-option>
@@ -372,7 +371,8 @@
                             <el-option v-for="t in teamsByFactory(borrowForm.factory)" :key="t" :label="t" :value="t"></el-option>
                         </el-select>
                     </el-form-item>
-                    <el-form-item label="领用人"><el-input v-model="borrowForm.receiver" placeholder="请输入领用人"></el-input></el-form-item>
+                    <el-form-item label="领用人"><el-input v-model="borrowForm.receiver" :placeholder="currentUser.username"></el-input></el-form-item>
+                    <el-form-item label="借用人"><el-input :model-value="currentUser.username" disabled></el-input></el-form-item>
                 </el-form>
                 <template #footer>
                     <el-button @click="borrowDialogVisible=false">取消</el-button>
@@ -637,7 +637,7 @@
                     </div>
                     <!-- 分厂卡片网格 -->
                     <el-row :gutter="16">
-                        <el-col v-for="f in configLists.factory" :key="f.id" :xs="24" :sm="12" :md="8" :lg="8" style="margin-bottom:16px">
+                        <el-col v-for="f in configLists.factory" :key="f.id" :xs="24" :sm="12" :md="6" :lg="6" style="margin-bottom:16px">
                             <el-card shadow="hover" style="min-height:200px">
                                 <div slot="header" style="display:flex;align-items:center;justify-content:space-between">
                                     <span style="font-weight:bold;font-size:16px">🏭 {{ f.config_value }}</span>
@@ -1256,6 +1256,11 @@ const app = createApp({
             if (page === 'inspection-reminder') loadInspectionReminders();
             if (page === 'users') loadUsers();
             if (page === 'configs') loadConfigs();
+        });
+
+        // 子页面切换时加载对应数据
+        watch(currentSubPage, (sub) => {
+            if (sub === 'config-users') loadUsers();
         });
 
         onMounted(() => {

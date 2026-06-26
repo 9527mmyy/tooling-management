@@ -119,8 +119,11 @@ def get_inspection_reminders():
     today = datetime.now().date()
     from datetime import timedelta
     
-    # 构建查询
-    query = Tool.query.filter(Tool.next_inspection_date != None)
+    # 构建查询（排除已报废的工装）
+    query = Tool.query.filter(
+        Tool.next_inspection_date != None,
+        Tool.status != '报废'
+    )
     
     if filter_type == 'overdue':
         # 已逾期

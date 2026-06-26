@@ -27,9 +27,6 @@ def list_borrows():
         query = query.filter(BorrowRecord.factory.contains(factory))
     if team:
         query = query.filter(BorrowRecord.team.contains(team))
-    # 普通员工只能看自己的记录
-    if session.get('role') != 'admin':
-        query = query.filter_by(borrower=session.get('username', ''))
 
     pagination = query.order_by(BorrowRecord.id.desc()).paginate(
         page=page, per_page=per_page, error_out=False
