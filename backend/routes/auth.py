@@ -125,6 +125,38 @@ def login():
     })
 
 
+@auth_bp.route('/change-password', methods=['POST'])
+@login_required
+def change_password():
+    """修改当前用户密码"""
+    data = request.get_json()
+    old_password = data.get('old_password', '').strip()
+    new_password = data.get('new_password', '').strip()
+    confirm_password = data.get('confirm_password', '').strip()
+
+    if not old_password or not new_password:
+        return jsonify({'code': 400, 'msg': '旧密码和新密码不能为空'})
+
+    if len(new_password) < 6:
+        return jsonify({'code': 400, 'msg': '新密码至少6位'})
+
+    if new_password != confirm_password:
+        return jsonify({'code': 400, 'msg': '两次输入的新密码不一致'})
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'code': 401, 'msg': '用户不存在'})
+
+    if not user.check_password(old_password):
+        return jsonify({'code': 400, 'msg': '旧密码错误'})
+
+    user.set_password(new_password)
+    db.session.commit()
+    add_log('修改密码', f'用户 {user.username} 修改了密码')
+
+    return jsonify({'code': 200, 'msg': '密码修改成功'})
+
+
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
     """登出"""

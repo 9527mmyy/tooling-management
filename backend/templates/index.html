@@ -102,7 +102,8 @@
                 <h2>{{ pageTitle }}</h2>
                 <div>
                     <span style="margin-right:16px;color:#606266">{{ currentUser.username }} ({{ currentUser.role === 'admin' ? '管理员' : currentUser.role === 'employee' ? '一般员工' : '查阅' }})</span>
-                    <el-button type="danger" size="small" @click="handleLogout">退出</el-button>
+                    <el-button type="warning" size="small" @click="changePwdDialogVisible=true">修改密码</el-button>
+                    <el-button type="danger" size="small" @click="handleLogout" style="margin-left:8px">退出</el-button>
                 </div>
             </div>
 
@@ -601,6 +602,19 @@
                 </template>
             </el-dialog>
 
+            <!-- 修改密码弹窗 -->
+            <el-dialog v-model="changePwdDialogVisible" title="修改密码" width="400px">
+                <el-form :model="changePwdForm" label-width="80px">
+                    <el-form-item label="旧密码"><el-input v-model="changePwdForm.old_password" type="password" show-password placeholder="请输入旧密码"></el-input></el-form-item>
+                    <el-form-item label="新密码"><el-input v-model="changePwdForm.new_password" type="password" show-password placeholder="请输入新密码（至少6位）"></el-input></el-form-item>
+                    <el-form-item label="确认密码"><el-input v-model="changePwdForm.confirm_password" type="password" show-password placeholder="请再次输入新密码"></el-input></el-form-item>
+                </el-form>
+                <template #footer>
+                    <el-button @click="changePwdDialogVisible=false">取消</el-button>
+                    <el-button type="primary" @click="submitChangePwd" :loading="saving">确认修改</el-button>
+                </template>
+            </el-dialog>
+
             <!-- 配置管理页（二级菜单） -->
             <div v-if="currentPage==='configs'" class="page-content">
                 <!-- 子页面1：工装类别 -->
@@ -1064,6 +1078,35 @@ const app = createApp({
 
         // 用户
         const users = ref([]);
+        const changePwdDialogVisible = ref(false);
+        const changePwdForm = reactive({ old_password: '', new_password: '', confirm_password: '' });
+
+        const submitChangePwd = async () => {
+            if (!changePwdForm.old_password || !changePwdForm.new_password || !changePwdForm.confirm_password) {
+                ElMessage.warning('请填写完整'); return;
+            }
+            if (changePwdForm.new_password !== changePwdForm.confirm_password) {
+                ElMessage.warning('两次新密码不一致'); return;
+            }
+            if (changePwdForm.new_password.length < 6) {
+                ElMessage.warning('新密码至少6位'); return;
+            }
+            saving.value = true;
+            try {
+                const res = await api.post('/auth/change-password', changePwdForm);
+                if (res.data.code === 200) {
+                    ElMessage.success(res.data.msg);
+                    changePwdDialogVisible.value = false;
+                    changePwdForm.old_password = '';
+                    changePwdForm.new_password = '';
+                    changePwdForm.confirm_password = '';
+                } else {
+                    ElMessage.error(res.data.msg);
+                }
+            } catch(e) { ElMessage.error(e.response?.data?.msg || '修改失败'); }
+            saving.value = false;
+        };
+
         const userDialogVisible = ref(false);
         const userForm = reactive({ id: null, username: '', password: '', role: 'employee' });
 
@@ -1290,6 +1333,7 @@ const app = createApp({
             inspections, inspectionTotal, inspectionSearch, loadInspections, inspectionDialogVisible, inspectionForm, openInspectionDialog, submitInspection,
             inspectionReminders, reminderTotal, reminderFilter, reminderPage, loadInspectionReminders,
             users, loadUsers, userDialogVisible, userForm, openUserDialog, saveUser, deleteUser,
+            changePwdDialogVisible, changePwdForm, submitChangePwd,
             handleLogin, handleLogout, statusTagType, isOverdue, formatRole, getTeamName,
             onToolPageChange, onBorrowPageChange, onInspectionPageChange, onReminderPageChange, onScrapPageChange,
             factories, allTeams, teamsByFactory,
