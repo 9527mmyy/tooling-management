@@ -1,6 +1,6 @@
 ﻿from flask import Blueprint, request, jsonify, session
 from models import db, Tool, ScrapRequest, BorrowRecord, Inspection
-from routes.auth import login_required, admin_required, add_log
+from routes.auth import login_required, admin_required, scrap_approve_required, add_log
 from datetime import datetime
 
 scraps_bp = Blueprint('scraps', __name__)
@@ -103,7 +103,7 @@ def list_scraps():
 
 
 @scraps_bp.route('/<int:req_id>/approve', methods=['PUT'])
-@admin_required
+@scrap_approve_required
 def approve_request(req_id):
     """批准申请（报废或删除）"""
     req = ScrapRequest.query.get_or_404(req_id)
@@ -143,7 +143,7 @@ def approve_request(req_id):
 
 
 @scraps_bp.route('/<int:req_id>/reject', methods=['PUT'])
-@admin_required
+@scrap_approve_required
 def reject_request(req_id):
     """拒绝申请（报废或删除）"""
     req = ScrapRequest.query.get_or_404(req_id)

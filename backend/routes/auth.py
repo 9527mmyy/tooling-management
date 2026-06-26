@@ -27,6 +27,54 @@ def admin_required(f):
     return decorated
 
 
+def edit_required(f):
+    """编辑权限装饰器（admin或employee）"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'code': 401, 'msg': '请先登录'}), 401
+        if session.get('role') not in ('admin', 'employee'):
+            return jsonify({'code': 403, 'msg': '无编辑权限'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
+def delete_required(f):
+    """删除权限装饰器（仅admin）"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'code': 401, 'msg': '请先登录'}), 401
+        if session.get('role') != 'admin':
+            return jsonify({'code': 403, 'msg': '无删除权限'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
+def scrap_approve_required(f):
+    """报废审批权限装饰器（仅admin）"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'code': 401, 'msg': '请先登录'}), 401
+        if session.get('role') != 'admin':
+            return jsonify({'code': 403, 'msg': '无审批权限'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
+def return_required(f):
+    """借用归还权限装饰器（admin或employee）"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'code': 401, 'msg': '请先登录'}), 401
+        if session.get('role') not in ('admin', 'employee'):
+            return jsonify({'code': 403, 'msg': '无归还权限'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
 def add_log(action, detail=''):
     """记录操作日志"""
     if 'user_id' in session:
@@ -62,7 +110,18 @@ def login():
     return jsonify({
         'code': 200,
         'msg': '登录成功',
-        'data': user.to_dict()
+        'data': {
+            **user.to_dict(),
+            'permissions': {
+                'can_edit': user.can_edit(),
+                'can_delete': user.can_delete(),
+                'can_approve_scrap': user.can_approve_scrap(),
+                'can_manage_users': user.can_manage_users(),
+                'can_manage_config': user.can_manage_config(),
+                'can_return_borrow': user.can_return_borrow(),
+                'can_export': user.can_export(),
+            }
+        }
     })
 
 
@@ -83,7 +142,21 @@ def info():
     if not user:
         session.clear()
         return jsonify({'code': 401, 'msg': '用户不存在'})
-    return jsonify({'code': 200, 'data': user.to_dict()})
+    return jsonify({
+        'code': 200,
+        'data': {
+            **user.to_dict(),
+            'permissions': {
+                'can_edit': user.can_edit(),
+                'can_delete': user.can_delete(),
+                'can_approve_scrap': user.can_approve_scrap(),
+                'can_manage_users': user.can_manage_users(),
+                'can_manage_config': user.can_manage_config(),
+                'can_return_borrow': user.can_return_borrow(),
+                'can_export': user.can_export(),
+            }
+        }
+    })
 
 
 @auth_bp.route('/users', methods=['GET'])

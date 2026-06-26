@@ -101,7 +101,7 @@
             <div class="header">
                 <h2>{{ pageTitle }}</h2>
                 <div>
-                    <span style="margin-right:16px;color:#606266">{{ currentUser.username }} ({{ isAdmin ? '管理员' : '员工' }})</span>
+                    <span style="margin-right:16px;color:#606266">{{ currentUser.username }} ({{ currentUser.role === 'admin' ? '管理员' : currentUser.role === 'employee' ? '一般员工' : '查阅' }})</span>
                     <el-button type="danger" size="small" @click="handleLogout">退出</el-button>
                 </div>
             </div>
@@ -140,7 +140,7 @@
                     </el-select>
                     <el-button type="primary" @click="loadTools">搜索</el-button>
                     <el-switch v-model="showScrapped" active-text="显示报废" inactive-text="" @change="loadTools" style="margin-left:10px"></el-switch>
-                    <el-button type="success" @click="openToolDialog()" v-if="isAdmin">新增工装</el-button>
+                    <el-button type="success" @click="openToolDialog()" v-if="canEdit">新增工装</el-button>
                 </div>
                 <el-table :data="tools" stripe border style="width:100%">
                     <el-table-column prop="code" label="编号" width="120"></el-table-column>
@@ -168,9 +168,9 @@
                         <template #default="scope">
                             <el-button size="small" @click="viewTool(scope.row)">详情</el-button>
                             <el-button size="small" type="primary" @click="openBorrowDialog(scope.row)" v-if="scope.row.status==='在库'">借用</el-button>
-                            <el-button size="small" type="warning" @click="openInspectionDialog(scope.row)" v-if="isAdmin">检定</el-button>
-                            <el-button size="small" type="info" @click="scrapTool(scope.row)" v-if="scope.row.status!=='报废'">报废</el-button>
-                            <el-button size="small" type="danger" @click="deleteTool(scope.row)" v-if="isAdmin">删除</el-button>
+                            <el-button size="small" type="warning" @click="openInspectionDialog(scope.row)">检定</el-button>
+                            <el-button size="small" type="info" @click="scrapTool(scope.row)" v-if="scope.row.status!=='报废' && canEdit">报废</el-button>
+                            <el-button size="small" type="danger" @click="deleteTool(scope.row)" v-if="canDelete">删除</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -267,7 +267,7 @@
 
                     <!-- 完工资料区（编辑模式下显示上传按钮） -->
                     <h4 style="margin:20px 0 10px">📎 完工资料</h4>
-                    <el-upload :action="`/api/attachments/upload`" :data="{tool_id: currentTool.id, file_type: uploadFileType}" :headers="{}" :on-success="onUploadSuccess" :before-upload="beforeUpload" :show-file-list="false" v-if="isAdmin && toolDetailEditing">
+                    <el-upload :action="`/api/attachments/upload`" :data="{tool_id: currentTool.id, file_type: uploadFileType}" :headers="{}" :on-success="onUploadSuccess" :before-upload="beforeUpload" :show-file-list="false" v-if="canEdit && toolDetailEditing">
                         <el-button size="small" type="primary">上传资料</el-button>
                         <el-select v-model="uploadFileType" size="small" style="width:120px;margin-left:8px">
                             <el-option label="入库资料" value="入库资料"></el-option>
@@ -307,7 +307,7 @@
                 <template #footer>
                     <template v-if="!toolDetailEditing">
                         <el-button @click="toolDetailVisible=false">关闭</el-button>
-                        <el-button type="primary" @click="toolDetailEditing=true">编辑</el-button>
+                        <el-button type="primary" @click="toolDetailEditing=true" v-if="canEdit">编辑</el-button>
                     </template>
                     <template v-else>
                         <el-button @click="toolDetailEditing=false">取消</el-button>
@@ -449,7 +449,7 @@
                     </el-table-column>
                     <el-table-column label="操作" width="100">
                         <template #default="scope">
-                            <el-button size="small" type="success" @click="returnTool(scope.row)" v-if="scope.row.status==='借用中'">归还</el-button>
+                            <el-button size="small" type="success" @click="returnTool(scope.row)" v-if="scope.row.status==='借用中' && canReturnBorrow">归还</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -522,7 +522,7 @@
                     <el-table-column label="操作" width="150" fixed="right">
                         <template #default="scope">
                             <el-button size="small" @click="viewTool(scope.row)">详情</el-button>
-                            <el-button size="small" type="warning" @click="openInspectionDialog(scope.row)" v-if="isAdmin">检定</el-button>
+                            <el-button size="small" type="warning" @click="openInspectionDialog(scope.row)">检定</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -578,8 +578,8 @@
                     <el-table-column prop="reject_reason" label="拒绝原因" show-overflow-tooltip min-width="120"></el-table-column>
                     <el-table-column label="操作" width="180" v-if="isAdmin">
                         <template #default="scope">
-                            <el-button size="small" type="success" @click="approveScrap(scope.row)" v-if="scope.row.status==='待审核'">批准</el-button>
-                            <el-button size="small" type="danger" @click="rejectScrap(scope.row)" v-if="scope.row.status==='待审核'">拒绝</el-button>
+                            <el-button size="small" type="success" @click="approveScrap(scope.row)" v-if="scope.row.status==='待审核' && canApproveScrap">批准</el-button>
+                            <el-button size="small" type="danger" @click="rejectScrap(scope.row)" v-if="scope.row.status==='待审核' && canApproveScrap">拒绝</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -593,7 +593,7 @@
                 <el-form :model="userForm" label-width="80px">
                     <el-form-item label="用户名"><el-input v-model="userForm.username" :disabled="!!userForm.id"></el-input></el-form-item>
                     <el-form-item :label="userForm.id ? '新密码' : '密码'"><el-input v-model="userForm.password" type="password" :placeholder="userForm.id ? '留空不修改' : '请输入密码'"></el-input></el-form-item>
-                    <el-form-item label="角色"><el-select v-model="userForm.role"><el-option label="管理员" value="admin"></el-option><el-option label="普通员工" value="employee"></el-option></el-select></el-form-item>
+                    <el-form-item label="角色"><el-select v-model="userForm.role"><el-option label="管理员" value="admin"></el-option><el-option label="一般员工" value="employee"></el-option><el-option label="查阅" value="viewer"></el-option></el-select></el-form-item>
                 </el-form>
                 <template #footer>
                     <el-button @click="userDialogVisible=false">取消</el-button>
@@ -731,6 +731,13 @@ const app = createApp({
         const saving = ref(false);
 
         const isAdmin = computed(() => currentUser.role === 'admin');
+        const canEdit = computed(() => currentUser.permissions?.can_edit ?? false);
+        const canDelete = computed(() => currentUser.permissions?.can_delete ?? false);
+        const canApproveScrap = computed(() => currentUser.permissions?.can_approve_scrap ?? false);
+        const canManageUsers = computed(() => currentUser.permissions?.can_manage_users ?? false);
+        const canManageConfig = computed(() => currentUser.permissions?.can_manage_config ?? false);
+        const canReturnBorrow = computed(() => currentUser.permissions?.can_return_borrow ?? false);
+        const canExport = computed(() => currentUser.permissions?.can_export ?? false);
         // 二级菜单状态
         const currentSubPage = ref('config-category');
         const configMenuOpen = ref(true);  // 默认展开
@@ -1273,6 +1280,7 @@ const app = createApp({
 
         return {
             loggedIn, loginLoading, loginForm, currentUser, currentPage, saving, isAdmin, pageTitle,
+            canEdit, canDelete, canApproveScrap, canManageUsers, canManageConfig, canReturnBorrow, canExport,
             stats, loadStats,
             tools, toolTotal, toolSearch, loadTools, toolDialogVisible, toolDetailVisible, currentTool, toolForm, openToolDialog, saveTool, deleteTool, viewTool, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail,
             showScrapped,

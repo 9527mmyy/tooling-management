@@ -12,7 +12,47 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(20), nullable=False, default='employee')  # admin / employee
+    role = db.Column(db.String(20), nullable=False, default='employee')  # admin / employee / viewer
+
+    @property
+    def is_admin(self):
+        return self.role == 'admin'
+
+    @property
+    def is_employee(self):
+        return self.role == 'employee'
+
+    @property
+    def is_viewer(self):
+        return self.role == 'viewer'
+
+    def can_edit(self):
+        """是否可以编辑工装（新增/修改，不含删除）"""
+        return self.role in ('admin', 'employee')
+
+    def can_delete(self):
+        """是否可以删除工装"""
+        return self.role == 'admin'
+
+    def can_approve_scrap(self):
+        """是否可以审批报废"""
+        return self.role == 'admin'
+
+    def can_manage_users(self):
+        """是否可以管理用户"""
+        return self.role == 'admin'
+
+    def can_manage_config(self):
+        """是否可以管理配置"""
+        return self.role == 'admin'
+
+    def can_return_borrow(self):
+        """是否可以归还借用"""
+        return self.role in ('admin', 'employee')
+
+    def can_export(self):
+        """是否可以导出数据"""
+        return True  # 三个角色都可以导出
     created_at = db.Column(db.DateTime, default=datetime.now)
 
     def set_password(self, password):

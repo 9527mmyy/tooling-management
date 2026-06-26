@@ -1,6 +1,6 @@
 ﻿from flask import Blueprint, request, jsonify, current_app, send_file, session
 from models import db, Attachment, Tool
-from routes.auth import login_required, admin_required, add_log
+from routes.auth import login_required, admin_required, edit_required, add_log
 import os
 import uuid
 from datetime import datetime
@@ -32,7 +32,7 @@ def list_attachments():
 
 
 @attachments_bp.route('/upload', methods=['POST'])
-@login_required
+@edit_required
 def upload():
     """上传附件"""
     tool_id = request.form.get('tool_id', type=int)

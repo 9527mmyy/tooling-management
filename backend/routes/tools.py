@@ -1,6 +1,6 @@
 ﻿from flask import Blueprint, request, jsonify, session
 from models import db, Tool, BorrowRecord, Attachment, Inspection, OperationLog
-from routes.auth import login_required, admin_required, add_log
+from routes.auth import login_required, admin_required, edit_required, add_log
 from datetime import datetime
 
 tools_bp = Blueprint('tools', __name__)
@@ -69,7 +69,7 @@ def get_tool(tool_id):
 
 
 @tools_bp.route('/', methods=['POST'])
-@admin_required
+@edit_required
 def create_tool():
     """新增工装（管理员）"""
     data = request.get_json()
@@ -174,9 +174,9 @@ def get_inspection_reminders():
 
 
 @tools_bp.route('/<int:tool_id>', methods=['PUT'])
-@admin_required
+@edit_required
 def update_tool(tool_id):
-    """更新工装（管理员）"""
+    """更新工装（admin/employee可编辑）"""
     tool = Tool.query.get_or_404(tool_id)
     data = request.get_json()
 
