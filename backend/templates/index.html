@@ -231,9 +231,9 @@
                             <el-col :span="12">
                                 <el-form-item label="等级">
                                     <el-select v-model="currentTool.level" placeholder="请选择等级" style="width:100%">
-                                        <el-option label="A类" value="A类"></el-option>
-                                        <el-option label="B类" value="B类"></el-option>
-                                        <el-option label="C类" value="C类"></el-option>
+                                        <el-option label="A（半年检定）" value="A"></el-option>
+                                        <el-option label="B（一年检定）" value="B"></el-option>
+                                        <el-option label="C（不限定）" value="C"></el-option>
                                     </el-select>
                                 </el-form-item>
                             </el-col>
@@ -340,9 +340,9 @@
                     </el-form-item>
                     <el-form-item label="等级">
                         <el-select v-model="toolForm.level" placeholder="请选择等级" style="width:100%">
-                            <el-option label="A类" value="A类"></el-option>
-                            <el-option label="B类" value="B类"></el-option>
-                            <el-option label="C类" value="C类"></el-option>
+                            <el-option label="A（半年检定）" value="A"></el-option>
+                            <el-option label="B（一年检定）" value="B"></el-option>
+                            <el-option label="C（不限定）" value="C"></el-option>
                         </el-select>
                     </el-form-item>
                     <el-form-item label="使用分厂" v-if="toolForm.id != null">
@@ -824,11 +824,11 @@ const app = createApp({
         const toolDetailVisible = ref(false);
         const currentTool = ref(null);
         const uploadFileType = ref('入库资料');
-        const toolForm = reactive({ id: null, code: '', drawing_no: '', name: '', spec: '', category: '', level: 'A类', factory: '', team: '', receiver: '', status: '在库', purchase_date: '', next_inspection_date: '', remark: '' });
+        const toolForm = reactive({ id: null, code: '', drawing_no: '', name: '', spec: '', category: '', level: 'A', factory: '', team: '', receiver: '', status: '在库', purchase_date: '', next_inspection_date: '', remark: '' });
 
         const openToolDialog = (tool = null) => {
-            if (tool) { Object.assign(toolForm, { id: tool.id, code: tool.code, drawing_no: tool.drawing_no || '', name: tool.name, spec: tool.spec, category: tool.category || '', level: tool.level || 'A类', factory: tool.factory, team: tool.team, receiver: tool.receiver, status: tool.status, purchase_date: tool.purchase_date, next_inspection_date: tool.next_inspection_date, remark: tool.remark }); }
-            else { Object.assign(toolForm, { id: null, code: '', drawing_no: '', name: '', spec: '', category: '', level: 'A类', factory: '', team: '', receiver: '', status: '在库', purchase_date: '', next_inspection_date: '', remark: '' }); }
+            if (tool) { Object.assign(toolForm, { id: tool.id, code: tool.code, drawing_no: tool.drawing_no || '', name: tool.name, spec: tool.spec, category: tool.category || '', level: tool.level || 'A', factory: tool.factory, team: tool.team, receiver: tool.receiver, status: tool.status, purchase_date: tool.purchase_date, next_inspection_date: tool.next_inspection_date, remark: tool.remark }); }
+            else { Object.assign(toolForm, { id: null, code: '', drawing_no: '', name: '', spec: '', category: '', level: 'A', factory: '', team: '', receiver: '', status: '在库', purchase_date: '', next_inspection_date: '', remark: '' }); }
             toolDialogVisible.value = true;
         };
 
@@ -1310,6 +1310,22 @@ const app = createApp({
         const isOverdue = (dateStr) => { if (!dateStr) return false; return new Date(dateStr) < new Date(); };
         const formatRole = (row) => row.role === 'admin' ? '管理员' : '员工';
         const fmtDate = (d) => { if (!d) return '-'; const m = d.match(/^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}):(\d{2}):?(\d{2})?)?/); if (!m) return d; const [, y, mo, da, h, mi] = m; return `${y}年${mo}月${da}日${h ? ' ' + h + ':' + mi : ''}`; };
+        // 根据等级和完工日期自动计算下次检定日期
+        const calcNextInspection = (level, purchaseDate) => {
+            if (!purchaseDate || level === 'C') return '';
+            const d = new Date(purchaseDate);
+            if (level === 'A') d.setMonth(d.getMonth() + 6);
+            else if (level === 'B') d.setFullYear(d.getFullYear() + 1);
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        };
+        // toolForm：等级或完工日期变化时自动更新下次检定
+        watch(() => [toolForm.level, toolForm.purchase_date], ([lv, pd]) => { toolForm.next_inspection_date = calcNextInspection(lv, pd); });
+        // 详情页编辑模式：等级或完工日期变化时自动更新下次检定
+        watch(() => [() => currentTool.value?.level, () => currentTool.value?.purchase_date, toolDetailEditing], () => {
+            if (toolDetailEditing.value && currentTool.value) {
+                currentTool.value.next_inspection_date = calcNextInspection(currentTool.value.level, currentTool.value.purchase_date);
+            }
+        });
         const getTeamName = (configValue) => { const parts = configValue.split('/'); return parts.length > 1 ? parts[1] : configValue; };
         const onToolPageChange = (p) => { toolSearch.page = p; loadTools(); };
         const onBorrowPageChange = (p) => { borrowSearch.page = p; loadBorrows(); };
@@ -1354,7 +1370,7 @@ const app = createApp({
             inspectionReminders, reminderTotal, reminderFilter, reminderPage, loadInspectionReminders,
             users, loadUsers, userDialogVisible, userForm, openUserDialog, saveUser, deleteUser,
             changePwdDialogVisible, changePwdForm, submitChangePwd,
-            handleLogin, handleLogout, statusTagType, isOverdue, formatRole, getTeamName, fmtDate,
+            handleLogin, handleLogout, statusTagType, isOverdue, formatRole, getTeamName, fmtDate, calcNextInspection,
             onToolPageChange, onBorrowPageChange, onInspectionPageChange, onReminderPageChange, onScrapPageChange,
             factories, allTeams, teamsByFactory,
             configTab, configTypeNames, configLists, loadConfigs, openConfigDialog, saveConfig, deleteConfig, configDialogVisible, configForm, teamsInCurrentFactory, teamsOfFactory,

@@ -88,7 +88,7 @@ def create_tool():
         name=name,
         spec=data.get('spec', ''),
         category=data.get('category', ''),
-        level=data.get('level', 'A类'),
+        level=data.get('level', 'A'),
         factory=data.get('factory', ''),
         team=data.get('team', ''),
         receiver=data.get('receiver', ''),
@@ -194,7 +194,7 @@ def update_tool(tool_id):
     if 'category' in data:
         tool.category = data['category'] or ''
     if 'level' in data:
-        tool.level = data['level'] or 'A类'
+        tool.level = data['level'] or 'A'
     if 'factory' in data:
         tool.factory = data['factory'] or None
     if 'team' in data:

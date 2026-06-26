@@ -80,7 +80,7 @@ class Tool(db.Model):
     name = db.Column(db.String(100), nullable=False)
     spec = db.Column(db.String(200))
     category = db.Column(db.String(50))  # 类别(量具/刀具/夹具等)
-    level = db.Column(db.String(10), default='A类')  # 等级(A类需检定/B类/C类)
+    level = db.Column(db.String(10), default='A')  # 等级(A/B/C)
     factory = db.Column(db.String(100))   # 使用分厂
     team = db.Column(db.String(100))       # 使用班组
     receiver = db.Column(db.String(80))    # 领用人
