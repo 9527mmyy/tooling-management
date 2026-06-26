@@ -2,9 +2,10 @@
 from flask_cors import CORS
 from flask_compress import Compress
 import os
+from datetime import timedelta
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
-CORS(app, supports_credentials=True, origins=['http://localhost:5000', 'http://127.0.0.1:5000'])
+CORS(app, supports_credentials=True, origins='*')
 Compress(app)  # 启用gzip压缩
 app.url_map.strict_slashes = False  # 允许尾部斜杠
 
@@ -28,6 +29,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB 上传限制
 app.config['SECRET_KEY'] = 'tooling-management-secret-key-2026'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)  # cookie有效期（实际超时由服务端last_activity控制）
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # 允许同站请求携带cookie
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 
@@ -65,6 +67,7 @@ from routes.attachments import attachments_bp
 from routes.scraps import scraps_bp
 from routes.org import org_bp
 from routes.configs import configs_bp
+from routes.export import export_bp
 
 app.register_blueprint(org_bp, url_prefix='/api/org')
 app.register_blueprint(configs_bp, url_prefix='/api/configs')
@@ -74,6 +77,7 @@ app.register_blueprint(borrows_bp, url_prefix='/api/borrows')
 app.register_blueprint(inspections_bp, url_prefix='/api/inspections')
 app.register_blueprint(attachments_bp, url_prefix='/api/attachments')
 app.register_blueprint(scraps_bp, url_prefix='/api/scraps')
+app.register_blueprint(export_bp, url_prefix='/api/export')
 
 # 前端路由
 @app.route('/')

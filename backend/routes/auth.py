@@ -1,16 +1,32 @@
 from flask import Blueprint, request, jsonify, session
 from models import db, User, OperationLog
 from functools import wraps
+from datetime import datetime, timedelta
 
 auth_bp = Blueprint('auth', __name__)
 
+# 会话超时时间（30分钟无操作自动登出）
+SESSION_TIMEOUT = timedelta(minutes=30)
+
 
 def login_required(f):
-    """登录验证装饰器"""
+    """登录验证装饰器（含30分钟无操作自动登出）"""
     @wraps(f)
     def decorated(*args, **kwargs):
         if 'user_id' not in session:
             return jsonify({'code': 401, 'msg': '请先登录'}), 401
+        # 检查30分钟无操作超时
+        last_activity = session.get('last_activity')
+        if last_activity:
+            try:
+                last_time = datetime.fromisoformat(last_activity)
+                if datetime.now() - last_time > SESSION_TIMEOUT:
+                    session.clear()
+                    return jsonify({'code': 401, 'msg': '登录已超时，请重新登录'}), 401
+            except (ValueError, TypeError):
+                pass
+        # 更新最后活动时间
+        session['last_activity'] = datetime.now().isoformat()
         return f(*args, **kwargs)
     return decorated
 
@@ -101,9 +117,11 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({'code': 401, 'msg': '用户名或密码错误'})
 
+    session.permanent = True
     session['user_id'] = user.id
     session['username'] = user.username
     session['role'] = user.role
+    session['last_activity'] = datetime.now().isoformat()
 
     add_log('登录', f'用户 {username} 登录')
 
