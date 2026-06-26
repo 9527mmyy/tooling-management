@@ -158,10 +158,12 @@
                             <el-tag :type="statusTagType(scope.row.status)" size="small">{{ scope.row.status }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="purchase_date" label="完工日期" width="110"></el-table-column>
+                    <el-table-column prop="purchase_date" label="完工日期" width="130">
+                        <template #default="scope">{{ fmtDate(scope.row.purchase_date) }}</template>
+                    </el-table-column>
                     <el-table-column prop="next_inspection_date" label="下次检定" width="110">
                         <template #default="scope">
-                            <span :style="{color: isOverdue(scope.row.next_inspection_date) ? '#f56c6c' : ''}">{{ scope.row.next_inspection_date || '-' }}</span>
+                            <span :style="{color: isOverdue(scope.row.next_inspection_date) ? '#f56c6c' : ''}">{{ fmtDate(scope.row.next_inspection_date) }}</span>
                         </template>
                     </el-table-column>
                     <el-table-column prop="remark" label="备注" show-overflow-tooltip></el-table-column>
@@ -195,8 +197,8 @@
                         <el-descriptions-item label="使用班组">{{ currentTool.team || '-' }}</el-descriptions-item>
                         <el-descriptions-item label="领用人">{{ currentTool.receiver || '-' }}</el-descriptions-item>
                         <el-descriptions-item label="状态"><el-tag :type="statusTagType(currentTool.status)">{{ currentTool.status }}</el-tag></el-descriptions-item>
-                        <el-descriptions-item label="完工日期">{{ currentTool.purchase_date || '-' }}</el-descriptions-item>
-                        <el-descriptions-item label="下次检定">{{ currentTool.next_inspection_date || '-' }}</el-descriptions-item>
+                        <el-descriptions-item label="完工日期">{{ fmtDate(currentTool.purchase_date) }}</el-descriptions-item>
+                        <el-descriptions-item label="下次检定">{{ fmtDate(currentTool.next_inspection_date) }}</el-descriptions-item>
                         <el-descriptions-item label="备注" :span="2">{{ currentTool.remark || '-' }}</el-descriptions-item>
                     </el-descriptions>
                     
@@ -280,7 +282,9 @@
                         <el-table-column prop="file_name" label="文件名"></el-table-column>
                         <el-table-column prop="file_type" label="类型" width="100"></el-table-column>
                         <el-table-column prop="uploader" label="上传人" width="80"></el-table-column>
-                        <el-table-column prop="upload_time" label="上传时间" width="160"></el-table-column>
+                        <el-table-column prop="upload_time" label="上传时间" width="170">
+                            <template #default="scope">{{ fmtDate(scope.row.upload_time) }}</template>
+                        </el-table-column>
                         <el-table-column label="操作" width="120">
                             <template #default="scope">
                                 <el-button size="small" link type="primary" @click="downloadFile(scope.row)">下载</el-button>
@@ -293,7 +297,12 @@
                     <!-- 检定记录 -->
                     <h4 style="margin:20px 0 10px">🔍 检定记录</h4>
                     <el-table :data="currentTool.inspections" stripe size="small" v-if="currentTool.inspections && currentTool.inspections.length">
-                        <el-table-column prop="inspect_date" label="检定日期" width="110"></el-table-column>
+                        <el-table-column prop="inspect_date" label="检定日期" width="120">
+                            <template #default="scope">{{ fmtDate(scope.row.inspect_date) }}</template>
+                        </el-table-column>
+                        <el-table-column prop="next_date" label="下次检定" width="120">
+                            <template #default="scope">{{ fmtDate(scope.row.next_date) }}</template>
+                        </el-table-column>
                         <el-table-column prop="result" label="结果" width="80">
                             <template #default="scope">
                                 <el-tag :type="scope.row.result==='合格'?'success':scope.row.result==='不合格'?'danger':'warning'" size="small">{{ scope.row.result }}</el-tag>
@@ -441,8 +450,12 @@
                     <el-table-column prop="team" label="使用班组" width="90"></el-table-column>
                     <el-table-column prop="receiver" label="领用人" width="90"></el-table-column>
                     <el-table-column prop="borrower" label="借用人" width="90"></el-table-column>
-                    <el-table-column prop="borrow_time" label="借用时间" width="170"></el-table-column>
-                    <el-table-column prop="return_time" label="归还时间" width="170"></el-table-column>
+                    <el-table-column prop="borrow_time" label="借用时间" width="180">
+                        <template #default="scope">{{ fmtDate(scope.row.borrow_time) }}</template>
+                    </el-table-column>
+                    <el-table-column prop="return_time" label="归还时间" width="180">
+                        <template #default="scope">{{ fmtDate(scope.row.return_time) }}</template>
+                    </el-table-column>
                     <el-table-column prop="status" label="状态" width="90">
                         <template #default="scope">
                             <el-tag :type="scope.row.status==='借用中'?'warning':'success'" size="small">{{ scope.row.status }}</el-tag>
@@ -505,7 +518,7 @@
                     <el-table-column prop="factory" label="使用分厂" width="100"></el-table-column>
                     <el-table-column prop="next_inspection_date" label="下次检定日期" width="130">
                         <template #default="scope">
-                            <span :style="{color: isOverdue(scope.row.next_inspection_date) ? '#f56c6c' : ''}">{{ scope.row.next_inspection_date }}</span>
+                            <span :style="{color: isOverdue(scope.row.next_inspection_date) ? '#f56c6c' : ''}">{{ fmtDate(scope.row.next_inspection_date) }}</span>
                         </template>
                     </el-table-column>
                     <el-table-column prop="days_until_inspection" label="剩余天数" width="100">
@@ -544,7 +557,9 @@
                             <el-tag :type="scope.row.role==='admin'?'danger':''" size="small">{{ scope.row.role==='admin'?'管理员':'普通员工' }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="created_at" label="创建时间"></el-table-column>
+                    <el-table-column prop="created_at" label="创建时间">
+                        <template #default="scope">{{ fmtDate(scope.row.created_at) }}</template>
+                    </el-table-column>
                     <el-table-column label="操作" width="200">
                         <template #default="scope">
                             <el-button size="small" @click="openUserDialog(scope.row)">编辑</el-button>
@@ -574,7 +589,9 @@
                             <el-tag :type="scope.row.status==='待审核'?'warning':scope.row.status==='已批准'?'success':'danger'" size="small">{{ scope.row.status }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="created_at" label="申请时间" width="170"></el-table-column>
+                    <el-table-column prop="created_at" label="申请时间" width="180">
+                        <template #default="scope">{{ fmtDate(scope.row.created_at) }}</template>
+                    </el-table-column>
                     <el-table-column prop="reviewer_name" label="审批人" width="100"></el-table-column>
                     <el-table-column prop="reject_reason" label="拒绝原因" show-overflow-tooltip min-width="120"></el-table-column>
                     <el-table-column label="操作" width="180" v-if="isAdmin">
@@ -682,7 +699,9 @@
                     <el-table :data="users" stripe>
                         <el-table-column prop="username" label="用户名"></el-table-column>
                         <el-table-column prop="role" label="角色" width="100" :formatter="formatRole"></el-table-column>
-                        <el-table-column prop="created_at" label="创建时间" width="180"></el-table-column>
+                        <el-table-column prop="created_at" label="创建时间" width="180">
+                        <template #default="scope">{{ fmtDate(scope.row.created_at) }}</template>
+                    </el-table-column>
                         <el-table-column label="操作" width="150">
                             <template #default="scope">
                                 <el-button size="small" link type="primary" @click="openUserDialog(scope.row)">编辑</el-button>
@@ -1290,6 +1309,7 @@ const app = createApp({
         const statusTagType = (status) => ({ '在库': 'success', '借出': 'warning', '维修': 'danger', '报废': 'info' }[status] || '');
         const isOverdue = (dateStr) => { if (!dateStr) return false; return new Date(dateStr) < new Date(); };
         const formatRole = (row) => row.role === 'admin' ? '管理员' : '员工';
+        const fmtDate = (d) => { if (!d) return '-'; const m = d.match(/^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}):(\d{2}):?(\d{2})?)?/); if (!m) return d; const [, y, mo, da, h, mi] = m; return `${y}年${mo}月${da}日${h ? ' ' + h + ':' + mi : ''}`; };
         const getTeamName = (configValue) => { const parts = configValue.split('/'); return parts.length > 1 ? parts[1] : configValue; };
         const onToolPageChange = (p) => { toolSearch.page = p; loadTools(); };
         const onBorrowPageChange = (p) => { borrowSearch.page = p; loadBorrows(); };
@@ -1334,7 +1354,7 @@ const app = createApp({
             inspectionReminders, reminderTotal, reminderFilter, reminderPage, loadInspectionReminders,
             users, loadUsers, userDialogVisible, userForm, openUserDialog, saveUser, deleteUser,
             changePwdDialogVisible, changePwdForm, submitChangePwd,
-            handleLogin, handleLogout, statusTagType, isOverdue, formatRole, getTeamName,
+            handleLogin, handleLogout, statusTagType, isOverdue, formatRole, getTeamName, fmtDate,
             onToolPageChange, onBorrowPageChange, onInspectionPageChange, onReminderPageChange, onScrapPageChange,
             factories, allTeams, teamsByFactory,
             configTab, configTypeNames, configLists, loadConfigs, openConfigDialog, saveConfig, deleteConfig, configDialogVisible, configForm, teamsInCurrentFactory, teamsOfFactory,
