@@ -1671,9 +1671,12 @@ const app = createApp({
             return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         };
         // toolForm：等级或完工日期变化时自动更新下次检定
-        watch(() => [toolForm.level, toolForm.purchase_date], ([lv, pd]) => { toolForm.next_inspection_date = calcNextInspection(lv, pd); });
+        watch([() => toolForm.level, () => toolForm.purchase_date], ([lv, pd]) => {
+            if (lv !== 'C') toolForm.next_inspection_date = calcNextInspection(lv, pd);
+            else toolForm.next_inspection_date = '';
+        });
         // 详情页编辑模式：等级或完工日期变化时自动更新下次检定
-        watch(() => [() => currentTool.value?.level, () => currentTool.value?.purchase_date, toolDetailEditing], () => {
+        watch([() => currentTool.value?.level, () => currentTool.value?.purchase_date, toolDetailEditing], () => {
             if (toolDetailEditing.value && currentTool.value) {
                 currentTool.value.next_inspection_date = calcNextInspection(currentTool.value.level, currentTool.value.purchase_date);
             }
