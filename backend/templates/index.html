@@ -402,7 +402,8 @@
                     <el-form-item label="完工时间" required><el-date-picker v-model="toolForm.purchase_date" type="date" value-format="YYYY-MM-DD" style="width:100%"></el-date-picker></el-form-item>
                         </el-col>
                         <el-col :span="12">
-                    <el-form-item label="下次检定" required><el-date-picker v-model="toolForm.next_inspection_date" type="date" value-format="YYYY-MM-DD" style="width:100%"></el-date-picker></el-form-item>
+                    <el-form-item label="下次检定" v-if="toolForm.level !== 'C'"><el-date-picker v-model="toolForm.next_inspection_date" type="date" value-format="YYYY-MM-DD" style="width:100%"></el-date-picker></el-form-item>
+                    <el-form-item label="下次检定" v-else><span style="color:#909399">不限定</span></el-form-item>
                         </el-col>
                     </el-row>
                     <el-form-item label="备注"><el-input v-model="toolForm.remark" type="textarea" :rows="2"></el-input></el-form-item>
@@ -1049,7 +1050,14 @@ const app = createApp({
             if (!toolForm.category) { ElMessage.warning('类别不能为空'); return; }
             if (!toolForm.level) { ElMessage.warning('等级不能为空'); return; }
             if (!toolForm.purchase_date) { ElMessage.warning('完工时间不能为空'); return; }
-            if (!toolForm.next_inspection_date) { ElMessage.warning('下次检定时间不能为空'); return; }
+            // C类不限定检定，无需填写下次检定时间；A/B类需填写或由完工时间自动计算
+            if (toolForm.level !== 'C' && !toolForm.next_inspection_date) {
+                // 自动计算下次检定时间
+                const d = new Date(toolForm.purchase_date);
+                if (toolForm.level === 'A') d.setMonth(d.getMonth() + 6);
+                if (toolForm.level === 'B') d.setFullYear(d.getFullYear() + 1);
+                toolForm.next_inspection_date = d.toISOString().slice(0, 10);
+            }
             saving.value = true;
             try {
                 const res = toolForm.id 
