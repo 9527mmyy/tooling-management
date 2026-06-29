@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 
 # 忽略上传的文件
