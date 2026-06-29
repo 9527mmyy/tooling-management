@@ -8,6 +8,7 @@
     <script src="/static/libs/vue.min.js"></script>
     <script src="/static/libs/element-plus.min.js"></script>
     <script src="/static/libs/axios.min.js"></script>
+    <script src="/static/libs/echarts.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f2f5; }
@@ -43,6 +44,9 @@
         .stat-card.orange .number { color: #e6a23c; }
         .stat-card.red .number { color: #f56c6c; }
         .toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+        .chart-container { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .chart-title { font-size: 16px; font-weight: bold; color: #303133; margin-bottom: 16px; }
+        .chart-wrapper { height: 320px; }
         .page-container { display: flex; justify-content: flex-end; margin-top: 16px; }
     </style>
 </head>
@@ -114,6 +118,11 @@
                     <div class="stat-card green"><div class="label">在库</div><div class="number">{{ stats.in_stock || 0 }}</div></div>
                     <div class="stat-card orange"><div class="label">借出</div><div class="number">{{ stats.borrowed || 0 }}</div></div>
                     <div class="stat-card red"><div class="label">检定逾期</div><div class="number">{{ stats.overdue || 0 }}</div></div>
+                </div>
+                <!-- 月度趋势图表 -->
+                <div class="chart-container">
+                    <div class="chart-title">📈 工装月度统计趋势（过去12个月）</div>
+                    <div ref="monthlyChart" class="chart-wrapper"></div>
                 </div>
                 <div class="card" v-if="stats.due_soon > 0">
                     <el-alert title="检定提醒" :description="`有 ${stats.due_soon} 个工装将在30天内到期检定`" type="warning" show-icon :closable="false"></el-alert>
@@ -804,6 +813,100 @@ const app = createApp({
         const stats = reactive({ total: 0, in_stock: 0, borrowed: 0, repairing: 0, scrapped: 0, due_soon: 0, overdue: 0 });
         const loadStats = async () => { try { const r = await api.get('/tools/stats'); Object.assign(stats, r.data.data); } catch(e) {} };
 
+        // 月度趋势图表
+        const monthlyChart = ref(null);
+        let chartInstance = null;
+        const loadMonthlyStats = async () => {
+            try {
+                const r = await api.get('/tools/stats/monthly');
+                const { labels, new_tools, inspections, scraps, cumulative } = r.data.data;
+                
+                if (chartInstance) {
+                    chartInstance.dispose();
+                }
+                
+                chartInstance = echarts.init(monthlyChart.value);
+                const option = {
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: { type: 'shadow' }
+                    },
+                    legend: {
+                        data: ['新增工装', '检定记录', '报废工装', '累计工装'],
+                        bottom: 0
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '15%',
+                        top: '10%',
+                        containLabel: true
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: labels,
+                        axisLabel: { rotate: 30, fontSize: 11 }
+                    },
+                    yAxis: [
+                        {
+                            type: 'value',
+                            name: '数量',
+                            minInterval: 1
+                        },
+                        {
+                            type: 'value',
+                            name: '累计',
+                            minInterval: 1
+                        }
+                    ],
+                    series: [
+                        {
+                            name: '新增工装',
+                            type: 'bar',
+                            stack: '总量',
+                            color: '#409eff',
+                            data: new_tools,
+                            barWidth: '40%',
+                            label: { show: true, position: 'top', fontSize: 10 }
+                        },
+                        {
+                            name: '检定记录',
+                            type: 'bar',
+                            stack: '总量',
+                            color: '#67c23a',
+                            data: inspections,
+                            barWidth: '40%'
+                        },
+                        {
+                            name: '报废工装',
+                            type: 'bar',
+                            stack: '总量',
+                            color: '#f56c6c',
+                            data: scraps,
+                            barWidth: '40%'
+                        },
+                        {
+                            name: '累计工装',
+                            type: 'line',
+                            yAxisIndex: 1,
+                            color: '#e6a23c',
+                            data: cumulative,
+                            smooth: true,
+                            label: { show: true, position: 'top', fontSize: 10 },
+                            lineStyle: { width: 3 },
+                            itemStyle: { borderWidth: 2 }
+                        }
+                    ]
+                };
+                chartInstance.setOption(option);
+                
+                // 响应窗口大小变化
+                window.addEventListener('resize', () => {
+                    if (chartInstance) chartInstance.resize();
+                });
+            } catch(e) { console.error('加载月度统计失败', e); }
+        };
+
         // 工装
         const tools = ref([]);
         const toolTotal = ref(0);
@@ -1294,6 +1397,7 @@ const app = createApp({
                     loggedIn.value = true;
                     Object.assign(currentUser, r.data.data);
                     loadStats();
+                    loadMonthlyStats();
                     loadOrgStructure();
                     loadConfigs();
                     ElMessage.success('登录成功');
@@ -1409,7 +1513,7 @@ const app = createApp({
         return {
             loggedIn, loginLoading, loginForm, currentUser, currentPage, saving, isAdmin, pageTitle,
             canEdit, canDelete, canApproveScrap, canManageUsers, canManageConfig, canReturnBorrow, canExport,
-            stats, loadStats,
+            stats, loadStats, monthlyChart, loadMonthlyStats,
             tools, toolTotal, toolSearch, loadTools, toolDialogVisible, toolDetailVisible, currentTool, toolForm, openToolDialog, saveTool, deleteTool, viewTool, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail,
             showScrapped,
             borrows, borrowTotal, borrowSearch, loadBorrows, borrowDialogVisible, borrowForm, openBorrowDialog, submitBorrow, returnTool,

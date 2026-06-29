@@ -14,11 +14,15 @@ backup*/
 # 忽略临时文件
 *.tmp
 *.bak
+
 temp*/
 
 # 忽略虚拟环境
 venv/
 env/
+
+# temp* 匹配 templates/ 但 templates 是项目核心文件，需要跟踪
+!backend/templates/
 
 # 忽略IDE配置
 .vscode/

@@ -289,3 +289,84 @@ def tool_stats():
             'overdue': overdue
         }
     })
+
+
+@tools_bp.route('/stats/monthly', methods=['GET'])
+@login_required
+def tool_stats_monthly():
+    """月度统计 - 过去12个月的新增、鉴定、报废趋势"""
+    from datetime import timedelta
+    from sqlalchemy import func
+    
+    today = datetime.now()
+    
+    # 生成过去12个月的日期范围
+    months = []
+    for i in range(11, -1, -1):
+        # 计算第i个月的第一天和最后一天
+        target_month = today.replace(day=1) - timedelta(days=i * 30)
+        first_day = target_month.replace(day=1)
+        if target_month.month == 12:
+            last_day = target_month.replace(year=target_month.year + 1, month=1, day=1) - timedelta(days=1)
+        else:
+            last_day = target_month.replace(month=target_month.month + 1, day=1) - timedelta(days=1)
+        months.append({
+            'label': target_month.strftime('%Y年%m月'),
+            'year_month': target_month.strftime('%Y-%m'),
+            'start': first_day,
+            'end': last_day
+        })
+    
+    # 查询新增工装数量（按月份）
+    new_tools = {}
+    for m in months:
+        count = Tool.query.filter(
+            Tool.created_at >= m['start'],
+            Tool.created_at < m['end'] + timedelta(days=1)
+        ).count()
+        new_tools[m['year_month']] = count
+    
+    # 查询检定记录数量（按月份）
+    inspections = {}
+    for m in months:
+        count = Inspection.query.filter(
+            Inspection.inspect_date >= m['start'].date(),
+            Inspection.inspect_date <= m['end'].date()
+        ).count()
+        inspections[m['year_month']] = count
+    
+    # 查询报废工装数量（按月份，基于scrap_requests已批准的）
+    from models import ScrapRequest
+    scraps = {}
+    for m in months:
+        count = ScrapRequest.query.filter(
+            ScrapRequest.status == '已批准',
+            ScrapRequest.reviewed_at >= m['start'],
+            ScrapRequest.reviewed_at < m['end'] + timedelta(days=1)
+        ).count()
+        scraps[m['year_month']] = count
+    
+    # 组装返回数据
+    labels = [m['label'] for m in months]
+    new_data = [new_tools.get(m['year_month'], 0) for m in months]
+    inspection_data = [inspections.get(m['year_month'], 0) for m in months]
+    scrap_data = [scraps.get(m['year_month'], 0) for m in months]
+    
+    # 计算累计工装数量
+    cumulative = []
+    running_total = 0
+    # 从最早月份开始累计
+    for m in months:
+        running_total += new_tools.get(m['year_month'], 0)
+        cumulative.append(running_total)
+    
+    return jsonify({
+        'code': 200,
+        'data': {
+            'labels': labels,
+            'new_tools': new_data,
+            'inspections': inspection_data,
+            'scraps': scrap_data,
+            'cumulative': cumulative
+        }
+    })
