@@ -361,17 +361,33 @@
             </el-dialog>
 
             <!-- 新增/编辑工装弹窗 -->
-            <el-dialog v-model="toolDialogVisible" :title="toolForm.id ? '编辑工装' : '新增工装'" width="700px">
-                <el-form :model="toolForm" label-width="90px">
+            <el-dialog v-model="toolDialogVisible" :title="toolForm.id ? '编辑工装' : '新增工装'" width="750px">
+                <el-form :model="toolForm" label-width="80px">
+                    <el-row :gutter="16">
+                        <el-col :span="12">
                     <el-form-item label="编号" required><el-input v-model="toolForm.code" :disabled="!!toolForm.id"></el-input></el-form-item>
+                        </el-col>
+                        <el-col :span="12">
                     <el-form-item label="图号" required><el-input v-model="toolForm.drawing_no" placeholder="请输入图号"></el-input></el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-row :gutter="16">
+                        <el-col :span="12">
                     <el-form-item label="名称" required><el-input v-model="toolForm.name"></el-input></el-form-item>
+                        </el-col>
+                        <el-col :span="12">
                     <el-form-item label="规格型号" required><el-input v-model="toolForm.spec"></el-input></el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-row :gutter="16">
+                        <el-col :span="12">
                     <el-form-item label="类别" required>
                         <el-select v-model="toolForm.category" placeholder="请选择类别" clearable style="width:100%">
                             <el-option v-for="c in configLists.category" :key="c.id" :label="c.config_value" :value="c.config_value"></el-option>
                         </el-select>
                     </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
                     <el-form-item label="等级" required>
                         <el-select v-model="toolForm.level" placeholder="请选择等级" style="width:100%">
                             <el-option label="A（半年检定）" value="A"></el-option>
@@ -379,15 +395,17 @@
                             <el-option label="C（不限定）" value="C"></el-option>
                         </el-select>
                     </el-form-item>
-                    <el-form-item label="使用班组" v-if="teamsByFactory(toolForm.factory).length > 0">
-                        <el-select v-model="toolForm.team" placeholder="请选择班组" clearable style="width:100%">
-                            <el-option v-for="t in teamsByFactory(toolForm.factory)" :key="t" :label="t" :value="t"></el-option>
-                        </el-select>
-                    </el-form-item>
-                    <el-form-item label="完工时间" required><el-date-picker v-model="toolForm.purchase_date" type="date" value-format="YYYY-MM-DD"></el-date-picker></el-form-item>
-                    <el-form-item label="下次检定" required><el-date-picker v-model="toolForm.next_inspection_date" type="date" value-format="YYYY-MM-DD"></el-date-picker></el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-row :gutter="16">
+                        <el-col :span="12">
+                    <el-form-item label="完工时间" required><el-date-picker v-model="toolForm.purchase_date" type="date" value-format="YYYY-MM-DD" style="width:100%"></el-date-picker></el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                    <el-form-item label="下次检定" required><el-date-picker v-model="toolForm.next_inspection_date" type="date" value-format="YYYY-MM-DD" style="width:100%"></el-date-picker></el-form-item>
+                        </el-col>
+                    </el-row>
                     <el-form-item label="备注"><el-input v-model="toolForm.remark" type="textarea" :rows="2"></el-input></el-form-item>
-                </el-form>
 
                 <el-divider></el-divider>
 
