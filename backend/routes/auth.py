@@ -105,25 +105,26 @@ def add_log(action, detail=''):
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """登录"""
+    """登录（用工号）"""
     data = request.get_json()
-    username = data.get('username', '').strip()
+    user_no = data.get('user_no', '').strip()
     password = data.get('password', '').strip()
 
-    if not username or not password:
-        return jsonify({'code': 400, 'msg': '用户名和密码不能为空'})
+    if not user_no or not password:
+        return jsonify({'code': 400, 'msg': '工号和密码不能为空'})
 
-    user = User.query.filter_by(username=username).first()
+    user = User.query.filter_by(user_no=user_no).first()
     if not user or not user.check_password(password):
-        return jsonify({'code': 401, 'msg': '用户名或密码错误'})
+        return jsonify({'code': 401, 'msg': '工号或密码错误'})
 
     session.permanent = True
     session['user_id'] = user.id
     session['username'] = user.username
+    session['user_no'] = user.user_no
     session['role'] = user.role
     session['last_activity'] = datetime.now().isoformat()
 
-    add_log('登录', f'用户 {username} 登录')
+    add_log('登录', f'用户 {user.username}({user_no}) 登录')
 
     return jsonify({
         'code': 200,
@@ -225,6 +226,7 @@ def list_users():
 def create_user():
     """创建用户（管理员）"""
     data = request.get_json()
+    user_no = data.get('user_no', '').strip()
     username = data.get('username', '').strip()
     password = data.get('password', '').strip()
     role = data.get('role', 'employee')
@@ -235,12 +237,15 @@ def create_user():
     if User.query.filter_by(username=username).first():
         return jsonify({'code': 400, 'msg': '用户名已存在'})
 
-    user = User(username=username, role=role)
+    if user_no and User.query.filter_by(user_no=user_no).first():
+        return jsonify({'code': 400, 'msg': '用户编号已存在'})
+
+    user = User(user_no=user_no, username=username, role=role)
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
 
-    add_log('创建用户', f'创建用户 {username}，角色 {role}')
+    add_log('创建用户', f'创建用户 {username}({user_no})，角色 {role}')
 
     return jsonify({'code': 200, 'msg': '创建成功', 'data': user.to_dict()})
 
@@ -252,6 +257,11 @@ def update_user(user_id):
     user = User.query.get_or_404(user_id)
     data = request.get_json()
 
+    if 'user_no' in data:
+        new_no = data['user_no'].strip()
+        if new_no != user.user_no and User.query.filter_by(user_no=new_no).first():
+            return jsonify({'code': 400, 'msg': '用户编号已存在'})
+        user.user_no = new_no
     if 'password' in data and data['password'].strip():
         user.set_password(data['password'])
     if 'role' in data:

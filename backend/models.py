@@ -10,6 +10,7 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
+    user_no = db.Column(db.String(20), unique=True, nullable=True)  # 用户编号（工号）
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='employee')  # admin / employee / viewer
@@ -64,6 +65,7 @@ class User(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'user_no': self.user_no or '',
             'username': self.username,
             'role': self.role,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S')
