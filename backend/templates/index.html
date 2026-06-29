@@ -177,7 +177,7 @@
                             <span :style="{color: isOverdue(scope.row.next_inspection_date) ? '#f56c6c' : ''}">{{ scope.row.next_inspection_date || '-' }}</span>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="remark" label="备注" show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="remark" label="备注" width="120" show-overflow-tooltip></el-table-column>
                     <el-table-column label="操作" width="360" fixed="right">
                         <template #default="scope">
                             <el-button size="small" @click="viewTool(scope.row)">详情</el-button>
