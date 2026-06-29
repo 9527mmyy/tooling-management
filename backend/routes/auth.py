@@ -105,7 +105,7 @@ def add_log(action, detail=''):
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """登录（用工号）"""
+    """登录（仅支持工号）"""
     data = request.get_json()
     user_no = data.get('user_no', '').strip()
     password = data.get('password', '').strip()

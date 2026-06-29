@@ -90,6 +90,7 @@ class Tool(db.Model):
     purchase_date = db.Column(db.Date)
     next_inspection_date = db.Column(db.Date)
     remark = db.Column(db.Text)
+    photo_path = db.Column(db.String(500))  # 照片文件路径
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
@@ -109,6 +110,7 @@ class Tool(db.Model):
             'purchase_date': self.purchase_date.strftime('%Y-%m-%d') if self.purchase_date else '',
             'next_inspection_date': self.next_inspection_date.strftime('%Y-%m-%d') if self.next_inspection_date else '',
             'remark': self.remark or '',
+            'photo_path': self.photo_path or '',
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S'),
             'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else ''
         }

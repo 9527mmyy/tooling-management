@@ -1,7 +1,9 @@
-﻿from flask import Blueprint, request, jsonify, session
+﻿from flask import Blueprint, request, jsonify, session, send_file, current_app
 from models import db, Tool, BorrowRecord, Attachment, Inspection, OperationLog
 from routes.auth import login_required, admin_required, edit_required, add_log
 from datetime import datetime
+import os
+import uuid
 
 tools_bp = Blueprint('tools', __name__)
 
@@ -221,6 +223,90 @@ def update_tool(tool_id):
     return jsonify({'code': 200, 'msg': '更新成功', 'data': tool.to_dict()})
 
 
+@tools_bp.route('/<int:tool_id>/photo', methods=['POST'])
+@edit_required
+def upload_photo(tool_id):
+    """上传工装照片"""
+    tool = Tool.query.get_or_404(tool_id)
+
+    if 'photo' not in request.files:
+        return jsonify({'code': 400, 'msg': '请选择照片'})
+
+    file = request.files['photo']
+    if file.filename == '':
+        return jsonify({'code': 400, 'msg': '请选择照片'})
+
+    # 校验文件类型
+    allowed = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in allowed:
+        return jsonify({'code': 400, 'msg': '仅支持 jpg/png/gif/webp 格式'})
+
+    # 目录：uploads/photos/{tool_code}/
+    base_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'photos', tool.code)
+    os.makedirs(base_dir, exist_ok=True)
+
+    # 删除旧照片（如果有）
+    if tool.photo_path:
+        old_path = os.path.join(current_app.config['UPLOAD_FOLDER'], tool.photo_path)
+        if os.path.exists(old_path):
+            os.remove(old_path)
+
+    # 保存新照片，固定名为 photo{ext}
+    unique_name = f'photo{ext}'
+    file_path = os.path.join(base_dir, unique_name)
+    file.save(file_path)
+
+    # 更新 photo_path（相对路径：photos/{code}/photo{ext}）
+    rel_path = f'photos/{tool.code}/{unique_name}'
+    tool.photo_path = rel_path
+    db.session.commit()
+
+    add_log('上传照片', f'工装 {tool.code} {tool.name}')
+
+    return jsonify({'code': 200, 'msg': '照片上传成功', 'data': {'photo_path': rel_path}})
+
+
+@tools_bp.route('/<int:tool_id>/photo-delete', methods=['POST'])
+@edit_required
+def delete_photo(tool_id):
+    """删除工装照片"""
+    tool = Tool.query.get_or_404(tool_id)
+
+    if not tool.photo_path:
+        return jsonify({'code': 400, 'msg': '暂无照片'})
+
+    abs_path = os.path.join(current_app.config['UPLOAD_FOLDER'], tool.photo_path)
+    if os.path.exists(abs_path):
+        os.remove(abs_path)
+
+    tool.photo_path = None
+    db.session.commit()
+
+    add_log('删除照片', f'工装 {tool.code} {tool.name}')
+
+    return jsonify({'code': 200, 'msg': '照片已删除'})
+
+
+@tools_bp.route('/<int:tool_id>/photo', methods=['GET'])
+@login_required
+def get_photo(tool_id):
+    """获取工装照片"""
+    tool = Tool.query.get_or_404(tool_id)
+
+    if not tool.photo_path:
+        return jsonify({'code': 404, 'msg': '暂无照片'})
+
+    abs_path = os.path.join(current_app.config['UPLOAD_FOLDER'], tool.photo_path)
+    if not os.path.exists(abs_path):
+        # 路径记录与文件不一致，清理
+        tool.photo_path = None
+        db.session.commit()
+        return jsonify({'code': 404, 'msg': '照片文件不存在'})
+
+    return send_file(abs_path)
+
+
 @tools_bp.route('/<int:tool_id>', methods=['DELETE'])
 @admin_required
 def delete_tool(tool_id):
@@ -243,9 +329,18 @@ def delete_tool(tool_id):
 
     # 删除关联附件文件
     for att in tool.attachments:
-        import os
         if os.path.exists(att.file_path):
             os.remove(att.file_path)
+
+    # 删除照片文件
+    if tool.photo_path:
+        photo_path = os.path.join(current_app.config['UPLOAD_FOLDER'], tool.photo_path)
+        if os.path.exists(photo_path):
+            os.remove(photo_path)
+        # 删除照片目录（如果为空）
+        photo_dir = os.path.dirname(photo_path)
+        if os.path.exists(photo_dir) and not os.listdir(photo_dir):
+            os.rmdir(photo_dir)
 
     db.session.delete(tool)
     db.session.commit()

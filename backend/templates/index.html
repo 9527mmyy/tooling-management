@@ -17,6 +17,7 @@
         .login-title { text-align: center; font-size: 24px; font-weight: bold; color: #303133; margin-bottom: 30px; }
         .main-container { display: flex; height: 100vh; }
         .sidebar { width: 220px; background: #304156; color: #fff; }
+        .tool-photo { border-radius: 4px; }
         .sidebar-title { padding: 20px; font-size: 18px; font-weight: bold; text-align: center; border-bottom: 1px solid #3a4a5e; }
         .sidebar-menu { padding: 10px 0; }
         .menu-item { padding: 14px 20px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 10px; }
@@ -154,6 +155,23 @@
                     <el-button type="info" @click="exportTools" style="margin-left:4px">导出Excel</el-button>
                 </div>
                 <el-table :data="tools" stripe border style="width:100%">
+                    <el-table-column label="照片" width="70" align="center">
+                        <template #default="scope">
+                            <el-image
+                                v-if="scope.row.photo_path"
+                                :src="'/api/tools/'+scope.row.id+'/photo'"
+                                style="width:50px;height:50px"
+                                fit="cover"
+                                :preview-src-list="['/api/tools/'+scope.row.id+'/photo']"
+                                preview-teleported
+                                class="tool-photo">
+                                <template #error>
+                                    <div style="width:50px;height:50px;background:#f5f7fa;display:flex;align-items:center;justify-content:center;font-size:20px;color:#c0c4cc">📷</div>
+                                </template>
+                            </el-image>
+                            <div v-else style="width:50px;height:50px;background:#f5f7fa;display:flex;align-items:center;justify-content:center;font-size:20px;color:#c0c4cc;border-radius:4px">📷</div>
+                        </template>
+                    </el-table-column>
                     <el-table-column prop="code" label="编号" width="120"></el-table-column>
                     <el-table-column prop="drawing_no" label="图号" width="120"></el-table-column>
                     <el-table-column prop="name" label="名称" width="150"></el-table-column>
@@ -323,6 +341,29 @@
                         <el-table-column prop="remark" label="备注" show-overflow-tooltip></el-table-column>
                     </el-table>
                     <div v-else style="color:#909399;padding:10px 0">暂无检定记录</div>
+
+                    <!-- 工装照片 -->
+                    <h4 style="margin:20px 0 10px">📷 工装照片</h4>
+                    <div style="display:flex;align-items:flex-start;gap:16px;padding:10px 0">
+                        <el-image
+                            v-if="currentTool.photo_path"
+                            :src="'/api/tools/'+currentTool.id+'/photo'"
+                            style="width:200px;height:200px;border:1px solid #dcdfe6;border-radius:8px;background:#f5f7fa"
+                            fit="contain"
+                            :preview-src-list="['/api/tools/'+currentTool.id+'/photo']"
+                            preview-teleported>
+                            <template #error>
+                                <div style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;color:#c0c4cc;font-size:40px;background:#f5f7fa;border-radius:8px">📷</div>
+                            </template>
+                        </el-image>
+                        <div v-else style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;color:#c0c4cc;font-size:24px;background:#f5f7fa;border:1px solid #dcdfe6;border-radius:8px;flex-shrink:0">暂无照片</div>
+                        <div v-if="toolDetailEditing && canEdit">
+                            <input ref="photoInputRef" type="file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" @change="onPhotoChange">
+                            <el-button size="small" type="primary" @click="$refs.photoInputRef.click()">{{ currentTool.photo_path ? '更换照片' : '上传照片' }}</el-button>
+                            <el-button v-if="currentTool.photo_path" size="small" type="danger" plain @click="deleteToolPhoto">删除照片</el-button>
+                            <div style="margin-top:6px;font-size:12px;color:#909399">支持 jpg/png/gif/webp</div>
+                        </div>
+                    </div>
                 </template>
                 <template #footer>
                     <template v-if="!toolDetailEditing">
@@ -337,9 +378,9 @@
             </el-dialog>
 
             <!-- 新增/编辑工装弹窗 -->
-            <el-dialog v-model="toolDialogVisible" :title="toolForm.id ? '编辑工装' : '新增工装'" width="500px">
+            <el-dialog v-model="toolDialogVisible" :title="toolForm.id ? '编辑工装' : '新增工装'" width="700px">
                 <el-form :model="toolForm" label-width="90px">
-                    <el-form-item label="编号" required><el-input v-model="toolForm.code"></el-input></el-form-item>
+                    <el-form-item label="编号" required><el-input v-model="toolForm.code" :disabled="!!toolForm.id"></el-input></el-form-item>
                     <el-form-item label="图号"><el-input v-model="toolForm.drawing_no" placeholder="请输入图号"></el-input></el-form-item>
                     <el-form-item label="名称" required><el-input v-model="toolForm.name"></el-input></el-form-item>
                     <el-form-item label="规格型号"><el-input v-model="toolForm.spec"></el-input></el-form-item>
@@ -355,24 +396,90 @@
                             <el-option label="C（不限定）" value="C"></el-option>
                         </el-select>
                     </el-form-item>
-                    <el-form-item label="使用分厂" v-if="toolForm.id != null">
+                    <el-form-item label="使用分厂">
                         <el-select v-model="toolForm.factory" placeholder="请选择分厂" clearable style="width:100%" @change="toolForm.team=''">
                             <el-option v-for="f in factories" :key="f" :label="f" :value="f"></el-option>
                         </el-select>
                     </el-form-item>
-                    <el-form-item label="使用班组" v-if="toolForm.id != null && teamsByFactory(toolForm.factory).length > 0">
+                    <el-form-item label="使用班组" v-if="teamsByFactory(toolForm.factory).length > 0">
                         <el-select v-model="toolForm.team" placeholder="请选择班组" clearable style="width:100%">
                             <el-option v-for="t in teamsByFactory(toolForm.factory)" :key="t" :label="t" :value="t"></el-option>
                         </el-select>
                     </el-form-item>
-                    <el-form-item label="领用人" v-if="toolForm.id != null"><el-input v-model="toolForm.receiver" placeholder="请输入领用人"></el-input></el-form-item>
+                    <el-form-item label="领用人"><el-input v-model="toolForm.receiver" placeholder="请输入领用人"></el-input></el-form-item>
                     <el-form-item label="状态"><el-select v-model="toolForm.status"><el-option label="在库" value="在库"></el-option><el-option label="借出" value="借出"></el-option><el-option label="维修" value="维修"></el-option><el-option label="报废" value="报废"></el-option></el-select></el-form-item>
                     <el-form-item label="完工时间"><el-date-picker v-model="toolForm.purchase_date" type="date" value-format="YYYY-MM-DD"></el-date-picker></el-form-item>
                     <el-form-item label="下次检定"><el-date-picker v-model="toolForm.next_inspection_date" type="date" value-format="YYYY-MM-DD"></el-date-picker></el-form-item>
                     <el-form-item label="备注"><el-input v-model="toolForm.remark" type="textarea" :rows="2"></el-input></el-form-item>
                 </el-form>
+
+                <el-divider></el-divider>
+
+                <!-- 工装照片（始终显示） -->
+                <h4 style="margin:0 0 12px">📷 工装照片</h4>
+                <div v-if="toolForm.id" style="display:flex;align-items:flex-start;gap:16px;padding:8px 0">
+                    <el-image
+                        v-if="toolForm.photo_path"
+                        :src="'/api/tools/'+toolForm.id+'/photo'"
+                        style="width:160px;height:160px;border:1px solid #dcdfe6;border-radius:8px;background:#f5f7fa"
+                        fit="contain"
+                        :preview-src-list="['/api/tools/'+toolForm.id+'/photo']"
+                        preview-teleported>
+                        <template #error>
+                            <div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;color:#c0c4cc;font-size:36px;background:#f5f7fa;border-radius:8px">📷</div>
+                        </template>
+                    </el-image>
+                    <div v-else style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;color:#c0c4cc;font-size:20px;background:#f5f7fa;border:1px solid #dcdfe6;border-radius:8px;flex-shrink:0">暂无照片</div>
+                    <div>
+                        <input ref="dialogPhotoInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" @change="onDialogPhotoChange">
+                        <el-button size="small" type="primary" @click="dialogPhotoInput.click()">{{ toolForm.photo_path ? '更换照片' : '上传照片' }}</el-button>
+                        <el-button v-if="toolForm.photo_path" size="small" type="danger" plain @click="dialogDeletePhoto">删除照片</el-button>
+                        <div style="margin-top:6px;font-size:12px;color:#909399">支持 jpg/png/gif/webp</div>
+                    </div>
+                </div>
+                <div v-else style="padding:8px 0">
+                    <input ref="dialogPhotoInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" @change="onDialogPhotoChange">
+                    <div style="width:160px;height:120px;display:flex;align-items:center;justify-content:center;color:#c0c4cc;font-size:16px;background:#f5f7fa;border:1px solid #dcdfe6;border-radius:8px;margin-bottom:8px">请先保存工装</div>
+                    <el-button size="small" type="primary" @click="saveAndUploadPhoto">先保存再上传照片</el-button>
+                    <div style="margin-top:4px;font-size:12px;color:#909399">需要先保存工装才能上传照片</div>
+                </div>
+
+                <el-divider></el-divider>
+
+                <!-- 完工资料（始终显示） -->
+                <h4 style="margin:0 0 12px">📎 完工资料</h4>
+                <div v-if="toolForm.id" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                    <el-upload :action="'/api/attachments/upload'" :data="{tool_id: toolForm.id, file_type: uploadFileType}" :headers="{}" :on-success="onUploadSuccess" :before-upload="beforeUpload" :show-file-list="false">
+                        <el-button size="small" type="primary">上传资料</el-button>
+                    </el-upload>
+                    <el-select v-model="uploadFileType" size="small" style="width:120px">
+                        <el-option label="入库资料" value="入库资料"></el-option>
+                        <el-option label="检定报告" value="检定报告"></el-option>
+                        <el-option label="其他" value="其他"></el-option>
+                    </el-select>
+                </div>
+                <div v-else style="margin-bottom:10px">
+                    <el-button size="small" type="primary" @click="saveAndUploadFile">先保存再上传资料</el-button>
+                    <div style="margin-top:4px;font-size:12px;color:#909399">需要先保存工装才能上传资料</div>
+                </div>
+                <el-table :data="toolForm.attachments" stripe size="small" v-if="toolForm.attachments && toolForm.attachments.length">
+                    <el-table-column prop="file_name" label="文件名"></el-table-column>
+                    <el-table-column prop="file_type" label="类型" width="100"></el-table-column>
+                    <el-table-column prop="uploader" label="上传人" width="80"></el-table-column>
+                    <el-table-column prop="upload_time" label="上传时间" width="170">
+                        <template #default="scope">{{ fmtDate(scope.row.upload_time) }}</template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="100">
+                        <template #default="scope">
+                            <el-button size="small" link type="primary" @click="downloadFile(scope.row)">下载</el-button>
+                            <el-button size="small" link type="danger" @click="deleteAttachment(scope.row)" v-if="isAdmin">删除</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+                <div v-else style="color:#909399;padding:8px 0">暂无附件</div>
+
                 <template #footer>
-                    <el-button @click="toolDialogVisible=false">取消</el-button>
+                    <el-button @click="toolDialogVisible=false">关闭</el-button>
                     <el-button type="primary" @click="saveTool" :loading="saving">保存</el-button>
                 </template>
             </el-dialog>
@@ -761,7 +868,7 @@
 </div>
 
 <script>
-const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
+const { createApp, ref, reactive, computed, onMounted, watch, nextTick } = Vue;
 
 const api = axios.create({ 
     baseURL: '/api', 
@@ -951,9 +1058,18 @@ const app = createApp({
                 console.log('保存响应:', res);
                 if (res.data.code === 200) {
                     ElMessage.success('保存成功');
-                    toolDialogVisible.value = false;
                     loadTools();
                     loadStats();
+                    // 新建成功后：保留弹窗，切换到编辑模式（显示照片+资料上传区域）
+                    if (!toolForm.id && res.data.data) {
+                        const data = res.data.data;
+                        Object.assign(toolForm, {
+                            id: data.id,
+                            dbId: data.id,
+                            code: data.code,
+                            photo_path: data.photo_path || ''
+                        });
+                    }
                 } else {
                     ElMessage.error(res.data.msg || '保存失败');
                 }
@@ -1194,7 +1310,17 @@ const app = createApp({
 
         // 附件
         const onUploadSuccess = (response) => {
-            if (response.code === 200) { ElMessage.success('上传成功'); viewTool(currentTool.value); }
+            if (response.code === 200) { 
+                ElMessage.success('上传成功'); 
+                // 如果弹窗开着，刷新弹窗内的附件列表
+                if (toolDialogVisible.value && toolForm.id) {
+                    api.get(`/tools/${toolForm.id}`).then(r => {
+                        if (r.data.code === 200) toolForm.attachments = r.data.data.attachments || [];
+                    });
+                } else {
+                    viewTool(currentTool.value); 
+                }
+            }
             else { ElMessage.error(response.msg || '上传失败'); }
         };
         const beforeUpload = (file) => { return true; };
@@ -1202,6 +1328,114 @@ const app = createApp({
         const deleteAttachment = async (att) => {
             try { await ElMessageBox.confirm('确定删除此附件？', '确认', { type: 'warning' }); } catch { return; }
             try { await api.delete(`/attachments/${att.id}`); ElMessage.success('删除成功'); viewTool(currentTool.value); } catch(e) { ElMessage.error('删除失败'); }
+        };
+
+        // 照片
+        const photoInputRef = ref(null);
+        const onPhotoChange = async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('photo', file);
+            try {
+                const res = await api.post(`/tools/${currentTool.value.id}/photo`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                if (res.data.code === 200) {
+                    ElMessage.success('照片上传成功');
+                    viewTool(currentTool.value);
+                } else {
+                    ElMessage.error(res.data.msg || '上传失败');
+                }
+            } catch(e) {
+                ElMessage.error(e.response?.data?.msg || '上传失败');
+            }
+            // 重置input，允许重复选择同一文件
+            e.target.value = '';
+        };
+        const deleteToolPhoto = async () => {
+            try { await ElMessageBox.confirm('确定删除此照片？', '确认', { type: 'warning' }); } catch { return; }
+            try {
+                const res = await api.post(`/tools/${currentTool.value.id}/photo-delete`);
+                if (res.data.code === 200) {
+                    ElMessage.success('照片已删除');
+                    viewTool(currentTool.value);
+                }
+            } catch(e) {
+                ElMessage.error('删除失败');
+            }
+        };
+
+        // 弹窗内"先保存再上传"方法
+        const dialogPhotoInput = ref(null);
+
+        const saveAndUploadPhoto = async () => {
+            if (!toolForm.code || !toolForm.name) { ElMessage.warning('编号和名称不能为空'); return; }
+            saving.value = true;
+            try {
+                const res = await api.post('/tools/', toolForm);
+                if (res.data.code === 200) {
+                    const data = res.data.data;
+                    Object.assign(toolForm, { id: data.id, code: data.code, photo_path: data.photo_path || '', attachments: data.attachments || [] });
+                    ElMessage.success('工装已保存，请选择照片');
+                    loadTools(); loadStats();
+                    // 等DOM更新后弹出文件选择框
+                    await nextTick();
+                    dialogPhotoInput.value?.click();
+                } else { ElMessage.error(res.data.msg || '保存失败'); }
+            } catch(e) { ElMessage.error(e.response?.data?.msg || '保存失败'); }
+            finally { saving.value = false; }
+        };
+
+        const saveAndUploadFile = async () => {
+            if (!toolForm.code || !toolForm.name) { ElMessage.warning('编号和名称不能为空'); return; }
+            saving.value = true;
+            try {
+                const res = await api.post('/tools/', toolForm);
+                if (res.data.code === 200) {
+                    const data = res.data.data;
+                    Object.assign(toolForm, { id: data.id, code: data.code, photo_path: data.photo_path || '', attachments: data.attachments || [] });
+                    ElMessage.success('工装已保存，现在可以上传资料了');
+                    loadTools(); loadStats();
+                } else { ElMessage.error(res.data.msg || '保存失败'); }
+            } catch(e) { ElMessage.error(e.response?.data?.msg || '保存失败'); }
+            finally { saving.value = false; }
+        };
+
+        // 弹窗内照片上传/删除
+        const onDialogPhotoChange = async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('photo', file);
+            try {
+                const res = await api.post(`/tools/${toolForm.id}/photo`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                if (res.data.code === 200) {
+                    ElMessage.success('照片上传成功');
+                    toolForm.photo_path = res.data.data.photo_path;
+                    loadTools();
+                } else {
+                    ElMessage.error(res.data.msg || '上传失败');
+                }
+            } catch(err) {
+                ElMessage.error(err.response?.data?.msg || '上传失败');
+            }
+            e.target.value = '';
+        };
+        const dialogDeletePhoto = async () => {
+            try { await ElMessageBox.confirm('确定删除此照片？', '确认', { type: 'warning' }); } catch { return; }
+            try {
+                const res = await api.post(`/tools/${toolForm.id}/photo-delete`);
+                if (res.data.code === 200) {
+                    ElMessage.success('照片已删除');
+                    toolForm.photo_path = '';
+                    loadTools();
+                }
+            } catch(err) {
+                ElMessage.error('删除失败');
+            }
         };
 
         // 用户
@@ -1518,6 +1752,7 @@ const app = createApp({
             canEdit, canDelete, canApproveScrap, canManageUsers, canManageConfig, canReturnBorrow, canExport,
             stats, loadStats, monthlyChart, loadMonthlyStats,
             tools, toolTotal, toolSearch, loadTools, toolDialogVisible, toolDetailVisible, currentTool, toolForm, openToolDialog, saveTool, deleteTool, viewTool, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail,
+            photoInputRef, onPhotoChange, deleteToolPhoto, onDialogPhotoChange, dialogDeletePhoto, dialogPhotoInput, saveAndUploadPhoto, saveAndUploadFile,
             showScrapped,
             borrows, borrowTotal, borrowSearch, loadBorrows, borrowDialogVisible, borrowForm, openBorrowDialog, submitBorrow, returnTool,
             scrapDialogVisible, scrapForm, scrapSearch, scraps, scrapTotal,
