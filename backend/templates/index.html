@@ -250,44 +250,31 @@
                         </el-row>
                         <el-row :gutter="20">
                             <el-col :span="12">
-                                <el-form-item label="使用分厂"><el-input :model-value="currentTool.factory || '-（借用记录管理）'" disabled></el-input></el-form-item>
-                            </el-col>
-                            <el-col :span="12">
-                                <el-form-item label="使用班组"><el-input :model-value="currentTool.team || '-（借用记录管理）'" disabled></el-input></el-form-item>
-                            </el-col>
-                        </el-row>
-                        <el-row :gutter="20">
-                            <el-col :span="12">
-                                <el-form-item label="领用人"><el-input :model-value="currentTool.receiver || '-（借用记录管理）'" disabled></el-input></el-form-item>
-                            </el-col>
-                            <el-col :span="12">
                                 <el-form-item label="完工日期">
                                     <el-date-picker v-model="currentTool.purchase_date" type="date" value-format="YYYY-MM-DD" style="width:100%"></el-date-picker>
                                 </el-form-item>
                             </el-col>
-                        </el-row>
-                        <el-row :gutter="20">
                             <el-col :span="12">
                                 <el-form-item label="下次检定">
                                     <el-date-picker v-model="currentTool.next_inspection_date" type="date" value-format="YYYY-MM-DD" style="width:100%"></el-date-picker>
                                 </el-form-item>
                             </el-col>
-                            <el-col :span="12">
-                                <el-form-item label="备注"><el-input v-model="currentTool.remark" placeholder="请输入备注"></el-input></el-form-item>
-                            </el-col>
                         </el-row>
+                        <el-form-item label="备注"><el-input v-model="currentTool.remark" placeholder="请输入备注"></el-input></el-form-item>
                     </el-form>
 
                     <!-- 完工资料区（编辑模式下显示上传按钮） -->
                     <h4 style="margin:20px 0 10px">📎 完工资料</h4>
-                    <el-upload :action="`/api/attachments/upload`" :data="{tool_id: currentTool.id, file_type: uploadFileType}" :headers="{}" :on-success="onUploadSuccess" :before-upload="beforeUpload" :show-file-list="false" v-if="canEdit && toolDetailEditing">
-                        <el-button size="small" type="primary">上传资料</el-button>
-                        <el-select v-model="uploadFileType" size="small" style="width:120px;margin-left:8px">
+                    <!-- 上传资料按钮（手动触发file input，通过axios上传） -->
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px" v-if="canEdit && toolDetailEditing">
+                        <input ref="detailFileInput" type="file" style="display:none" @change="onDetailFileChange">
+                        <el-button size="small" type="primary" @click="$refs.detailFileInput?.click()">上传资料</el-button>
+                        <el-select v-model="uploadFileType" size="small" style="width:120px">
                             <el-option label="入库资料" value="入库资料"></el-option>
                             <el-option label="检定报告" value="检定报告"></el-option>
                             <el-option label="其他" value="其他"></el-option>
                         </el-select>
-                    </el-upload>
+                    </div>
                     <el-table :data="currentTool.attachments" stripe size="small" style="margin-top:10px" v-if="currentTool.attachments && currentTool.attachments.length">
                         <el-table-column prop="file_name" label="文件名"></el-table-column>
                         <el-table-column prop="file_type" label="类型" width="100"></el-table-column>
@@ -318,7 +305,6 @@
                                 <el-tag :type="scope.row.result==='合格'?'success':scope.row.result==='不合格'?'danger':'warning'" size="small">{{ scope.row.result }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="next_date" label="下次检定" width="110"></el-table-column>
                         <el-table-column prop="inspector" label="检定人" width="80"></el-table-column>
                         <el-table-column prop="remark" label="备注" show-overflow-tooltip></el-table-column>
                     </el-table>
@@ -443,9 +429,8 @@
                 <!-- 完工资料（始终显示） -->
                 <h4 style="margin:0 0 12px">📎 完工资料</h4>
                 <div v-if="toolForm.id" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-                    <el-upload :action="'/api/attachments/upload'" :data="{tool_id: toolForm.id, file_type: uploadFileType}" :headers="{}" :on-success="onUploadSuccess" :before-upload="beforeUpload" :show-file-list="false">
-                        <el-button size="small" type="primary">上传资料</el-button>
-                    </el-upload>
+                    <input ref="dialogFileInput" type="file" style="display:none" @change="onDialogFileChange">
+                    <el-button size="small" type="primary" @click="$refs.dialogFileInput?.click()">上传资料</el-button>
                     <el-select v-model="uploadFileType" size="small" style="width:120px">
                         <el-option label="入库资料" value="入库资料"></el-option>
                         <el-option label="检定报告" value="检定报告"></el-option>
@@ -1267,12 +1252,17 @@ const app = createApp({
         };
 
         const rejectScrap = async (req) => {
-            try { await ElMessageBox.confirm(`拒绝报废工装 ${req.tool_code} ${req.tool_name}？`, '确认拒绝', { type: 'warning' }); } catch { return; }
             try {
-                const res = await api.put(`/scraps/${req.id}/reject`, { reject_reason: '管理员拒绝' });
+                const { value } = await ElMessageBox.prompt(`拒绝报废工装 ${req.tool_code} ${req.tool_name}？`, '拒绝原因', {
+                    confirmButtonText: '确认拒绝',
+                    cancelButtonText: '取消',
+                    inputPlaceholder: '请输入拒绝原因（可选）',
+                    type: 'warning'
+                });
+                const res = await api.put(`/scraps/${req.id}/reject`, { reject_reason: value?.trim() || '管理员拒绝' });
                 if (res.data.code === 200) { ElMessage.success(res.data.msg); loadScraps(); loadTools(); }
                 else { ElMessage.error(res.data.msg); }
-            } catch(e) { ElMessage.error(e.response?.data?.msg || '审批失败'); }
+            } catch(e) { if (e !== 'cancel') ElMessage.error(e.response?.data?.msg || '审批失败'); }
         };
 
         const openInspectionDialog = (tool) => {
@@ -1443,6 +1433,56 @@ const app = createApp({
             } catch(err) {
                 ElMessage.error('删除失败');
             }
+        };
+
+        // 详情页上传资料（通过axios带cookie）
+        const onDetailFileChange = async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('tool_id', currentTool.value.id);
+            formData.append('file_type', uploadFileType);
+            try {
+                const res = await api.post('/attachments/upload', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                if (res.data.code === 200) {
+                    ElMessage.success('上传成功');
+                    viewTool(currentTool.value);
+                } else {
+                    ElMessage.error(res.data.msg || '上传失败');
+                }
+            } catch(err) {
+                ElMessage.error(err.response?.data?.msg || '上传失败');
+            }
+            e.target.value = '';
+        };
+        // 弹窗内上传资料（通过axios带cookie）
+        const onDialogFileChange = async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('tool_id', toolForm.id);
+            formData.append('file_type', uploadFileType);
+            try {
+                const res = await api.post('/attachments/upload', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                if (res.data.code === 200) {
+                    ElMessage.success('上传成功');
+                    // 刷新弹窗内的附件列表
+                    const r = await api.get(`/tools/${toolForm.id}`);
+                    if (r.data.code === 200) toolForm.attachments = r.data.data.attachments || [];
+                    loadTools();
+                } else {
+                    ElMessage.error(res.data.msg || '上传失败');
+                }
+            } catch(err) {
+                ElMessage.error(err.response?.data?.msg || '上传失败');
+            }
+            e.target.value = '';
         };
 
         // 用户
@@ -1680,6 +1720,8 @@ const app = createApp({
                 currentTool.value.next_inspection_date = calcNextInspection(currentTool.value.level, currentTool.value.purchase_date);
             }
         });
+        // 关闭详情弹窗时退出编辑模式
+        watch(toolDetailVisible, (v) => { if (!v) toolDetailEditing.value = false; });
         const getTeamName = (configValue) => { const parts = configValue.split('/'); return parts.length > 1 ? parts[1] : configValue; };
 
         // 导出Excel（触发浏览器下载）
@@ -1762,7 +1804,7 @@ const app = createApp({
             canEdit, canDelete, canApproveScrap, canManageUsers, canManageConfig, canReturnBorrow, canExport,
             stats, loadStats, monthlyChart, loadMonthlyStats,
             tools, toolTotal, toolSearch, loadTools, toolDialogVisible, toolDetailVisible, currentTool, toolForm, openToolDialog, saveTool, deleteTool, viewTool, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail,
-            photoInputRef, onPhotoChange, deleteToolPhoto, onDialogPhotoChange, dialogDeletePhoto, dialogPhotoInput, saveAndUploadPhoto, saveAndUploadFile,
+            photoInputRef, onPhotoChange, deleteToolPhoto, onDialogPhotoChange, dialogDeletePhoto, dialogPhotoInput, saveAndUploadPhoto, saveAndUploadFile, onDetailFileChange, onDialogFileChange,
             showScrapped,
             borrows, borrowTotal, borrowSearch, loadBorrows, borrowDialogVisible, borrowForm, openBorrowDialog, submitBorrow, returnTool,
             scrapDialogVisible, scrapForm, scrapSearch, scraps, scrapTotal,

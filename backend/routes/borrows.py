@@ -99,10 +99,13 @@ def return_borrow(record_id):
     record.status = '已归还'
     record.return_time = datetime.now()
 
-    # 更新工装状态
+    # 更新工装状态，清除借用信息
     tool = Tool.query.get(record.tool_id)
     if tool:
         tool.status = '在库'
+        tool.factory = None
+        tool.team = None
+        tool.receiver = None
 
     db.session.commit()
 
