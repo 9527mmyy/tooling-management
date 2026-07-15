@@ -68,6 +68,7 @@ from routes.scraps import scraps_bp
 from routes.org import org_bp
 from routes.configs import configs_bp
 from routes.export import export_bp
+from routes.import_tools import import_bp
 
 app.register_blueprint(org_bp, url_prefix='/api/org')
 app.register_blueprint(configs_bp, url_prefix='/api/configs')
@@ -78,6 +79,7 @@ app.register_blueprint(inspections_bp, url_prefix='/api/inspections')
 app.register_blueprint(attachments_bp, url_prefix='/api/attachments')
 app.register_blueprint(scraps_bp, url_prefix='/api/scraps')
 app.register_blueprint(export_bp, url_prefix='/api/export')
+app.register_blueprint(import_bp, url_prefix='/api/import')
 
 # 前端路由
 @app.route('/')

@@ -153,6 +153,9 @@
                     <el-switch v-model="showScrapped" active-text="显示报废" inactive-text="" @change="loadTools" style="margin-left:10px"></el-switch>
                     <el-button type="success" @click="openToolDialog()" v-if="canEdit">新增工装</el-button>
                     <el-button type="info" @click="exportTools" style="margin-left:4px">导出Excel</el-button>
+                    <el-button type="warning" @click="downloadTemplate" v-if="canEdit" style="margin-left:4px">下载模板</el-button>
+                    <el-button type="warning" @click="$refs.importFileInput.click()" v-if="canEdit" style="margin-left:4px">导入Excel</el-button>
+                    <input type="file" ref="importFileInput" accept=".xlsx,.xls" style="display:none" @change="importTools($event)">
                 </div>
                 <el-table :data="tools" stripe border style="width:100%">
                     <el-table-column prop="code" label="编号" width="120"></el-table-column>
@@ -1741,6 +1744,46 @@ const app = createApp({
                 URL.revokeObjectURL(url);
             } catch(e) { ElMessage.error('导出失败'); }
         };
+        const downloadTemplate = async () => {
+            try {
+                const res = await api.get('/import/template', { responseType: 'blob' });
+                const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = '工装导入模板.xlsx';
+                a.click();
+                URL.revokeObjectURL(url);
+                ElMessage.success('模板已下载，按格式填写后点「导入Excel」');
+            } catch(e) { ElMessage.error('下载模板失败'); }
+        };
+        const importTools = async (event) => {
+            const file = event.target.files[0];
+            event.target.value = ''; // 允许重复选择同一文件
+            if (!file) return;
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const res = await api.post('/import/tools', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                const d = res.data;
+                if (d.code === 200) {
+                    let msg = d.msg;
+                    if (d.data && d.data.errors && d.data.errors.length) {
+                        console.warn('导入明细错误:', d.data.errors);
+                        msg += `\n错误明细(前${d.data.errors.length}条):\n` + d.data.errors.join('\n');
+                    }
+                    if (d.data && d.data.errors && d.data.errors.length) ElMessage.warning(msg);
+                    else ElMessage.success(msg);
+                    loadTools();
+                } else {
+                    ElMessage.error(d.msg || '导入失败');
+                }
+            } catch(e) {
+                ElMessage.error('导入失败：' + (e.response?.data?.msg || e.message));
+            }
+        };
         const exportBorrows = async () => {
             try {
                 const params = { ...borrowSearch };
@@ -1813,6 +1856,7 @@ const app = createApp({
             inspectionReminders, reminderTotal, reminderFilter, reminderPage, loadInspectionReminders,
             users, loadUsers, userDialogVisible, userForm, openUserDialog, saveUser, deleteUser,
             changePwdDialogVisible, changePwdForm, submitChangePwd,
+            downloadTemplate, importTools,
             handleLogin, handleLogout, statusTagType, isOverdue, formatRole, getTeamName, fmtDate, calcNextInspection,
             onToolPageChange, onBorrowPageChange, onInspectionPageChange, onReminderPageChange, onScrapPageChange,
             factories, allTeams, teamsByFactory,
