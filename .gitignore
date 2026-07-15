@@ -51,6 +51,7 @@ flask.log
 
 # 忽略语法检查脚本
 _syntax_check.js
+_check.mjs
 
 # 忽略临时数据库
 *.bak
