@@ -136,7 +136,7 @@
             <!-- 工装台账 -->
             <div v-if="currentPage==='tools'">
                 <div class="toolbar">
-                    <el-input v-model="toolSearch.keyword" placeholder="搜索编号/名称/规格" style="width:250px" clearable @clear="loadTools" @keyup.enter="loadTools"></el-input>
+                    <el-input v-model="toolSearch.keyword" placeholder="搜索编号/名称/图号/规格" style="width:250px" clearable @clear="loadTools" @keyup.enter="loadTools"></el-input>
                     <el-select v-model="toolSearch.status" placeholder="状态筛选" style="width:140px" clearable @change="loadTools">
                         <el-option label="在库" value="在库"></el-option>
                         <el-option label="借出" value="借出"></el-option>

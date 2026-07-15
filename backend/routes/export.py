@@ -70,6 +70,7 @@ def export_tools():
         query = query.filter(
             db.or_(
                 Tool.code.contains(keyword),
+                Tool.drawing_no.contains(keyword),
                 Tool.name.contains(keyword),
                 Tool.spec.contains(keyword)
             )
