@@ -33,5 +33,29 @@ env/
 # 忽略调试/测试脚本
 test_*.py
 check_*.py
+check_*.mjs
+check_*.js
 cleanup_*.py
 final_test.py
+_check_*.py
+_check_*.js
+_fix_*.py
+_fix_*.js
+
+# 忽略错误/日志文件
+*.log
+server*.log
+app-err*.log
+app-out*.log
+flask.log
+
+# 忽略语法检查脚本
+_syntax_check.js
+
+# 忽略临时数据库
+*.bak
+tools.db
+database.db
+
+# 忽略清理脚本本身
+cleanup_local.py
