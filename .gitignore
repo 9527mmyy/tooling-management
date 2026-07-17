@@ -58,5 +58,32 @@ _check.mjs
 tools.db
 database.db
 
-# 忽略清理脚本本身
-cleanup_local.py
+
+# =============================================
+# 公开仓库排除（不上传 GitHub）
+# =============================================
+
+# 部署文档（含内网 IP、机器名等环境敏感信息）
+others/
+
+# 本机部署脚本（含 QClaw 绝对路径）
+backend/start_flask.ps1
+backend/start_flask.bat
+backend/run_hidden.vbs
+
+# 外来脚本（非本项目文件，原 workspace 误跟踪）
+_find_*.py
+_search_index.py
+
+# 一次性迁移/调试脚本（项目已稳定，不再需要）
+check_*.py
+find_*.py
+migrate_*.py
+batch_rename_codes.py
+fix_attachment_tool_id.py
+sync_databases.py
+reset_admin.py
+
+# 前端语法检查临时文件
+_check.mjs
+_syntax_check.js

@@ -1,3 +1,3 @@
 @echo off
-cd /d D:\tooling-management\backend
+cd /d "%~dp0"
 start /B python app.py > flask.log 2>&1
