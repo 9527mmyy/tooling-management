@@ -151,6 +151,13 @@ tooling-management/
 
 ---
 
+## 👤 作者 / Author
+
+**Name**: moy  
+**Email**: 891761065@qq.com
+
+---
+
 ## 🤝 贡献 / Contributing
 
 **中文**：欢迎提交 Issue 和 Pull Request！
