@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -9,6 +9,7 @@
     <script src="/static/libs/element-plus.min.js"></script>
     <script src="/static/libs/axios.min.js"></script>
     <script src="/static/libs/echarts.min.js"></script>
+    <script src="/static/js/i18n.js?v=20260717231841"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f2f5; }
@@ -56,16 +57,16 @@
     <!-- 登录页 -->
     <div class="login-container" v-if="!loggedIn">
         <div class="login-box">
-            <div class="login-title">🔧 工装管理系统</div>
+            <div class="login-title" data-i18n="工装管理系统">🔧 工装管理系统</div>
             <el-form @submit.prevent="handleLogin">
                 <el-form-item>
-                    <el-input v-model="loginForm.user_no" placeholder="工号" prefix-icon="User" size="large"></el-input>
+                    <el-input v-model="loginForm.user_no" placeholder="工号" data-i18n-placeholder="工号" prefix-icon="User" size="large"></el-input>
                 </el-form-item>
                 <el-form-item>
-                    <el-input v-model="loginForm.password" type="password" placeholder="密码" prefix-icon="Lock" size="large" @keyup.enter="handleLogin"></el-input>
+                    <el-input v-model="loginForm.password" type="password" placeholder="密码" data-i18n-placeholder="密码" prefix-icon="Lock" size="large" @keyup.enter="handleLogin"></el-input>
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" size="large" style="width:100%" @click="handleLogin" :loading="loginLoading">登 录</el-button>
+                    <el-button type="primary" size="large" style="width:100%" @click="handleLogin" :loading="loginLoading" data-i18n="登 录">登 录</el-button>
                 </el-form-item>
             </el-form>
         </div>
@@ -75,27 +76,27 @@
     <div class="main-container" v-else>
         <!-- 侧边栏 -->
         <div class="sidebar">
-            <div class="sidebar-title">🔧 工装管理</div>
+            <div class="sidebar-title" data-i18n="工装管理">🔧 工装管理</div>
             <div class="sidebar-menu">
-                <div class="menu-item" :class="{active: currentPage==='dashboard'}" @click="currentPage='dashboard'">📊 首页概览</div>
-                <div class="menu-item" :class="{active: currentPage==='tools'}" @click="currentPage='tools'">📦 工装台账</div>
-                <div class="menu-item" :class="{active: currentPage==='borrows'}" @click="currentPage='borrows'">📋 借用记录</div>
-                <div class="menu-item" :class="{active: currentPage==='inspections'}" @click="currentPage='inspections'">🔍 检定记录</div>
-                <div class="menu-item" :class="{active: currentPage==='inspection-reminder'}" @click="currentPage='inspection-reminder'">🔔 检定提醒</div>
-                <div class="menu-item" :class="{active: currentPage==='scraps'}" @click="currentPage='scraps'" v-if="isAdmin">🗑️ 报废审批</div>
+                <div class="menu-item" :class="{active: currentPage==='dashboard'}" @click="currentPage='dashboard'" data-i18n="首页概览">📊 首页概览</div>
+                <div class="menu-item" :class="{active: currentPage==='tools'}" @click="currentPage='tools'" data-i18n="工装台账">📦 工装台账</div>
+                <div class="menu-item" :class="{active: currentPage==='borrows'}" @click="currentPage='borrows'" data-i18n="借用记录">📋 借用记录</div>
+                <div class="menu-item" :class="{active: currentPage==='inspections'}" @click="currentPage='inspections'" data-i18n="检定记录">🔍 检定记录</div>
+                <div class="menu-item" :class="{active: currentPage==='inspection-reminder'}" @click="currentPage='inspection-reminder'" data-i18n="检定提醒">🔔 检定提醒</div>
+                <div class="menu-item" :class="{active: currentPage==='scraps'}" @click="currentPage='scraps'" v-if="isAdmin" data-i18n="报废审批">🗑️ 报废审批</div>
                 <!-- 配置管理（父菜单） -->
                 <div v-if="isAdmin" class="menu-group">
                     <div class="menu-item menu-parent" @click="toggleConfigMenu">
-                        <span>⚙️ 配置管理</span>
+                        <span data-i18n="配置管理">⚙️ 配置管理</span>
                         <span class="menu-arrow">{{ configMenuOpen ? '▼' : '▶' }}</span>
                     </div>
                     <!-- 二级菜单 -->
                     <div v-show="configMenuOpen || currentPage==='configs'" class="submenu">
-                        <div class="submenu-item" :class="{active: currentSubPage==='config-category'}" @click="goToConfig('config-category')">📋 工装类别</div>
-                        <div class="submenu-item" :class="{active: currentPage==='configs' && (currentSubPage==='config-factory' || currentSubPage.startsWith('config-factory-'))}" @click="goToConfig('config-factory')">
+                        <div class="submenu-item" :class="{active: currentSubPage==='config-category'}" @click="goToConfig('config-category')" data-i18n="工装类别">📋 工装类别</div>
+                        <div class="submenu-item" :class="{active: currentPage==='configs' && (currentSubPage==='config-factory' || currentSubPage.startsWith('config-factory-'))}" @click="goToConfig('config-factory')" data-i18n="工厂设置">
                             🏭 工厂设置
                         </div>
-                        <div class="submenu-item" :class="{active: currentSubPage==='config-users'}" @click="goToConfig('config-users')">👥 用户管理</div>
+                        <div class="submenu-item" :class="{active: currentSubPage==='config-users'}" @click="goToConfig('config-users')" data-i18n="用户管理">👥 用户管理</div>
                     </div>
                 </div>
             </div>
@@ -107,22 +108,22 @@
                 <h2>{{ pageTitle }}</h2>
                 <div>
                     <span style="margin-right:16px;color:#606266">{{ currentUser.username }}</span>
-                    <el-button type="warning" size="small" @click="changePwdDialogVisible=true">修改密码</el-button>
-                    <el-button type="danger" size="small" @click="handleLogout" style="margin-left:8px">退出</el-button>
+                    <el-button type="warning" size="small" @click="changePwdDialogVisible=true" data-i18n="修改密码">修改密码</el-button>
+                    <el-button type="danger" size="small" @click="handleLogout" style="margin-left:8px" data-i18n="退出登录">退出</el-button>
                 </div>
             </div>
 
             <!-- 首页概览 -->
             <div v-if="currentPage==='dashboard'">
                 <div class="stat-cards">
-                    <div class="stat-card blue"><div class="label">工装总数</div><div class="number">{{ stats.total || 0 }}</div></div>
-                    <div class="stat-card green"><div class="label">在库</div><div class="number">{{ stats.in_stock || 0 }}</div></div>
-                    <div class="stat-card orange"><div class="label">借出</div><div class="number">{{ stats.borrowed || 0 }}</div></div>
-                    <div class="stat-card red"><div class="label">检定逾期</div><div class="number">{{ stats.overdue || 0 }}</div></div>
+                    <div class="stat-card blue"><div class="label" data-i18n="工装总数">工装总数</div><div class="number">{{ stats.total || 0 }}</div></div>
+                    <div class="stat-card green"><div class="label" data-i18n="在库">在库</div><div class="number">{{ stats.in_stock || 0 }}</div></div>
+                    <div class="stat-card orange"><div class="label" data-i18n="借出">借出</div><div class="number">{{ stats.borrowed || 0 }}</div></div>
+                    <div class="stat-card red"><div class="label" data-i18n="检定逾期">检定逾期</div><div class="number">{{ stats.overdue || 0 }}</div></div>
                 </div>
                 <!-- 月度趋势图表 -->
                 <div class="chart-container">
-                    <div class="chart-title">📈 工装月度统计趋势（过去12个月）</div>
+                    <div class="chart-title" data-i18n="工装月度统计趋势（过去12个月）">📈 工装月度统计趋势（过去12个月）</div>
                     <div ref="monthlyChart" class="chart-wrapper"></div>
                 </div>
                 <div class="card" v-if="stats.due_soon > 0">
@@ -149,12 +150,12 @@
                     <el-select v-model="toolSearch.team" placeholder="班组筛选" style="width:150px" clearable @change="loadTools">
                         <el-option v-for="t in allTeams" :key="t" :label="t" :value="t"></el-option>
                     </el-select>
-                    <el-button type="primary" @click="loadTools">搜索</el-button>
+                    <el-button type="primary" @click="loadTools" data-i18n="搜索">搜索</el-button>
                     <el-switch v-model="showScrapped" active-text="显示报废" inactive-text="" @change="loadTools" style="margin-left:10px"></el-switch>
-                    <el-button type="success" @click="openToolDialog()" v-if="canEdit">新增工装</el-button>
-                    <el-button type="info" @click="exportTools" style="margin-left:4px">导出Excel</el-button>
-                    <el-button type="warning" @click="downloadTemplate" v-if="canEdit" style="margin-left:4px">下载模板</el-button>
-                    <el-button type="warning" @click="$refs.importFileInput.click()" v-if="canEdit" style="margin-left:4px">导入Excel</el-button>
+                    <el-button type="success" @click="openToolDialog()" v-if="canEdit" data-i18n="新建">新增工装</el-button>
+                    <el-button type="info" @click="exportTools" style="margin-left:4px" data-i18n="导出">导出Excel</el-button>
+                    <el-button type="warning" @click="downloadTemplate" v-if="canEdit" style="margin-left:4px" data-i18n="下载模板">下载模板</el-button>
+                    <el-button type="warning" @click="$refs.importFileInput.click()" v-if="canEdit" style="margin-left:4px" data-i18n="导入">导入Excel</el-button>
                     <input type="file" ref="importFileInput" accept=".xlsx,.xls" style="display:none" @change="importTools($event)">
                 </div>
                 <el-table :data="tools" stripe border style="width:100%">
@@ -182,11 +183,11 @@
                     </el-table-column>
                     <el-table-column label="操作" width="360" fixed="right">
                         <template #default="scope">
-                            <el-button size="small" @click="viewTool(scope.row)">详情</el-button>
-                            <el-button size="small" type="primary" @click="openBorrowDialog(scope.row)" v-if="scope.row.status==='在库'">借用</el-button>
-                            <el-button size="small" type="warning" @click="openInspectionDialog(scope.row)">检定</el-button>
-                            <el-button size="small" type="info" @click="scrapTool(scope.row)" v-if="scope.row.status!=='报废' && canEdit">报废</el-button>
-                            <el-button size="small" type="danger" @click="deleteTool(scope.row)" v-if="canDelete">删除</el-button>
+                            <el-button size="small" @click="viewTool(scope.row)" data-i18n="详情">详情</el-button>
+                            <el-button size="small" type="primary" @click="openBorrowDialog(scope.row)" v-if="scope.row.status==='在库'" data-i18n="借用">借用</el-button>
+                            <el-button size="small" type="warning" @click="openInspectionDialog(scope.row)" data-i18n="检定记录">检定</el-button>
+                            <el-button size="small" type="info" @click="scrapTool(scope.row)" v-if="scope.row.status!=='报废' && canEdit" data-i18n="报废审批">报废</el-button>
+                            <el-button size="small" type="danger" @click="deleteTool(scope.row)" v-if="canDelete" data-i18n="删除">删除</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
