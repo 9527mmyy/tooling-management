@@ -49,14 +49,11 @@ db.init_app(app)
 
 # SQLite 性能优化
 with app.app_context():
-    from sqlalchemy import event
-    @event.listens_for(db.engine, 'connect')
-    def set_sqlite_pragma(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute('PRAGMA journal_mode=WAL')  # WAL模式，提升并发写入
-        cursor.execute('PRAGMA synchronous=NORMAL')  # 减少fsync，提升速度
-        cursor.execute('PRAGMA cache_size=10000')  # 增加缓存
-        cursor.close()
+    from sqlalchemy import text
+    db.session.execute(text('PRAGMA journal_mode=WAL'))
+    db.session.execute(text('PRAGMA synchronous=NORMAL'))
+    db.session.execute(text('PRAGMA cache_size=10000'))
+    db.session.commit()
 
 # 注册路由
 from routes.auth import auth_bp
