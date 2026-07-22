@@ -19,6 +19,8 @@
         .main-container { display: flex; height: 100vh; }
         .sidebar { width: 220px; background: #304156; color: #fff; }
         .tool-photo { border-radius: 4px; }
+        .tool-row-clickable { cursor: pointer !important; }
+        .tool-row-clickable:hover { background-color: #f5f7fa !important; }
         .sidebar-title { padding: 20px; font-size: 18px; font-weight: bold; text-align: center; border-bottom: 1px solid #3a4a5e; }
         .sidebar-menu { padding: 10px 0; }
         .menu-item { padding: 14px 20px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 10px; }
@@ -158,7 +160,7 @@
                     <el-button type="warning" @click="$refs.importFileInput.click()" v-if="canEdit" style="margin-left:4px" data-i18n="导入">导入Excel</el-button>
                     <input type="file" ref="importFileInput" accept=".xlsx,.xls" style="display:none" @change="importTools($event)">
                 </div>
-                <el-table :data="tools" stripe border style="width:100%">
+                <el-table :data="tools" stripe border style="width:100%" @row-click="onToolRowClick" :row-class-name="()=>'tool-row-clickable'">
                     <el-table-column prop="code" label="编号" width="120"></el-table-column>
                     <el-table-column prop="drawing_no" label="图号" width="120"></el-table-column>
                     <el-table-column prop="name" label="名称" width="150"></el-table-column>
@@ -196,8 +198,223 @@
                 </div>
             </div>
 
+            <!-- 工装详情页（整页） -->
+            <div v-if="currentPage==='tool-detail'" style="padding:24px;background:#f0f2f5;min-height:100vh">
+                <template v-if="currentTool">
+                    <!-- 顶部标题栏 -->
+                    <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap">
+                        <el-button @click="backToTools" size="large" style="border-radius:8px;width:48px;height:48px;padding:0">
+                            <span style="font-size:18px">←</span>
+                        </el-button>
+                        <div style="flex:1">
+                            <h1 style="margin:0;font-size:20px;font-weight:700;color:#1a1a1a">{{ currentTool.name }}</h1>
+                            <div style="font-size:12px;color:#909399;margin-top:2px">{{ currentTool.code }}{{ currentTool.drawing_no ? ' | ' + currentTool.drawing_no : '' }}{{ currentTool.spec ? ' | ' + currentTool.spec : '' }}</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                            <el-tag :type="statusTagType(currentTool.status)" style="font-size:12px;padding:6px 14px;border-radius:16px">{{ currentTool.status }}</el-tag>
+                            <el-button type="success" size="small" @click="openBorrowDialog(currentTool)" v-if="currentTool.status==='在库'">入库</el-button>
+                            <el-button type="warning" size="small" @click="openInspectionDialog(currentTool)">检定</el-button>
+                            <el-button type="info" size="small" @click="scrapTool(currentTool)" v-if="currentTool.status!=='报废' && canEdit">报废</el-button>
+                            <el-button type="danger" size="small" @click="deleteTool(currentTool)" v-if="canDelete">删除</el-button>
+                        </div>
+                    </div>
+
+                    <!-- 主内容区：左侧信息 + 右侧图片，等高 -->
+                    <div style="display:grid;grid-template-columns:1fr 520px;gap:24px;align-items:start">
+
+                        <!-- ========== 左侧：工装信息（查看/编辑同一布局） ========== -->
+                        <div ref="detailLeftCard" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06);min-width:0">
+                            <!-- 渐变条 + 顶部操作栏 -->
+                            <div style="height:6px;background:linear-gradient(90deg,#409eff,#667eea,#764ba2)"></div>
+                            <div style="padding:14px 18px 10px;display:flex;align-items:center;justify-content:space-between">
+                                <div style="display:flex;align-items:center;gap:8px">
+                                    <div style="font-size:14px;font-weight:600;color:#1a1a1a">工装信息</div>
+                                </div>
+                                <div style="display:flex;gap:8px" v-if="!editingTool && canEdit">
+                                    <el-button type="primary" size="small" @click="startEditTool">编辑</el-button>
+                                </div>
+                                <div style="display:flex;gap:8px" v-if="editingTool">
+                                    <el-button size="small" @click="cancelEditTool">取消</el-button>
+                                    <el-button size="small" type="primary" @click="saveToolDetailInline" :loading="saving">保存</el-button>
+                                </div>
+                            </div>
+                            <div style="padding:4px 18px 18px">
+                                <!-- 第一行：编号+图号 | 名称+规格 -->
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+                                    <div style="padding:10px 14px;background:linear-gradient(135deg,#f0f5ff 0%,#e8f0ff 100%);border-radius:10px;border:1px solid #adc6ff">
+                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">编号</div>
+                                        <el-input v-if="editingTool" v-model="editingTool.code" size="small" placeholder="自动生成" disabled style="font-size:14px"></el-input>
+                                        <div v-else style="font-size:14px;font-weight:600;color:#10239e">{{ currentTool.code }}</div>
+                                    </div>
+                                    <div style="padding:10px 14px;background:linear-gradient(135deg,#e6f0ff 0%,#dceeff 100%);border-radius:10px;border:1px solid #adc6ff">
+                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">图号</div>
+                                        <el-input v-if="editingTool" v-model="editingTool.drawing_no" size="small" placeholder="请输入图号" style="font-size:14px"></el-input>
+                                        <div v-else style="font-size:14px;font-weight:600;color:#10239e">{{ currentTool.drawing_no || '-' }}</div>
+                                    </div>
+                                </div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+                                    <div style="padding:10px 14px;background:linear-gradient(135deg,#fff7e6 0%,#fff3d9 100%);border-radius:10px;border:1px solid #ffd591">
+                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">工装名称</div>
+                                        <el-input v-if="editingTool" v-model="editingTool.name" size="small" placeholder="请输入名称" style="font-size:14px"></el-input>
+                                        <div v-else style="font-size:15px;font-weight:700;color:#d46b08">{{ currentTool.name }}</div>
+                                    </div>
+                                    <div style="padding:10px 14px;background:linear-gradient(135deg,#fff3d9 0%,#ffe9cc 100%);border-radius:10px;border:1px solid #ffd591">
+                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">规格型号</div>
+                                        <el-input v-if="editingTool" v-model="editingTool.spec" size="small" placeholder="请输入规格" style="font-size:14px"></el-input>
+                                        <div v-else style="font-size:14px;font-weight:600;color:#d46b08">{{ currentTool.spec || '-' }}</div>
+                                    </div>
+                                </div>
+                                <!-- 第二行：6个信息格 -->
+                                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+                                    <div style="padding:8px 12px;background:#f5f7fa;border-radius:8px">
+                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">类别</div>
+                                        <el-select v-if="editingTool" v-model="editingTool.category" size="small" placeholder="请选择" clearable style="width:100%;font-size:13px">
+                                            <el-option v-for="c in configLists.category" :key="c.id" :label="c.config_value" :value="c.config_value"></el-option>
+                                        </el-select>
+                                        <div v-else style="font-size:13px;font-weight:600;color:#1677ff">{{ currentTool.category || '-' }}</div>
+                                    </div>
+                                    <div style="padding:8px 12px;background:#f5f7fa;border-radius:8px">
+                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">等级</div>
+                                        <el-select v-if="editingTool" v-model="editingTool.level" size="small" placeholder="请选择" style="width:100%;font-size:13px">
+                                            <el-option label="A（半年检定）" value="A"></el-option>
+                                            <el-option label="B（一年检定）" value="B"></el-option>
+                                            <el-option label="C（不限定）" value="C"></el-option>
+                                        </el-select>
+                                        <div v-else style="font-size:13px;font-weight:600;color:#d46b08">{{ currentTool.level || '-' }}</div>
+                                    </div>
+                                    <div style="padding:8px 12px;background:#f5f7fa;border-radius:8px">
+                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">领用人</div>
+                                        <el-input v-if="editingTool" v-model="editingTool.receiver" size="small" placeholder="请输入" style="font-size:13px"></el-input>
+                                        <div v-else style="font-size:13px;font-weight:600;color:#389e0d">{{ currentTool.receiver || '-' }}</div>
+                                    </div>
+                                    <div style="padding:8px 12px;background:#f5f7fa;border-radius:8px">
+                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">使用分厂</div>
+                                        <el-select v-if="editingTool" v-model="editingTool.factory" size="small" placeholder="请选择" clearable style="width:100%;font-size:13px">
+                                            <el-option v-for="f in factories" :key="f.id" :label="f.config_value" :value="f.config_value"></el-option>
+                                        </el-select>
+                                        <div v-else style="font-size:13px;font-weight:600;color:#722ed1">{{ currentTool.factory || '-' }}</div>
+                                    </div>
+                                    <div style="padding:8px 12px;background:#f5f7fa;border-radius:8px">
+                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">使用班组</div>
+                                        <el-select v-if="editingTool" v-model="editingTool.team" size="small" placeholder="请选择" clearable style="width:100%;font-size:13px">
+                                            <el-option v-for="t in teamsInCurrentFactory" :key="t.id" :label="t.config_value" :value="t.config_value"></el-option>
+                                        </el-select>
+                                        <div v-else style="font-size:13px;font-weight:600;color:#cf1322">{{ currentTool.team || '-' }}</div>
+                                    </div>
+                                    <div style="padding:8px 12px;background:#f5f7fa;border-radius:8px">
+                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">完工日期</div>
+                                        <el-date-picker v-if="editingTool" v-model="editingTool.purchase_date" type="date" value-format="YYYY-MM-DD" size="small" style="width:100%"></el-date-picker>
+                                        <div v-else style="font-size:13px;font-weight:600;color:#595959">{{ fmtDate(currentTool.purchase_date) }}</div>
+                                    </div>
+                                </div>
+                                <!-- 第三行：下次检定 + 入库时间 -->
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+                                    <div :style="{padding:'8px 12px',borderRadius:'8px',background: isOverdue(editingTool ? editingTool.next_inspection_date : currentTool.next_inspection_date) ? '#fff2f0' : '#f0f5ff',border:'1px solid ' + (isOverdue(editingTool ? editingTool.next_inspection_date : currentTool.next_inspection_date) ? '#ffccc7' : '#adc6ff')}">
+                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">下次检定</div>
+                                        <div v-if="editingTool" style="font-size:13px;color:#8c8c8c">（由检定记录自动更新）</div>
+                                        <div v-else :style="{fontSize:'13px',fontWeight:'600',color: isOverdue(currentTool.next_inspection_date) ? '#cf1322' : '#10239e'}">{{ fmtDate(currentTool.next_inspection_date) }}</div>
+                                    </div>
+                                    <div style="padding:8px 12px;background:#f5f7fa;border-radius:8px">
+                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">入库时间</div>
+                                        <div style="font-size:13px;font-weight:600;color:#595959">{{ currentTool.created_at ? currentTool.created_at.split(' ')[0] : '-' }}</div>
+                                    </div>
+                                </div>
+                                <!-- 备注 -->
+                                <div style="padding:10px 14px;background:#fafafa;border-radius:8px">
+                                    <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">备注</div>
+                                    <el-input v-if="editingTool" v-model="editingTool.remark" size="small" type="textarea" :rows="2" placeholder="请输入备注" style="font-size:13px"></el-input>
+                                    <div v-else style="font-size:13px;color:#595959;line-height:1.6">{{ currentTool.remark || '暂无备注' }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ========== 右侧：记录标签页 ========== -->
+                        <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+                                <div style="display:flex;align-items:center;gap:8px">
+                                    <div style="width:4px;height:18px;background:linear-gradient(180deg,#409eff,#667eea);border-radius:2px"></div>
+                                    <span style="font-size:14px;font-weight:600;color:#1a1a1a">记录</span>
+                                </div>
+                                <div style="display:flex;gap:8px">
+                                    <el-button size="small" type="success" @click="openBorrowDialog(currentTool)" v-if="currentTool.status==='在库'">+ 入库记录</el-button>
+                                    <el-button size="small" type="warning" @click="openInspectionDialog(currentTool)">+ 检定记录</el-button>
+                                </div>
+                            </div>
+                            <div v-if="(currentTool.borrow_records && currentTool.borrow_records.length) || (currentTool.inspections && currentTool.inspections.length)" style="max-height:500px;overflow-y:auto">
+                                <div style="position:relative;padding-left:24px">
+                                    <div style="position:absolute;left:8px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,#409eff,#d3adf7)"></div>
+                                    <div v-for="item in getMergedRecords()" :key="item.key" style="position:relative;margin-bottom:16px">
+                                        <div :style="{position:'absolute',left:'-20px',top:'14px',width:'12px',height:'12px',borderRadius:'50%',background: item.type==='borrow' ? '#52c41a' : item.type==='inspection' ? '#fa8c16' : '#1677ff',border:'2px solid #fff',boxShadow:'0 0 0 2px ' + (item.type==='borrow' ? '#b7eb8f' : item.type==='inspection' ? '#ffd591' : '#adc6ff')}"></div>
+                                        <div style="background:#fafbfc;border-radius:12px;border:1px solid #f0f0f0;padding:14px 16px;margin-left:8px">
+                                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                                                <div style="display:flex;align-items:center;gap:8px">
+                                                    <el-tag :type="item.type==='borrow' ? 'success' : item.type==='inspection' ? 'warning' : 'primary'" size="small" style="font-size:11px">{{ item.typeName }}</el-tag>
+                                                    <span style="font-size:13px;font-weight:600;color:#1a1a1a">{{ item.date }}</span>
+                                                </div>
+                                            </div>
+                                            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;font-size:12px;color:#595959">
+                                                <div v-for="field in item.fields" :key="field.label">
+                                                    <span style="color:#8c8c8c">{{ field.label }}：</span>
+                                                    <span style="color:#303133;font-weight:500">{{ field.value }}</span>
+                                                </div>
+                                            </div>
+                                            <div v-if="item.attachments && item.attachments.length" style="margin-top:10px;padding-top:10px;border-top:1px dashed #e4e7ed">
+                                                <div style="font-size:11px;color:#8c8c8c;margin-bottom:6px">附件</div>
+                                                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                                                    <div v-for="att in item.attachments" :key="att.id" style="display:flex;align-items:center;gap:4px;padding:3px 8px;background:#fff;border:1px solid #e4e7ed;border-radius:4px;font-size:11px;color:#1677ff;cursor:pointer;max-width:160px" @click="downloadFile(att)">
+                                                        <span style="font-size:12px">📎</span>
+                                                        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ att.file_name }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div v-if="canEdit" style="margin-top:8px">
+                                                <input :ref="el => { if(el) recordFileRefs[item.key] = el }" type="file" style="display:none" @change="e => onRecordFileChange(e, item)">
+                                                <el-button size="small" link type="primary" @click="recordFileRefs[item.key]?.click()">+ 上传附件</el-button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <el-empty description="暂无记录" v-else />
+                        </div>
+                    </div>
+
+                    <!-- ========== 下方：工装照片卡片 ========== -->
+                    <div style="background:#fff;border-radius:16px;padding:20px;margin-top:24px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <div style="width:4px;height:18px;background:linear-gradient(180deg,#409eff,#667eea);border-radius:2px"></div>
+                                <span style="font-size:14px;font-weight:600;color:#1a1a1a">工装照片</span>
+                            </div>
+                            <el-button size="small" @click="openEditTool(currentTool)" v-if="canEdit" style="font-size:12px">上传照片</el-button>
+                        </div>
+                        <div style="border-radius:12px;overflow:hidden;border:2px dashed #e4e7ed;background:#fafafa;min-height:300px;display:flex;align-items:center;justify-content:center;height:100%">
+                            <div v-if="currentTool.photo_url" style="width:100%">
+                                <el-image :src="currentTool.photo_url" style="width:100%;display:block" :preview-src-list="currentTool.photo_url ? [currentTool.photo_url] : []" fit="contain" lazy>
+                                    <template #error>
+                                        <div style="text-align:center;padding:40px 20px;color:#909399">
+                                            <div style="font-size:48px;margin-bottom:8px">🖼️</div>
+                                            <div>图片加载失败</div>
+                                        </div>
+                                    </template>
+                                </el-image>
+                                <el-button v-if="currentTool.photo_path" size="small" type="danger" plain @click="deleteToolPhoto" style="margin-top:8px">删除照片</el-button>
+                            </div>
+                            <div v-else style="text-align:center;padding:80px 20px">
+                                <div style="font-size:48px;margin-bottom:12px;opacity:.4">📷</div>
+                                <div style="color:#909399;font-size:14px;margin-bottom:16px">暂无工装照片</div>
+                                <el-button size="small" type="primary" @click="openEditTool(currentTool)" v-if="canEdit">上传照片</el-button>
+                            </div>
+                        </div>
+                    </div>
+
+                </template>
+
+            </div>
+
             <!-- 工装详情弹窗 -->
-            <el-dialog v-model="toolDetailVisible" :title="toolDetailEditing ? '编辑工装' : '工装详情'" width="700px">
+
+<el-dialog v-model="toolDetailVisible" :title="toolDetailEditing ? '编辑工装' : '工装详情'" width="700px">
                 <template v-if="currentTool">
                     <!-- 查看模式 -->
                     <el-descriptions :column="2" border v-if="!toolDetailEditing">
@@ -867,6 +1084,8 @@ const app = createApp({
         const currentUser = reactive({ username: '', role: '' });
         const currentPage = ref('dashboard');
         const saving = ref(false);
+        const editingTool = ref(null);  // 详情页内联编辑对象
+        const recordFileRefs = reactive({});  // 记录卡片的文件上传 refs
 
         const isAdmin = computed(() => currentUser.role === 'admin');
         const canEdit = computed(() => currentUser.permissions?.can_edit ?? false);
@@ -1099,13 +1318,142 @@ const app = createApp({
             }
         };
 
+        // 点击工装行 → 进入详情页
         const viewTool = async (tool) => {
             try { 
                 const r = await api.get(`/tools/${tool.id}`); 
                 currentTool.value = r.data.data; 
                 toolDetailEditing.value = false;
+                currentPage.value = 'tool-detail';  // 跳转到详情页
+                nextTick(syncDetailCardsHeight);  // 同步卡片高度
+            } catch(e) { ElMessage.error('加载失败'); }
+        };
+
+        // 返回工装台账列表
+        const backToTools = () => {
+            currentPage.value = 'tools';
+        };
+
+        // 打开编辑弹窗（从详情页的操作区触发）
+        const openEditTool = async (tool) => {
+            try { 
+                const r = await api.get(`/tools/${tool.id}`); 
+                currentTool.value = r.data.data; 
+                toolDetailEditing.value = true;
                 toolDetailVisible.value = true; 
             } catch(e) { ElMessage.error('加载失败'); }
+        };
+
+        // 开始内联编辑（详情页内编辑）
+        const startEditTool = () => {
+            editingTool.value = JSON.parse(JSON.stringify(currentTool.value));
+        };
+
+        // 取消内联编辑
+        const cancelEditTool = () => {
+            editingTool.value = null;
+        };
+
+        // 同步左右卡片高度（右侧跟随左侧）
+        const syncDetailCardsHeight = () => {
+            nextTick(() => {
+                const left = document.querySelector('[ref=detailLeftCard]');
+                const right = document.querySelector('[ref=detailRightCard]');
+                if (left && right) {
+                    right.style.minHeight = left.offsetHeight + 'px';
+                }
+            });
+        };
+        // 挂载时 + 编辑状态变化时同步
+        onMounted(syncDetailCardsHeight);
+        watch(editingTool, syncDetailCardsHeight);
+
+        // 保存内联编辑
+        const saveToolDetailInline = async () => {
+            if (!editingTool.value.name) { ElMessage.warning('名称不能为空'); return; }
+            saving.value = true;
+            try {
+                const res = await api.put(`/tools/${editingTool.value.id}`, editingTool.value);
+                if (res.data.code === 200) {
+                    currentTool.value = JSON.parse(JSON.stringify(editingTool.value));
+                    editingTool.value = null;
+                    syncDetailCardsHeight();
+                    ElMessage.success('保存成功');
+                } else { ElMessage.error(res.data.message || '保存失败'); }
+            } catch(e) { ElMessage.error('保存失败'); }
+            finally { saving.value = false; }
+        };
+
+        // 合并入库记录和检定记录，按时间排序
+        const getMergedRecords = () => {
+            const records = [];
+            const tool = currentTool.value;
+            if (tool.borrow_records) {
+                tool.borrow_records.forEach(r => {
+                    records.push({
+                        key: 'b_' + r.id,
+                        type: 'borrow',
+                        typeName: '入库',
+                        date: r.borrow_date ? r.borrow_date.split('T')[0] : '-',
+                        fields: [
+                            { label: '领用人', value: r.borrower || '-' },
+                            { label: '部门', value: r.department || '-' },
+                            { label: '用途', value: r.purpose || '-' },
+                            { label: '计划归还', value: r.return_date ? r.return_date.split('T')[0] : '-' },
+                            { label: '实际归还', value: r.actual_return_date ? r.actual_return_date.split('T')[0] : '-' },
+                            { label: '状态', value: r.status || '-' },
+                        ],
+                        attachments: r.attachments || []
+                    });
+                });
+            }
+            if (tool.inspections) {
+                tool.inspections.forEach(r => {
+                    records.push({
+                        key: 'i_' + r.id,
+                        type: 'inspection',
+                        typeName: '检定',
+                        date: r.inspection_date ? r.inspection_date.split('T')[0] : '-',
+                        fields: [
+                            { label: '检定结果', value: r.result || '-' },
+                            { label: '检定人', value: r.inspector || '-' },
+                            { label: '下次检定', value: r.next_date ? r.next_date.split('T')[0] : '-' },
+                            { label: '备注', value: r.remark || '-' },
+                        ],
+                        attachments: r.attachments || []
+                    });
+                });
+            }
+            // 按日期倒序
+            records.sort((a, b) => b.date.localeCompare(a.date));
+            return records;
+        };
+
+        // 记录卡片上传附件
+        let _currentRecordItem = null;
+        const onRecordFileChange = async (event, item) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            _currentRecordItem = item;
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('tool_id', currentTool.value.id);
+            // 根据记录类型判断附件类型
+            formData.append('file_type', item.type === 'borrow' ? '入库资料' : '检定报告');
+            formData.append('uploader', currentUser.username);
+            try {
+                await api.post('/attachments', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                ElMessage.success('上传成功');
+                // 重新加载工装详情
+                const r = await api.get(`/tools/${currentTool.value.id}`);
+                currentTool.value = r.data.data;
+                event.target.value = '';
+            } catch(e) { ElMessage.error('上传失败'); }
+        };
+
+        // 点击表格行
+        const onToolRowClick = (row) => {
+            viewTool(row);
         };
         
         const toolDetailEditing = ref(false);
@@ -1847,7 +2195,7 @@ const app = createApp({
             loggedIn, loginLoading, loginForm, currentUser, currentPage, saving, isAdmin, pageTitle,
             canEdit, canDelete, canApproveScrap, canManageUsers, canManageConfig, canReturnBorrow, canExport,
             stats, loadStats, monthlyChart, loadMonthlyStats,
-            tools, toolTotal, toolSearch, loadTools, toolDialogVisible, toolDetailVisible, currentTool, toolForm, openToolDialog, saveTool, deleteTool, viewTool, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail,
+            tools, toolTotal, toolSearch, loadTools, toolDialogVisible, toolDetailVisible, currentTool, toolForm, openToolDialog, saveTool, deleteTool, viewTool, openEditTool, backToTools, onToolRowClick, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail, editingTool, startEditTool, cancelEditTool, saveToolDetailInline, getMergedRecords, onRecordFileChange, recordFileRefs,
             photoInputRef, onPhotoChange, deleteToolPhoto, onDialogPhotoChange, dialogDeletePhoto, dialogPhotoInput, saveAndUploadPhoto, saveAndUploadFile, onDetailFileChange, onDialogFileChange,
             showScrapped,
             borrows, borrowTotal, borrowSearch, loadBorrows, borrowDialogVisible, borrowForm, openBorrowDialog, submitBorrow, returnTool,

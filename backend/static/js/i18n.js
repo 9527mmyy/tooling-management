@@ -29,6 +29,13 @@
         '工厂设置': { en: 'Factory Config' },
         '用户管理': { en: 'Users' },
 
+        
+        // 工装详情页
+        '返回工装台账': { en: 'Back to Tooling List' },
+        '基本信息': { en: 'Basic Info' },
+        '快捷操作': { en: 'Quick Actions' },
+        '完工资料': { en: 'Attachments' },
+        '暂无完工资料': { en: 'No attachments yet' },
         // 按钮/通用
         '新建': { en: 'New' },
         '编辑': { en: 'Edit' },
@@ -46,6 +53,7 @@
         '操作': { en: 'Actions' },
         '状态': { en: 'Status' },
         '备注': { en: 'Remarks' },
+        '暂无备注信息': { en: 'No remarks' },
 
         // 工装字段
         '工装编号': { en: 'Tool ID' },
@@ -58,6 +66,7 @@
         '领用人': { en: 'User' },
         '入库日期': { en: 'Stock Date' },
         '完工日期': { en: 'Complete Date' },
+        '入库时间': { en: 'Entry Date' },
         '下次检定': { en: 'Next Inspection' },
         '检定周期': { en: 'Period' },
         '在库': { en: 'In Stock' },
