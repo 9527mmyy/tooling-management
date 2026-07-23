@@ -1701,11 +1701,34 @@ const app = createApp({
 
         // 照片
         const photoInputRef = ref(null);
+        // 压缩图片：高度超过宽度的2/3时自动缩小
+        const resizeImage = (file, maxRatio = 2/3) => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let { width, height } = img;
+                    // 如果高度超过宽度的2/3，按比例缩小
+                    if (height > width * maxRatio) {
+                        height = Math.round(width * maxRatio);
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    canvas.toBlob(resolve, 'image/jpeg', 0.85);
+                };
+                img.onerror = () => resolve(file);  // 出错时用原文件
+                img.src = URL.createObjectURL(file);
+            });
+        };
         const onPhotoChange = async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
+            // 验证图片尺寸
+            const resizedFile = await resizeImage(file);
             const formData = new FormData();
-            formData.append('photo', file);
+            formData.append('photo', resizedFile, file.name);
             try {
                 const res = await api.post(`/tools/${currentTool.value.id}/photo`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
@@ -1727,8 +1750,10 @@ const app = createApp({
         const onDetailPhotoChange = async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
+            // 验证图片尺寸
+            const resizedFile = await resizeImage(file);
             const formData = new FormData();
-            formData.append('photo', file);
+            formData.append('photo', resizedFile, file.name);
             try {
                 const res = await api.post(`/tools/${currentTool.value.id}/photo`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
