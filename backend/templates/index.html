@@ -108,7 +108,7 @@
         <div class="content">
             <div class="header">
                 <h2>{{ pageTitle }}</h2>
-                <div>
+                <div v-if="currentPage!=='tool-detail'">
                     <span style="margin-right:16px;color:#606266">{{ currentUser.username }}</span>
                     <el-button type="warning" size="small" @click="changePwdDialogVisible=true" data-i18n="修改密码">修改密码</el-button>
                     <el-button type="danger" size="small" @click="handleLogout" style="margin-left:8px" data-i18n="退出登录">退出</el-button>
