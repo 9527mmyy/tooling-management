@@ -338,11 +338,11 @@
                                     <div style="width:4px;height:18px;background:linear-gradient(180deg,#409eff,#667eea);border-radius:2px"></div>
                                     <span style="font-size:14px;font-weight:600;color:#1a1a1a">工装照片</span>
                                 </div>
-                                <el-button size="small" @click="openEditTool(currentTool)" v-if="canEdit" style="font-size:12px">上传照片</el-button>
                             </div>
-                            <div style="border-radius:12px;overflow:hidden;border:2px dashed #e4e7ed;background:#fafafa;min-height:300px;display:flex;align-items:center;justify-content:center;height:100%">
-                                <div v-if="currentTool.photo_url" style="width:100%">
-                                    <el-image :src="currentTool.photo_url" style="width:100%;display:block" :preview-src-list="currentTool.photo_url ? [currentTool.photo_url] : []" fit="contain" lazy>
+                            <!-- 查看模式：显示照片 -->
+                            <div v-if="!editingTool" style="border-radius:12px;overflow:hidden;border:2px dashed #e4e7ed;background:#fafafa;min-height:300px;display:flex;align-items:center;justify-content:center;height:100%">
+                                <div v-if="currentTool.photo_path" style="width:100%">
+                                    <el-image :src="'/api/tools/'+currentTool.id+'/photo'" style="width:100%;display:block" :preview-src-list="currentTool.photo_path ? ['/api/tools/'+currentTool.id+'/photo'] : []" fit="contain" lazy>
                                         <template #error>
                                             <div style="text-align:center;padding:40px 20px;color:#909399">
                                                 <div style="font-size:48px;margin-bottom:8px">🖼️</div>
@@ -350,12 +350,27 @@
                                             </div>
                                         </template>
                                     </el-image>
-                                    <el-button v-if="currentTool.photo_path" size="small" type="danger" plain @click="deleteToolPhoto" style="margin-top:8px">删除照片</el-button>
                                 </div>
                                 <div v-else style="text-align:center;padding:80px 20px">
                                     <div style="font-size:48px;margin-bottom:12px;opacity:.4">📷</div>
-                                    <div style="color:#909399;font-size:14px;margin-bottom:16px">暂无工装照片</div>
-                                    <el-button size="small" type="primary" @click="openEditTool(currentTool)" v-if="canEdit">上传照片</el-button>
+                                    <div style="color:#909399;font-size:14px">暂无工装照片</div>
+                                </div>
+                            </div>
+                            <!-- 编辑模式：上传控件 -->
+                            <div v-else style="border-radius:12px;overflow:hidden;border:2px dashed #e4e7ed;background:#fafafa;min-height:300px;display:flex;align-items:center;justify-content:center;height:100%">
+                                <div style="text-align:center;padding:40px 20px">
+                                    <input ref="detailPhotoInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" @change="onDetailPhotoChange">
+                                    <div v-if="currentTool.photo_path" style="margin-bottom:16px">
+                                        <el-image :src="'/api/tools/'+currentTool.id+'/photo'" style="width:200px;height:200px;display:block;margin:0 auto 12px;border-radius:8px" fit="contain">
+                                            <template #error>
+                                                <div style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;color:#c0c4cc;font-size:40px;background:#f5f7fa;border-radius:8px">📷</div>
+                                            </template>
+                                        </el-image>
+                                    </div>
+                                    <div v-else style="font-size:48px;margin-bottom:12px;opacity:.4">📷</div>
+                                    <el-button size="small" type="primary" @click="$refs.detailPhotoInput.click()">{{ currentTool.photo_path ? '更换照片' : '上传照片' }}</el-button>
+                                    <el-button v-if="currentTool.photo_path" size="small" type="danger" plain @click="deleteToolPhoto">删除照片</el-button>
+                                    <div style="margin-top:8px;font-size:12px;color:#909399">支持 jpg/png/gif/webp</div>
                                 </div>
                             </div>
                         </div>
@@ -1705,6 +1720,28 @@ const app = createApp({
                 ElMessage.error(e.response?.data?.msg || '上传失败');
             }
             // 重置input，允许重复选择同一文件
+            e.target.value = '';
+        };
+
+        // 详情页照片上传（内联编辑模式）
+        const onDetailPhotoChange = async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('photo', file);
+            try {
+                const res = await api.post(`/tools/${currentTool.value.id}/photo`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                if (res.data.code === 200) {
+                    ElMessage.success('照片上传成功');
+                    viewTool(currentTool.value);  // 刷新详情
+                } else {
+                    ElMessage.error(res.data.msg || '上传失败');
+                }
+            } catch(e) {
+                ElMessage.error(e.response?.data?.msg || '上传失败');
+            }
             e.target.value = '';
         };
         const deleteToolPhoto = async () => {
