@@ -178,6 +178,40 @@ class Inspection(db.Model):
         }
 
 
+class InStorageRecord(db.Model):
+    """入库记录表"""
+    __tablename__ = 'in_storage_records'
+
+    id = db.Column(db.Integer, primary_key=True)
+    tool_id = db.Column(db.Integer, db.ForeignKey('tools.id'), nullable=False)
+    storage_date = db.Column(db.Date, nullable=False)  # 入库日期
+    supplier = db.Column(db.String(200))  # 供应商
+    batch_no = db.Column(db.String(100))  # 批次号
+    quantity = db.Column(db.Integer, default=1)  # 数量
+    storage_location = db.Column(db.String(100))  # 存放位置
+    operator = db.Column(db.String(80))  # 操作员
+    remark = db.Column(db.Text)  # 备注
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+    tool = db.relationship('Tool', backref='in_storage_records')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tool_id': self.tool_id,
+            'tool_code': self.tool.code if self.tool else '',
+            'tool_name': self.tool.name if self.tool else '',
+            'storage_date': self.storage_date.strftime('%Y-%m-%d') if self.storage_date else '',
+            'supplier': self.supplier or '',
+            'batch_no': self.batch_no or '',
+            'quantity': self.quantity,
+            'storage_location': self.storage_location or '',
+            'operator': self.operator or '',
+            'remark': self.remark or '',
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        }
+
+
 class Attachment(db.Model):
     """附件表"""
     __tablename__ = 'attachments'

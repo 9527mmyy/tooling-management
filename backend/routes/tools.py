@@ -1,5 +1,5 @@
 ﻿from flask import Blueprint, request, jsonify, session, send_file, current_app
-from models import db, Tool, BorrowRecord, Attachment, Inspection, OperationLog
+from models import db, Tool, BorrowRecord, Attachment, Inspection, OperationLog, InStorageRecord
 from routes.auth import login_required, admin_required, edit_required, add_log
 from datetime import datetime
 import os
@@ -64,6 +64,8 @@ def get_tool(tool_id):
     data = tool.to_dict()
     # 附带借用记录
     data['borrow_records'] = [r.to_dict() for r in tool.borrow_records]
+    # 附带入库记录
+    data['in_storage_records'] = [r.to_dict() for r in tool.in_storage_records]
     # 附带检定记录
     data['inspections'] = [i.to_dict() for i in tool.inspections]
     # 附带附件列表

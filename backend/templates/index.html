@@ -234,6 +234,7 @@
                                     <div style="font-size:14px;font-weight:600;color:#1a1a1a">工装信息</div>
                                 </div>
                                 <div style="display:flex;gap:8px" v-if="!editingTool && canEdit">
+                                    <el-button type="success" size="small" @click="openNewToolDialog">建档</el-button>
                                     <el-button type="primary" size="small" @click="startEditTool">编辑</el-button>
                                 </div>
                                 <div style="display:flex;gap:8px" v-if="editingTool">
@@ -378,8 +379,9 @@
                                     <span style="font-size:14px;font-weight:600;color:#1a1a1a">记录</span>
                                 </div>
                                 <div style="display:flex;gap:8px">
-                                    <el-button size="small" type="success" @click="openBorrowDialog(currentTool)" v-if="currentTool.status==='在库'">+ 入库记录</el-button>
-                                    <el-button size="small" type="warning" @click="openInspectionDialog(currentTool)">+ 检定记录</el-button>
+                                    <el-button size="small" type="success" @click="openBorrowDialog(currentTool)" v-if="currentTool.status==='在库'">+ 借用</el-button>
+                                    <el-button size="small" type="danger" @click="openReturnDialog(currentTool)" v-if="currentTool.status==='借出'">+ 退库</el-button>
+                                    <el-button size="small" type="primary" @click="openInspectionDialog(currentTool)">+ 检定</el-button>
                                 </div>
                             </div>
                             <div v-if="(currentTool.borrow_records && currentTool.borrow_records.length) || (currentTool.inspections && currentTool.inspections.length)" style="flex:1;overflow-y:auto;min-height:0">
@@ -717,6 +719,20 @@
                 <template #footer>
                     <el-button @click="borrowDialogVisible=false">取消</el-button>
                     <el-button type="primary" @click="submitBorrow" :loading="saving">确认借用</el-button>
+                </template>
+            </el-dialog>
+
+            <!-- 退库弹窗 -->
+            <el-dialog v-model="returnDialogVisible" title="退库（归还）" width="500px">
+                <el-form label-width="80px">
+                    <el-form-item label="工装">{{ currentTool.code }} {{ currentTool.name }}</el-form-item>
+                    <el-form-item label="借用分厂">{{ (currentTool.borrow_records || []).find(r=>r.status==='借用中')?.factory || '-' }}</el-form-item>
+                    <el-form-item label="借用人">{{ (currentTool.borrow_records || []).find(r=>r.status==='借用中')?.borrower || '-' }}</el-form-item>
+                    <el-form-item label="备注"><el-input v-model="returnRemark" placeholder="退库备注（选填）"></el-input></el-form-item>
+                </el-form>
+                <template #footer>
+                    <el-button @click="returnDialogVisible=false">取消</el-button>
+                    <el-button type="primary" @click="confirmReturn" :loading="saving">确认退库</el-button>
                 </template>
             </el-dialog>
 
@@ -1263,6 +1279,8 @@ const app = createApp({
             toolDialogVisible.value = true;
         };
 
+        const openNewToolDialog = () => openToolDialog(null);
+
         const saveTool = async () => {
             if (!toolForm.code || !toolForm.name) { ElMessage.warning('编号和名称不能为空'); return; }
             if (!toolForm.drawing_no) { ElMessage.warning('图号不能为空'); return; }
@@ -1297,6 +1315,18 @@ const app = createApp({
                             code: data.code,
                             photo_path: data.photo_path || ''
                         });
+                        // 自动创建入库记录
+                        try {
+                            await api.post('/in_storage/', {
+                                tool_id: data.id,
+                                storage_date: toolForm.purchase_date || new Date().toISOString().slice(0, 10),
+                                supplier: '',
+                                batch_no: '',
+                                quantity: 1,
+                                storage_location: '',
+                                operator: currentUser.value.username
+                            });
+                        } catch(e2) { console.error('自动入库失败:', e2); }
                     }
                 } else {
                     ElMessage.error(res.data.msg || '保存失败');
@@ -1397,40 +1427,60 @@ const app = createApp({
             finally { saving.value = false; }
         };
 
-        // 合并入库记录和检定记录，按时间排序
+        // 合并入库记录、借用记录、检定记录，按时间排序
         const getMergedRecords = () => {
             const records = [];
             const tool = currentTool.value;
+            // 入库记录
+            if (tool.in_storage_records) {
+                tool.in_storage_records.forEach(r => {
+                    records.push({
+                        key: 's_' + r.id,
+                        type: 'in_storage',
+                        typeName: '建档',
+                        date: r.storage_date || '-',
+                        fields: [
+                            { label: '供应商', value: r.supplier || '-' },
+                            { label: '批次号', value: r.batch_no || '-' },
+                            { label: '存放位置', value: r.storage_location || '-' },
+                            { label: '操作人', value: r.operator || '-' },
+                            { label: '备注', value: r.remark || '-' },
+                        ],
+                        attachments: []
+                    });
+                });
+            }
+            // 借用记录
             if (tool.borrow_records) {
                 tool.borrow_records.forEach(r => {
                     records.push({
                         key: 'b_' + r.id,
                         type: 'borrow',
-                        typeName: '入库',
-                        date: r.borrow_date ? r.borrow_date.split('T')[0] : '-',
+                        typeName: r.status === '借用中' ? '借用' : '已还',
+                        date: r.borrow_time ? r.borrow_time.split(' ')[0] : '-',
                         fields: [
-                            { label: '领用人', value: r.borrower || '-' },
-                            { label: '部门', value: r.department || '-' },
-                            { label: '用途', value: r.purpose || '-' },
-                            { label: '计划归还', value: r.return_date ? r.return_date.split('T')[0] : '-' },
-                            { label: '实际归还', value: r.actual_return_date ? r.actual_return_date.split('T')[0] : '-' },
+                            { label: '借用分厂', value: r.factory || '-' },
+                            { label: '借用班组', value: r.team || '-' },
+                            { label: '借用人', value: r.borrower || '-' },
+                            { label: '领用人', value: r.receiver || '-' },
                             { label: '状态', value: r.status || '-' },
                         ],
-                        attachments: r.attachments || []
+                        attachments: []
                     });
                 });
             }
+            // 检定记录
             if (tool.inspections) {
                 tool.inspections.forEach(r => {
                     records.push({
                         key: 'i_' + r.id,
                         type: 'inspection',
                         typeName: '检定',
-                        date: r.inspection_date ? r.inspection_date.split('T')[0] : '-',
+                        date: r.inspect_date || '-',
                         fields: [
                             { label: '检定结果', value: r.result || '-' },
                             { label: '检定人', value: r.inspector || '-' },
-                            { label: '下次检定', value: r.next_date ? r.next_date.split('T')[0] : '-' },
+                            { label: '下次检定', value: r.next_date ? r.next_date.split(' ')[0] : '-' },
                             { label: '备注', value: r.remark || '-' },
                         ],
                         attachments: r.attachments || []
@@ -1541,6 +1591,40 @@ const app = createApp({
 
         const returnTool = async (record) => {
             try { await api.post(`/borrows/${record.id}/return`); ElMessage.success('归还成功'); loadBorrows(); loadTools(); loadStats(); } catch(e) { ElMessage.error(e.response?.data?.msg || '归还失败'); }
+        };
+
+        // 退库
+        const returnDialogVisible = ref(false);
+        const returnRemark = ref('');
+        let activeBorrowRecordId = null;
+
+        const openReturnDialog = (tool) => {
+            // 找到当前借出的借用记录
+            const active = (tool.borrow_records || []).find(r => r.status === '借用中');
+            if (!active) { ElMessage.warning('没有可退库的借用记录'); return; }
+            activeBorrowRecordId = active.id;
+            returnRemark.value = '';
+            returnDialogVisible.value = true;
+        };
+
+        const confirmReturn = async () => {
+            if (!activeBorrowRecordId) return;
+            saving.value = true;
+            try {
+                await api.post(`/borrows/${activeBorrowRecordId}/return`);
+                ElMessage.success('退库成功');
+                returnDialogVisible.value = false;
+                // 刷新当前工具详情
+                const r = await api.get(`/tools/${currentTool.value.id}`);
+                currentTool.value = r.data.data;
+                loadTools();
+                loadBorrows();
+                loadStats();
+            } catch(e) {
+                ElMessage.error(e.response?.data?.msg || '退库失败');
+            } finally {
+                saving.value = false;
+            }
         };
 
         // 检定
@@ -2271,7 +2355,7 @@ const app = createApp({
             tools, toolTotal, toolSearch, loadTools, toolDialogVisible, toolDetailVisible, currentTool, toolForm, openToolDialog, saveTool, deleteTool, viewTool, openEditTool, backToTools, onToolRowClick, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail, editingTool, startEditTool, cancelEditTool, saveToolDetailInline, getMergedRecords, onRecordFileChange, recordFileRefs,
             photoInputRef, onPhotoChange, deleteToolPhoto, onDialogPhotoChange, dialogDeletePhoto, dialogPhotoInput, saveAndUploadPhoto, saveAndUploadFile, onDetailFileChange, onDialogFileChange,
             showScrapped,
-            borrows, borrowTotal, borrowSearch, loadBorrows, borrowDialogVisible, borrowForm, openBorrowDialog, submitBorrow, returnTool,
+            borrows, borrowTotal, borrowSearch, loadBorrows, borrowDialogVisible, borrowForm, openBorrowDialog, submitBorrow, returnTool, openNewToolDialog, openReturnDialog,
             scrapDialogVisible, scrapForm, scrapSearch, scraps, scrapTotal,
             loadScraps, approveScrap, rejectScrap, scrapTool, submitScrap,
             inspections, inspectionTotal, inspectionSearch, loadInspections, inspectionDialogVisible, inspectionForm, openInspectionDialog, submitInspection, exportTools, exportBorrows, exportInspections,
