@@ -20,7 +20,7 @@
 
 | 中文 | English |
 |------|---------|
-| 🔐 **登录/权限** — 管理员与普通员工双角色，权限分离 | Login with role-based access control (admin / operator) |
+| 🔐 **登录/权限** — 三角色（管理员/员工/访客），按**工号**登录，权限分离 | Login with role-based access control (admin / employee / viewer), login by employee no. |
 | 📦 **工装台账** — 增删改查，支持图号、分类、等级管理 | Full CRUD for tooling records with drawing no., category & grade |
 | 📎 **入库资料** — 新工装入库时上传图纸/说明书/合格证 | Attach drawings, manuals & certificates on tool registration |
 | 🔍 **搜索筛选** — 按编号、名称、状态、分厂、班组多维度筛选 | Multi-dimensional search by code, name, status, plant & team |
@@ -70,10 +70,12 @@ python app.py
 
 ### 默认账号 / Default Account
 
-| 角色 / Role | 用户名 / Username | 密码 / Password |
-|-------------|-------------------|-----------------|
+| 角色 / Role | 工号 / Employee No. | 密码 / Password |
+|-------------|---------------------|-----------------|
 | 管理员 / Admin | `admin` | `admin123` |
 
+> 💡 登录使用**工号（user_no）**而非用户名；默认管理员工号即 `admin`。
+>
 > ⚠️ **首次使用请立即修改默认密码！ / Change the default password immediately after first login!**
 
 ---
@@ -98,7 +100,7 @@ python app.py
 tooling-management/
 ├── backend/                       # Flask 后端 / Flask backend
 │   ├── app.py                    # 应用主入口 / Application entry
-│   ├── models.py                 # 数据库模型(6表) / DB models (6 tables)
+│   ├── models.py                 # 数据库模型(9表) / DB models (9 tables)
 │   ├── requirements.txt          # Python 依赖 / Python dependencies
 │   ├── setup.bat                 # 一键安装脚本(Windows) / One-click installer
 │   ├── start.bat                 # 一键启动脚本 / One-click starter
@@ -130,12 +132,19 @@ tooling-management/
 
 | 表 / Table | 说明 / Description | 核心字段 / Key Fields |
 |------------|-------------------|---------------------|
-| `users` | 用户表 / Users | 用户名、角色、密码哈希 / username, role, password_hash |
+| `users` | 用户表 / Users | 工号、用户名、角色、密码哈希 / user_no, username, role, password_hash |
 | `tools` | 工装主表 / Tools | 编号、图号、名称、分类、等级、状态、分厂、班组 / code, drawing_no, name, category, grade, status, plant, team |
 | `borrow_records` | 借用记录 / Borrowings | 工装、借用人、时间、归还状态 / tool, borrower, date, returned |
 | `inspections` | 鉴定记录 / Inspections | 工装、鉴定日期、报告附件、结果 / tool, date, report, result |
-| `attachments` | 附件表 / Attachments | 工装关联的图纸/说明书 / tool drawings, manuals |
+| `in_storage_records` | 入库记录 / In-storage | 工装、入库日期、供应商、批次、数量、存放位置 / tool, storage_date, supplier, batch_no, quantity, storage_location |
+| `attachments` | 附件表 / Attachments | 工装/检定关联的图纸、说明书、报告 / tool & inspection drawings, manuals, reports |
 | `operation_logs` | 操作日志 / Audit log | 用户操作审计 / user operation audit |
+| `system_configs` | 系统配置 / Config | 可配置下拉项（类别/分厂/班组）/ configurable options (category/factory/team) |
+| `scrap_requests` | 报废申请 / Scrap | 工装、申请人、原因、状态（待审核/已批准/已拒绝）/ tool, requester, reason, status |
+
+> 🔒 **安全说明 / Security**
+> - 所有**写操作（新增/修改/删除）与检定提醒**均需登录；入库记录的登记需员工及以上权限、删除需管理员权限。
+> - `SECRET_KEY` 可通过环境变量 `TOOLING_SECRET_KEY` 覆盖（未设置时回退到内置默认值）。
 
 ---
 

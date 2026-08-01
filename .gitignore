@@ -87,3 +87,28 @@ reset_admin.py
 # 前端语法检查临时文件
 _check.mjs
 _syntax_check.js
+
+# 一次性调试/截图遗留（已清理，防止再生）
+_pw_*.js
+_shot_*.png
+_up.json
+_cj.txt
+_test.txt
+
+# CJS 一次性脚本
+*.cjs
+
+# 保留迁移框架（backend/migrations/0001_*.py 等，勿忽略）
+!backend/migrations/
+
+# 含激活的 QClaw 绝对路径（与 start_flask.bat 同理，不上传）
+install_services.bat
+
+# 服务运行日志
+nssm_tooling.err
+
+# 一次性测试/截图遗留
+t3check.html
+temp_login_v2.png
+temp_*.png
+*_shot_*.png
