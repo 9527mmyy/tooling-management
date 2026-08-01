@@ -12,46 +12,227 @@
     <script src="/static/js/i18n.js?v=20260717231841"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f2f5; }
-        .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .login-box { background: #fff; border-radius: 12px; padding: 40px; width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
-        .login-title { text-align: center; font-size: 24px; font-weight: bold; color: #303133; margin-bottom: 30px; }
+        :root {
+            --c-primary: #409eff;
+            --c-success: #67c23a;
+            --c-warning: #e6a23c;
+            --c-danger: #f56c6c;
+            --c-bg: #f0f2f5;
+            --c-surface: #ffffff;
+            --c-sidebar: #304156;
+            --c-sidebar-hover: #263445;
+            --c-sidebar-active: #409eff; /* = --c-primary，此处需字面值供 sidebar 使用 */
+            --c-text: #1f2329;
+            --c-text-2: #606266;
+            --c-text-3: #909399;
+            --c-border: #e4e7ed;
+            --c-fill: #f5f7fa;
+            --c-fill-2: #fafbfc;
+            --radius-sm: 6px;
+            --radius: 10px;
+            --radius-lg: 12px;
+            --radius-pill: 999px;
+            --shadow-card: 0 2px 12px rgba(0,0,0,.06);
+            --shadow-hover: 0 6px 20px rgba(31,35,41,.10);
+            --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            /* Tier3: 主色扩展 —— 全站只保留蓝色一套主色逻辑 */
+            --c-primary-light: #79bbff;
+            --c-primary-dark: #337ecc;
+            --c-primary-soft: #ecf5ff;
+            --c-success-soft: #f0f9eb;
+            --c-warning-soft: #fdf6ec;
+            --c-danger-soft: #fef0f0;
+            --grad-brand: linear-gradient(135deg, #26344a 0%, #2f5d97 55%, #409eff 100%);
+            --grad-accent: linear-gradient(180deg, var(--c-primary), var(--c-primary-light));
+            --ease: cubic-bezier(.22,.61,.36,1);
+        }
+        body { font-family: var(--font); background: var(--c-bg); color: var(--c-text); }
+        .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--grad-brand); }
+        .login-box { background: var(--c-surface); border-radius: var(--radius-lg); padding: 40px; width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+        .login-title { text-align: center; font-size: 24px; font-weight: bold; color: var(--c-text); margin-bottom: 30px; }
+        .login-footer { text-align: center; font-size: 12px; color: var(--c-text-3); margin-top: 4px; letter-spacing: .2px; }
         .main-container { display: flex; height: 100vh; }
-        .sidebar { width: 220px; background: #304156; color: #fff; }
-        .tool-photo { border-radius: 4px; }
+        .sidebar { width: 220px; background: var(--c-sidebar); color: #fff; display: flex; flex-direction: column; }
+        .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
+        .sidebar-brand .logo { width: 30px; height: 30px; color: var(--c-primary); flex-shrink: 0; }
+        .sidebar-brand .name { font-size: 16px; font-weight: 700; letter-spacing: .5px; }
+        .tool-photo { border-radius: var(--radius-sm); }
         .tool-row-clickable { cursor: pointer !important; }
-        .tool-row-clickable:hover { background-color: #f5f7fa !important; }
-        .sidebar-title { padding: 20px; font-size: 18px; font-weight: bold; text-align: center; border-bottom: 1px solid #3a4a5e; }
-        .sidebar-menu { padding: 10px 0; }
-        .menu-item { padding: 14px 20px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 10px; }
-        .menu-item:hover { background: #263445; }
-        .menu-item.active { background: #409eff; }
-        .menu-group { /* 菜单分组容器 */ }
+        .tool-row-clickable:hover { background-color: var(--c-fill) !important; }
+        .sidebar-menu { flex: 1; padding: 10px 0; overflow-y: auto; }
+        .menu-item { padding: 11px 14px; margin: 2px 10px; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,.82); font-size: 14px; border-radius: var(--radius-sm); }
+        .menu-item:hover { background: var(--c-sidebar-hover); color: #fff; }
+        .menu-item.active { background: var(--c-sidebar-active); color: #fff; }
+        .menu-item .nav-ico { width: 18px; height: 18px; flex-shrink: 0; display: inline-flex; }
+        .menu-group { }
         .menu-parent { justify-content: space-between; }
-        .menu-arrow { font-size: 12px; opacity: 0.7; }
-        .submenu { background: #2a3a4e; }
+        .menu-arrow { font-size: 12px; opacity: .7; }
+        .submenu { background: rgba(0,0,0,.18); margin: 2px 10px; border-radius: var(--radius-sm); overflow: hidden; }
         .submenu-level2 { background: #1f2d3d; }
-        .submenu-item { padding: 12px 20px 12px 40px; cursor: pointer; transition: all 0.3s; font-size: 14px; display: flex; align-items: center; justify-content: space-between; }
-        .submenu-item:hover { background: #263445; }
-        .submenu-item.active { background: #409eff; color: #fff; }
-        .submenu-parent { padding-left: 40px; }
-        .content { flex: 1; padding: 20px; overflow-y: auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 16px 20px; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        .header h2 { font-size: 18px; color: #303133; }
-        .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .submenu-item { padding: 10px 16px; cursor: pointer; transition: all .2s; font-size: 13px; display: flex; align-items: center; justify-content: space-between; color: rgba(255,255,255,.7); }
+        .submenu-item:hover { background: var(--c-sidebar-hover); color: #fff; }
+        .submenu-item.active { background: var(--c-sidebar-active); color: #fff; }
+        .submenu-parent { padding-left: 16px; }
+        .sidebar-user { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-top: 1px solid rgba(255,255,255,.08); }
+        .sidebar-user .avatar { width: 34px; height: 34px; border-radius: var(--radius-pill); background: var(--c-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; flex-shrink: 0; }
+        .sidebar-user .u-meta { min-width: 0; flex: 1; }
+        .sidebar-user .u-name { font-size: 13px; font-weight: 600; color: #fff; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sidebar-user .u-role { font-size: 11px; color: rgba(255,255,255,.6); }
+        .sidebar-user .u-actions { display: flex; align-items: center; gap: 2px; margin-left: auto; flex-shrink: 0; }
+        .u-icon-btn { width: 28px; height: 28px; padding: 0; border: 0; background: transparent; border-radius: var(--radius-sm); color: rgba(255,255,255,.6); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all .18s var(--ease); }
+        .u-icon-btn svg { width: 16px; height: 16px; }
+        .u-icon-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
+        .u-icon-btn.danger:hover { background: rgba(245,108,108,.18); color: #ff9a9a; }
+        .u-icon-btn:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 1px; }
+        .sidebar-version { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px 12px; font-size: 11px; color: rgba(255,255,255,.35); cursor: pointer; transition: color .18s var(--ease); user-select: none; }
+        .sidebar-version:hover { color: rgba(255,255,255,.7); }
+        .sidebar-version:hover .sv-link { text-decoration: underline; }
+        .sidebar-version:focus-visible { outline: 2px solid var(--c-primary); outline-offset: -2px; border-radius: var(--radius-sm); }
+        .sidebar-version .sv-link::before { content: '·'; margin-right: 6px; }
+        /* 关于对话框 */
+        .about-head { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid var(--c-border); }
+        .about-head .a-logo { width: 48px; height: 48px; border-radius: var(--radius); background: var(--grad-brand); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .about-head .a-logo svg { width: 26px; height: 26px; }
+        .about-head .a-name { font-size: 17px; font-weight: 700; color: var(--c-text); line-height: 1.3; }
+        .about-head .a-en { font-size: 12px; color: var(--c-text-3); margin-top: 2px; }
+        .about-head .a-ver { font-size: 12px; color: var(--c-primary); margin-top: 4px; font-variant-numeric: tabular-nums; }
+        .about-desc { font-size: 13px; color: var(--c-text-2); line-height: 1.7; padding: 16px 0; }
+        .about-meta { display: grid; grid-template-columns: 72px 1fr; gap: 10px 16px; font-size: 13px; padding-top: 4px; }
+        .about-meta dt { color: var(--c-text-3); }
+        .about-meta dd { color: var(--c-text); margin: 0; }
+        .content { flex: 1; padding: 24px; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 16px 20px; background: var(--c-surface); border-radius: var(--radius); box-shadow: var(--shadow-card); }
+        .header h2 { font-size: 18px; color: var(--c-text); }
+        .card { background: var(--c-surface); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow-card); }
         .stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
-        .stat-card { background: #fff; border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        .stat-card .number { font-size: 32px; font-weight: bold; margin: 8px 0; }
-        .stat-card .label { color: #909399; font-size: 14px; }
-        .stat-card.blue .number { color: #409eff; }
-        .stat-card.green .number { color: #67c23a; }
-        .stat-card.orange .number { color: #e6a23c; }
-        .stat-card.red .number { color: #f56c6c; }
+        .stat-card { position: relative; background: var(--c-surface); border-radius: var(--radius); padding: 18px 20px; text-align: left; box-shadow: var(--shadow-card); overflow: hidden; transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+        .stat-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--sc-color, var(--c-primary)); }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+        .stat-card .sc-top { display: flex; align-items: center; gap: 8px; }
+        .stat-card .sc-ico { width: 28px; height: 28px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; color: var(--sc-color); background: var(--sc-soft); flex-shrink: 0; }
+        .stat-card .sc-ico svg { width: 16px; height: 16px; }
+        .stat-card .label { color: var(--c-text-2); font-size: 13px; font-weight: 500; }
+        .stat-card .sc-value { display: flex; align-items: baseline; gap: 4px; margin: 12px 0 6px; }
+        .stat-card .number { font-size: 30px; font-weight: 700; line-height: 1; color: var(--sc-color); font-variant-numeric: tabular-nums; }
+        .stat-card .unit { font-size: 13px; color: var(--c-text-3); }
+        .stat-card .sc-foot { font-size: 12px; color: var(--c-text-3); line-height: 1.4; }
+        .stat-card .sc-foot b { color: var(--c-text-2); font-weight: 600; }
+        .stat-card.blue { --sc-color: var(--c-primary); --sc-soft: var(--c-primary-soft); }
+        .stat-card.green { --sc-color: var(--c-success); --sc-soft: var(--c-success-soft); }
+        .stat-card.orange { --sc-color: var(--c-warning); --sc-soft: var(--c-warning-soft); }
+        .stat-card.red { --sc-color: var(--c-danger); --sc-soft: var(--c-danger-soft); }
         .toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
-        .chart-container { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        .chart-title { font-size: 16px; font-weight: bold; color: #303133; margin-bottom: 16px; }
+        .chart-container { background: var(--c-surface); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow-card); transition: box-shadow .25s var(--ease); }
+        .chart-container:hover { box-shadow: var(--shadow-hover); }
+        .chart-title { font-size: 16px; font-weight: 600; color: var(--c-text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .chart-title .ct-bar { width: 3px; height: 15px; border-radius: 2px; background: var(--grad-accent); flex-shrink: 0; }
+        .chart-title .ct-sub { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--c-text-3); }
         .chart-wrapper { height: 320px; }
+        /* 首页增强：双列布局 + 快捷操作 + 待办 + 状态分布 + 近期动态 */
+        .dash-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 20px; align-items: start; }
+        .dash-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+        .dash-card { padding: 18px 20px; }
+        .dash-card-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--c-text); margin-bottom: 12px; }
+        .dash-card-title .ct-bar { width: 3px; height: 14px; border-radius: 2px; background: var(--grad-accent); }
+        .dash-card-title .ct-sub { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--c-text-3); }
+        .quick-actions { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+        .qa-btn { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 14px 8px; border: 1px solid var(--c-border); border-radius: var(--radius); background: var(--c-surface); cursor: pointer; transition: all .22s var(--ease); color: var(--c-text-2); font-size: 12px; font-family: var(--font); }
+        .qa-btn svg { width: 20px; height: 20px; }
+        .qa-btn:hover { border-color: var(--c-primary); color: var(--c-primary); background: var(--c-primary-soft); transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+        .qa-btn.qa-danger:hover { border-color: var(--c-danger); color: var(--c-danger); background: var(--c-danger-soft); }
+        .todo-list, .activity-list { overflow-y: auto; }
+        .todo-item { display: flex; align-items: center; gap: 10px; padding: 10px 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background .18s var(--ease); border-left: 3px solid transparent; }
+        .todo-item:hover { background: #f5f7fa; border-left-color: var(--c-primary); }
+        .todo-item.overdue { border-left-color: var(--c-danger); background: #fef0f0; }
+        .todo-item.warning { border-left-color: var(--c-warning); background: #fdf6ec; }
+        .todo-badge { flex-shrink: 0; min-width: 46px; text-align: center; font-size: 12px; font-weight: 600; border-radius: var(--radius-pill); padding: 2px 8px; }
+        .bd-warning { color: var(--c-warning); background: var(--c-warning-soft); }
+        .bd-danger { color: var(--c-danger); background: var(--c-danger-soft); }
+        .todo-name { flex: 1; font-size: 13px; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .todo-date { font-size: 12px; color: var(--c-text-3); flex-shrink: 0; }
+        .status-chart { height: 210px; }
+        .activity-item { display: flex; align-items: center; gap: 10px; padding: 10px 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background .18s var(--ease); }
+        .activity-item:hover { background: #f5f7fa; transform: translateX(2px); }
+        .act-time { flex-shrink: 0; font-size: 12px; color: var(--c-text-3); font-variant-numeric: tabular-nums; }
+        .act-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .dot-borrow { background: var(--c-warning); }
+        .dot-return { background: var(--c-success); }
+        .dot-create { background: var(--c-primary); }
+        .act-text { font-size: 13px; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dash-empty { padding: 22px 0; text-align: center; color: var(--c-text-3); font-size: 13px; }
+        /* 顶栏全局搜索联想项 */
+        .gs-item { display: flex; align-items: center; gap: 10px; min-width: 320px; }
+        .gs-item .gs-code { font-size: 12px; color: var(--c-primary); font-weight: 600; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+        .gs-item .gs-name { flex: 1; font-size: 13px; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .gs-item .gs-spec { font-size: 12px; color: var(--c-text-3); flex-shrink: 0; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        @media (max-width: 1280px) { .dash-grid { grid-template-columns: 1fr; } .quick-actions { grid-template-columns: repeat(2, 1fr); } }
         .page-container { display: flex; justify-content: flex-end; margin-top: 16px; }
+        /* Tier3 微交互 */
+        .menu-item, .submenu-item { transition: background .18s var(--ease), color .18s var(--ease); }
+        .el-button { transition: all .18s var(--ease) !important; }
+        .el-button:not(.is-text):not(.is-link):hover { transform: translateY(-1px); }
+        .el-table__row { transition: background-color .15s var(--ease); }
+        .card, .header { transition: box-shadow .25s var(--ease); }
+        /* 表格骨架屏 */
+        .table-skeleton { padding: 4px 0; }
+        .table-skeleton .sk-row { display: flex; gap: 12px; padding: 11px 12px; border-bottom: 1px solid var(--c-border); }
+        .table-skeleton .sk-cell { height: 12px; border-radius: 4px; flex: 1;
+            background: linear-gradient(90deg, var(--c-fill) 25%, #eef1f6 37%, var(--c-fill) 63%);
+            background-size: 400% 100%; animation: sk-shine 1.4s ease infinite; }
+        .table-skeleton .sk-cell.w-sm { flex: .5; }
+        .table-skeleton .sk-head { background: var(--c-fill-2); }
+        @keyframes sk-shine { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+        @media (prefers-reduced-motion: reduce) {
+            .table-skeleton .sk-cell { animation: none; }
+            .stat-card:hover, .el-button:hover { transform: none; }
+        }
+        /* 统一空状态 */
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 32px 0; color: var(--c-text-3); }
+        .empty-state .es-ico { width: 46px; height: 46px; opacity: .45; }
+        .empty-state .es-text { font-size: 13px; }
+
+        /* 工装信息表格（详情页左上侧） */
+        .tool-info-table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; font-size: 13px; table-layout: fixed; }
+        .tool-info-table col.col-label { width: 92px; }
+        .tool-info-table th { background: #fafbfc; color: #606266; font-weight: 500; text-align: right; padding: 10px 12px; border-bottom: 1px solid #f0f0f0; border-right: 1px solid #f0f0f0; white-space: nowrap; }
+        .tool-info-table td { color: #1f2329; font-weight: 500; padding: 8px 12px; border-bottom: 1px solid #f0f0f0; word-break: break-all; vertical-align: middle; }
+        .tool-info-table td .empty { color: #c0c4cc; font-weight: 400; }
+        .tool-info-table tr:last-child th, .tool-info-table tr:last-child td { border-bottom: none; }
+        .tool-info-table tr:hover th { background: #f5f7fa; }
+        .tool-info-table .overdue-dot { display: inline-block; width: 6px; height: 6px; background: #f5222d; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+        .tool-info-table .overdue-text { color: #cf1322; }
+        .tool-info-table .remark-row td { background: #fafbfc; padding: 10px 12px; }
+        .tool-info-table .remark-label { color: #606266; font-weight: 500; text-align: right; padding-right: 12px; width: 92px; }
+        .tool-info-table .remark-value { color: #1f2329; font-weight: 500; line-height: 1.7; }
+        /* 必填字段标记（新建态显示） */
+        .tool-info-table .req { color: var(--c-danger); margin-left: 2px; font-weight: 700; }
+
+        /* 完工资料行（支持多份资料） */
+        .tool-info-table .report-cell { padding: 10px 12px; }
+        /* 由借用记录维护的字段：编辑态统一灰色禁用 + 来源提示 */
+        .tool-info-table .borrow-cell { position: relative; }
+        .tool-info-table .borrow-cell .borrow-readonly { width: 100%; box-sizing: border-box; padding: 1px 11px; height: 24px; line-height: 24px; font-size: 12px; color: #606266; background: #f5f7fa; border: 1px solid #e4e7ed; border-radius: 4px; cursor: not-allowed; outline: none; font-family: inherit; }
+        .tool-info-table .borrow-cell .borrow-readonly::placeholder { color: #c0c4cc; }
+        .tool-info-table .borrow-cell .borrow-source { display: inline-block; margin-left: 6px; font-size: 11px; color: #909399; line-height: 1; }
+        .tool-info-table .borrow-cell .borrow-source::before { content: '↗'; margin-right: 3px; opacity: .7; }
+        .report-list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+        .report-item { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: #fafbfc; border: 1px solid #f0f0f0; border-radius: 4px; font-size: 13px; }
+        .report-item .report-icon { color: var(--c-primary); flex-shrink: 0; }
+        .report-item .report-name { color: #1f2329; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .report-item .report-size { color: #909399; font-size: 12px; flex-shrink: 0; }
+        .report-item .report-meta { color: #c0c4cc; font-size: 12px; flex-shrink: 0; }
+        .report-item:hover { background: #f5f7fa; }
+
+        /* 工装详情页：状态徽标（el-tag 默认 height 限制会裁掉大字号文字，这里解锁高度并走自动尺寸） */
+        .tool-status-pill {
+            font-size: 22px;
+            font-weight: 700;
+            padding: 6px 24px;
+            border-radius: 999px;
+            letter-spacing: 2px;
+            height: auto;
+            line-height: 1.4;
+        }
     </style>
 </head>
 <body>
@@ -59,7 +240,7 @@
     <!-- 登录页 -->
     <div class="login-container" v-if="!loggedIn">
         <div class="login-box">
-            <div class="login-title" data-i18n="工装管理系统">🔧 工装管理系统</div>
+            <div class="login-title" data-i18n="工装管理系统">工装管理系统</div>
             <el-form @submit.prevent="handleLogin">
                 <el-form-item>
                     <el-input v-model="loginForm.user_no" placeholder="工号" data-i18n-placeholder="工号" prefix-icon="User" size="large"></el-input>
@@ -71,6 +252,7 @@
                     <el-button type="primary" size="large" style="width:100%" @click="handleLogin" :loading="loginLoading" data-i18n="登 录">登 录</el-button>
                 </el-form-item>
             </el-form>
+            <div class="login-footer">{{ about.copyright }} · v{{ about.version }}</div>
         </div>
     </div>
 
@@ -78,55 +260,221 @@
     <div class="main-container" v-else>
         <!-- 侧边栏 -->
         <div class="sidebar">
-            <div class="sidebar-title" data-i18n="工装管理">🔧 工装管理</div>
+            <!-- 品牌区 -->
+            <div class="sidebar-brand">
+                <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0 5 5l-9 9a2.83 2.83 0 0 1-4-4l9-9a4 4 0 0 0 5-5l-2 2-2-2 2-2z"/></svg>
+                <span class="name">工装管理系统</span>
+            </div>
             <div class="sidebar-menu">
-                <div class="menu-item" :class="{active: currentPage==='dashboard'}" @click="currentPage='dashboard'" data-i18n="首页概览">📊 首页概览</div>
-                <div class="menu-item" :class="{active: currentPage==='tools'}" @click="currentPage='tools'" data-i18n="工装台账">📦 工装台账</div>
-                <div class="menu-item" :class="{active: currentPage==='borrows'}" @click="currentPage='borrows'" data-i18n="借用记录">📋 借用记录</div>
-                <div class="menu-item" :class="{active: currentPage==='inspections'}" @click="currentPage='inspections'" data-i18n="检定记录">🔍 检定记录</div>
-                <div class="menu-item" :class="{active: currentPage==='inspection-reminder'}" @click="currentPage='inspection-reminder'" data-i18n="检定提醒">🔔 检定提醒</div>
-                <div class="menu-item" :class="{active: currentPage==='scraps'}" @click="currentPage='scraps'" v-if="isAdmin" data-i18n="报废审批">🗑️ 报废审批</div>
+                <div class="menu-item" :class="{active: currentPage==='dashboard'}" @click="currentPage='dashboard'">
+                    <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+                    <span data-i18n="首页概览">首页概览</span>
+                </div>
+                <div class="menu-item" :class="{active: currentPage==='tools'}" @click="currentPage='tools'">
+                    <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
+                    <span data-i18n="工装台账">工装台账</span>
+                </div>
+                <div class="menu-item" :class="{active: currentPage==='borrows'}" @click="currentPage='borrows'">
+                    <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+                    <span data-i18n="借用记录">借用记录</span>
+                </div>
+                <div class="menu-item" :class="{active: currentPage==='inspections'}" @click="currentPage='inspections'">
+                    <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                    <span data-i18n="检定记录">检定记录</span>
+                </div>
+                <div class="menu-item" :class="{active: currentPage==='inspection-reminder'}" @click="currentPage='inspection-reminder'">
+                    <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                    <span data-i18n="检定提醒">检定提醒</span>
+                </div>
+                <div class="menu-item" :class="{active: currentPage==='scraps'}" @click="currentPage='scraps'" v-if="isAdmin">
+                    <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    <span data-i18n="报废审批">报废审批</span>
+                </div>
                 <!-- 配置管理（父菜单） -->
                 <div v-if="isAdmin" class="menu-group">
                     <div class="menu-item menu-parent" @click="toggleConfigMenu">
-                        <span data-i18n="配置管理">⚙️ 配置管理</span>
-                        <span class="menu-arrow">{{ configMenuOpen ? '▼' : '▶' }}</span>
+                        <span style="display:flex;align-items:center;gap:12px">
+                            <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
+                            <span data-i18n="配置管理">配置管理</span>
+                        </span>
+                        <span class="menu-arrow">{{ configMenuOpen ? '▾' : '▸' }}</span>
                     </div>
                     <!-- 二级菜单 -->
                     <div v-show="configMenuOpen || currentPage==='configs'" class="submenu">
-                        <div class="submenu-item" :class="{active: currentSubPage==='config-category'}" @click="goToConfig('config-category')" data-i18n="工装类别">📋 工装类别</div>
-                        <div class="submenu-item" :class="{active: currentPage==='configs' && (currentSubPage==='config-factory' || currentSubPage.startsWith('config-factory-'))}" @click="goToConfig('config-factory')" data-i18n="工厂设置">
-                            🏭 工厂设置
+                        <div class="submenu-item" :class="{active: currentSubPage==='config-category'}" @click="goToConfig('config-category')">
+                            <span style="display:flex;align-items:center;gap:8px">
+                                <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59A2 2 0 0 0 3.83 11l9.58 9.58a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.82z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+                                <span data-i18n="工装类别">工装类别</span>
+                            </span>
                         </div>
-                        <div class="submenu-item" :class="{active: currentSubPage==='config-users'}" @click="goToConfig('config-users')" data-i18n="用户管理">👥 用户管理</div>
+                        <div class="submenu-item" :class="{active: currentPage==='configs' && (currentSubPage==='config-factory' || currentSubPage.startsWith('config-factory-'))}" @click="goToConfig('config-factory')">
+                            <span style="display:flex;align-items:center;gap:8px">
+                                <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M2 20h20M4 20V9l5 3V9l5 3V8l5 3V4h2v16"/></svg>
+                                <span data-i18n="工厂设置">工厂设置</span>
+                            </span>
+                        </div>
+                        <div class="submenu-item" :class="{active: currentSubPage==='config-users'}" @click="goToConfig('config-users')">
+                            <span style="display:flex;align-items:center;gap:8px">
+                                <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                <span data-i18n="用户管理">用户管理</span>
+                            </span>
+                        </div>
                     </div>
                 </div>
+            </div>
+            <!-- 底部用户区 -->
+            <div class="sidebar-user">
+                <div class="avatar">{{ (currentUser.username || '?').charAt(0).toUpperCase() }}</div>
+                <div class="u-meta">
+                    <div class="u-name">{{ currentUser.username }}</div>
+                    <div class="u-role">{{ isAdmin ? '管理员' : (currentUser.role === 'viewer' ? '访客' : '员工') }}</div>
+                </div>
+                <div class="u-actions">
+                    <el-tooltip content="修改密码" placement="top" :show-after="300">
+                        <button class="u-icon-btn" type="button" @click="changePwdDialogVisible=true" aria-label="修改密码">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        </button>
+                    </el-tooltip>
+                    <el-tooltip content="退出登录" placement="top" :show-after="300">
+                        <button class="u-icon-btn danger" type="button" @click="handleLogout" aria-label="退出登录">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+                        </button>
+                    </el-tooltip>
+                </div>
+            </div>
+            <!-- 版本号（点击查看关于） -->
+            <div class="sidebar-version" @click="aboutDialogVisible=true" role="button" tabindex="0" @keyup.enter="aboutDialogVisible=true">
+                <span>v{{ about.version }}</span>
+                <span class="sv-link">关于</span>
             </div>
         </div>
 
         <!-- 内容区 -->
         <div class="content">
-            <div class="header">
+            <div class="header" v-if="currentPage!=='tool-detail'">
                 <h2>{{ pageTitle }}</h2>
-                <div v-if="currentPage!=='tool-detail'">
-                    <span style="margin-right:16px;color:#606266">{{ currentUser.username }}</span>
-                    <el-button type="warning" size="small" @click="changePwdDialogVisible=true" data-i18n="修改密码">修改密码</el-button>
-                    <el-button type="danger" size="small" @click="handleLogout" style="margin-left:8px" data-i18n="退出登录">退出</el-button>
-                </div>
+                <el-autocomplete
+                    ref="globalSearchInput"
+                    v-model="globalSearch"
+                    :fetch-suggestions="fetchGlobalSuggestions"
+                    :select-when-unmatched="false"
+                    placeholder="搜索工装编号/名称/图号（Ctrl+K）"
+                    clearable
+                    style="width:340px"
+                    @select="onGlobalSearchSelect"
+                    @keyup.enter="onGlobalSearchEnter">
+                    <template #default="{ item }">
+                        <div class="gs-item">
+                            <span class="gs-code">{{ item.code }}</span>
+                            <span class="gs-name">{{ item.name }}</span>
+                            <span class="gs-spec" v-if="item.spec">{{ item.spec }}</span>
+                            <el-tag size="small" :type="statusTagType(item.status)" v-if="item.status" style="flex-shrink:0">{{ item.status }}</el-tag>
+                        </div>
+                    </template>
+                </el-autocomplete>
             </div>
 
             <!-- 首页概览 -->
             <div v-if="currentPage==='dashboard'">
                 <div class="stat-cards">
-                    <div class="stat-card blue"><div class="label" data-i18n="工装总数">工装总数</div><div class="number">{{ stats.total || 0 }}</div></div>
-                    <div class="stat-card green"><div class="label" data-i18n="在库">在库</div><div class="number">{{ stats.in_stock || 0 }}</div></div>
-                    <div class="stat-card orange"><div class="label" data-i18n="借出">借出</div><div class="number">{{ stats.borrowed || 0 }}</div></div>
-                    <div class="stat-card red"><div class="label" data-i18n="检定逾期">检定逾期</div><div class="number">{{ stats.overdue || 0 }}</div></div>
+                    <div class="stat-card blue">
+                        <div class="sc-top">
+                            <span class="sc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7l-8-4-8 4 8 4 8-4z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/></svg></span>
+                            <span class="label" data-i18n="工装总数">工装总数</span>
+                        </div>
+                        <div class="sc-value"><span class="number">{{ stats.total || 0 }}</span><span class="unit">件</span></div>
+                        <div class="sc-foot">在库 <b>{{ stats.in_stock || 0 }}</b> · 借出 <b>{{ stats.borrowed || 0 }}</b></div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="sc-top">
+                            <span class="sc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v13H3z"/><path d="M3 7l2-3h14l2 3"/><path d="M10 12h4"/></svg></span>
+                            <span class="label" data-i18n="在库">在库</span>
+                        </div>
+                        <div class="sc-value"><span class="number">{{ stats.in_stock || 0 }}</span><span class="unit">件</span></div>
+                        <div class="sc-foot">占总数 <b>{{ pct(stats.in_stock, stats.total) }}</b></div>
+                    </div>
+                    <div class="stat-card orange">
+                        <div class="sc-top">
+                            <span class="sc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h7v7"/><path d="M21 5l-8.5 8.5"/><path d="M20 14v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5"/></svg></span>
+                            <span class="label" data-i18n="借出">借出</span>
+                        </div>
+                        <div class="sc-value"><span class="number">{{ stats.borrowed || 0 }}</span><span class="unit">件</span></div>
+                        <div class="sc-foot">占总数 <b>{{ pct(stats.borrowed, stats.total) }}</b></div>
+                    </div>
+                    <div class="stat-card red">
+                        <div class="sc-top">
+                            <span class="sc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                            <span class="label" data-i18n="检定逾期">检定逾期</span>
+                        </div>
+                        <div class="sc-value"><span class="number">{{ stats.overdue || 0 }}</span><span class="unit">件</span></div>
+                        <div class="sc-foot">30天内到期 <b>{{ stats.due_soon || 0 }}</b> 件</div>
+                    </div>
                 </div>
-                <!-- 月度趋势图表 -->
-                <div class="chart-container">
-                    <div class="chart-title" data-i18n="工装月度统计趋势（过去12个月）">📈 工装月度统计趋势（过去12个月）</div>
-                    <div ref="monthlyChart" class="chart-wrapper"></div>
+                <!-- 首页增强：快捷操作 + 待办 | 状态分布 + 近期动态 -->
+                <div class="dash-grid">
+                    <div class="dash-col">
+                        <div class="card dash-card">
+                            <div class="dash-card-title"><span class="ct-bar"></span><span data-i18n="快捷操作">快捷操作</span></div>
+                            <div class="quick-actions">
+                                <button class="qa-btn" @click="currentPage='tools'" aria-label="查看台账">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7l-8-4-8 4 8 4 8-4z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/></svg>
+                                    <span data-i18n="查看台账">查看台账</span>
+                                </button>
+                                <button class="qa-btn" @click="openNewToolPage()" aria-label="新增工装">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                                    <span data-i18n="新增工装">新增工装</span>
+                                </button>
+                                <button class="qa-btn" @click="openQuickPick('borrow')" aria-label="快速借用">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                                    <span data-i18n="快速借用">快速借用</span>
+                                </button>
+                                <button class="qa-btn" @click="openQuickPick('inspect')" aria-label="登记检定">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg>
+                                    <span data-i18n="登记检定">登记检定</span>
+                                </button>
+                                <button class="qa-btn qa-danger" @click="openQuickPick('scrap')" aria-label="报废审批">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></svg>
+                                    <span data-i18n="报废审批">报废审批</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card dash-card">
+                            <div class="dash-card-title"><span class="ct-bar"></span><span data-i18n="待办工作台">待办工作台</span></div>
+                            <div v-if="todoList.length === 0" class="dash-empty" data-i18n="暂无待办，检定计划一切正常">暂无待办，检定计划一切正常</div>
+                            <div v-else class="todo-list">
+                                <div v-for="t in todoList" :key="'td' + t.id" class="todo-item" @click="viewTool(t)">
+                                    <span class="todo-badge" :class="t.days_until_inspection < 0 ? 'bd-danger' : 'bd-warning'">{{ t.days_until_inspection < 0 ? '已逾期' : (t.days_until_inspection + ' 天') }}</span>
+                                    <span class="todo-name">{{ t.name }}</span>
+                                    <span class="todo-date">{{ t.next_inspection_date }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card dash-card">
+                            <div class="dash-card-title">
+                                <span class="ct-bar"></span><span data-i18n="工装月度统计趋势">月度趋势</span>
+                                <span class="ct-sub">过去 12 个月</span>
+                            </div>
+                            <div ref="monthlyChart" class="chart-wrapper"></div>
+                        </div>
+                    </div>
+                    <div class="dash-col">
+                        <!-- 状态分布（已隐藏） -->
+                        <div class="card dash-card" style="display:none">
+                            <div class="dash-card-title"><span class="ct-bar"></span><span data-i18n="状态分布">状态分布</span></div>
+                            <div ref="statusChart" class="status-chart"></div>
+                        </div>
+                        <div class="card dash-card">
+                            <div class="dash-card-title"><span class="ct-bar"></span><span data-i18n="近期动态">近期动态</span></div>
+                            <div v-if="recentActivities.length === 0" class="dash-empty" data-i18n="暂无动态">暂无动态</div>
+                            <div v-else class="activity-list">
+                                <div v-for="(a, i) in recentActivities" :key="'act' + i + a.full_time" class="activity-item" @click="viewToolById(a.tool_id)">
+                                    <span class="act-time">{{ a.time }}</span>
+                                    <span class="act-dot" :class="'dot-' + a.type"></span>
+                                    <span class="act-text">{{ a.text }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="card" v-if="stats.due_soon > 0">
                     <el-alert title="检定提醒" :description="`有 ${stats.due_soon} 个工装将在30天内到期检定`" type="warning" show-icon :closable="false"></el-alert>
@@ -154,17 +502,28 @@
                     </el-select>
                     <el-button type="primary" @click="loadTools" data-i18n="搜索">搜索</el-button>
                     <el-switch v-model="showScrapped" active-text="显示报废" inactive-text="" @change="loadTools" style="margin-left:10px"></el-switch>
-                    <el-button type="success" @click="openToolDialog()" v-if="canEdit" data-i18n="新建">新增工装</el-button>
+                    <el-button type="success" @click="openNewToolPage()" v-if="canEdit" data-i18n="新建">新增工装</el-button>
                     <el-button type="info" @click="exportTools" style="margin-left:4px" data-i18n="导出">导出Excel</el-button>
                     <el-button type="warning" @click="downloadTemplate" v-if="canEdit" style="margin-left:4px" data-i18n="下载模板">下载模板</el-button>
                     <el-button type="warning" @click="$refs.importFileInput.click()" v-if="canEdit" style="margin-left:4px" data-i18n="导入">导入Excel</el-button>
                     <input type="file" ref="importFileInput" accept=".xlsx,.xls" style="display:none" @change="importTools($event)">
                 </div>
-                <el-table :data="tools" stripe border style="width:100%" @row-click="onToolRowClick" :row-class-name="()=>'tool-row-clickable'">
+                <!-- 加载骨架屏 -->
+                <div class="table-skeleton card" v-if="toolsLoading">
+                    <div class="sk-row sk-head" v-for="i in 1" :key="'h'+i">
+                        <div class="sk-cell w-sm"></div><div class="sk-cell w-sm"></div><div class="sk-cell"></div>
+                        <div class="sk-cell w-sm"></div><div class="sk-cell w-sm"></div><div class="sk-cell w-sm"></div>
+                    </div>
+                    <div class="sk-row" v-for="i in 8" :key="'r'+i">
+                        <div class="sk-cell w-sm"></div><div class="sk-cell w-sm"></div><div class="sk-cell"></div>
+                        <div class="sk-cell w-sm"></div><div class="sk-cell w-sm"></div><div class="sk-cell w-sm"></div>
+                    </div>
+                </div>
+                <el-table v-else :data="tools" stripe border style="width:100%" @row-click="onToolRowClick" :row-class-name="()=>'tool-row-clickable'">
                     <el-table-column prop="code" label="编号" width="120"></el-table-column>
-                    <el-table-column prop="drawing_no" label="图号" width="120"></el-table-column>
-                    <el-table-column prop="name" label="名称" width="150"></el-table-column>
-                    <el-table-column prop="spec" label="规格型号" width="120"></el-table-column>
+                    <el-table-column prop="drawing_no" label="图号" width="160"></el-table-column>
+                    <el-table-column prop="name" label="名称" width="200"></el-table-column>
+                    <el-table-column prop="spec" label="规格型号" width="160"></el-table-column>
                     <el-table-column prop="category" label="类别" width="100"></el-table-column>
                     <el-table-column prop="level" label="等级" width="80"></el-table-column>
                     <el-table-column prop="factory" label="使用分厂" width="100"></el-table-column>
@@ -180,16 +539,7 @@
                     </el-table-column>
                     <el-table-column prop="next_inspection_date" label="下次检定" width="110">
                         <template #default="scope">
-                            <span :style="{color: isOverdue(scope.row.next_inspection_date) ? '#f56c6c' : ''}">{{ scope.row.next_inspection_date || '-' }}</span>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="操作" width="360" fixed="right">
-                        <template #default="scope">
-                            <el-button size="small" @click="viewTool(scope.row)" data-i18n="详情">详情</el-button>
-                            <el-button size="small" type="primary" @click="openBorrowDialog(scope.row)" v-if="scope.row.status==='在库'" data-i18n="借用">借用</el-button>
-                            <el-button size="small" type="warning" @click="openInspectionDialog(scope.row)" data-i18n="检定记录">检定</el-button>
-                            <el-button size="small" type="info" @click="scrapTool(scope.row)" v-if="scope.row.status!=='报废' && canEdit" data-i18n="报废审批">报废</el-button>
-                            <el-button size="small" type="danger" @click="deleteTool(scope.row)" v-if="canDelete" data-i18n="删除">删除</el-button>
+                            <span :style="{color: isOverdue(scope.row.next_inspection_date) ? 'var(--c-danger)' : ''}">{{ scope.row.next_inspection_date || '-' }}</span>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -206,35 +556,37 @@
                         <el-button @click="backToTools" size="large" style="border-radius:8px;width:48px;height:48px;padding:0">
                             <span style="font-size:18px">←</span>
                         </el-button>
-                        <div style="flex:1">
-                            <h1 style="margin:0;font-size:20px;font-weight:700;color:#1a1a1a">{{ currentTool.name }}</h1>
-                            <div style="font-size:12px;color:#909399;margin-top:2px">{{ currentTool.code }}{{ currentTool.drawing_no ? ' | ' + currentTool.drawing_no : '' }}{{ currentTool.spec ? ' | ' + currentTool.spec : '' }}</div>
+                        <div style="flex:1;display:flex;align-items:center;gap:12px">
+                            <div style="display:flex;flex-direction:column;gap:6px">
+                                <div style="display:flex;align-items:center;gap:12px">
+                                    <h1 style="margin:0;font-size:20px;font-weight:700;color:#1a1a1a">{{ currentTool.name }}</h1>
+                                    <el-tag :type="statusTagType(currentTool.status)" class="tool-status-pill">{{ currentTool.status }}</el-tag>
+                                </div>
+                            </div>
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                            <el-tag :type="statusTagType(currentTool.status)" style="font-size:12px;padding:6px 14px;border-radius:16px">{{ currentTool.status }}</el-tag>
-                            <el-button type="success" size="small" @click="openBorrowDialog(currentTool)" v-if="currentTool.status==='在库'">入库</el-button>
+                            <el-button type="success" size="small" @click="openBorrowDialog(currentTool)" v-if="currentTool.status==='在库'">借用</el-button>
+                            <el-button type="danger" size="small" @click="openReturnDialog(currentTool)" v-if="currentTool.status==='借出'">退库</el-button>
                             <el-button type="warning" size="small" @click="openInspectionDialog(currentTool)">检定</el-button>
                             <el-button type="info" size="small" @click="scrapTool(currentTool)" v-if="currentTool.status!=='报废' && canEdit">报废</el-button>
                             <el-button type="danger" size="small" @click="deleteTool(currentTool)" v-if="canDelete">删除</el-button>
                         </div>
                     </div>
 
-                    <!-- 主内容区：左右各占50%，左侧上下堆叠 -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:stretch">
+<!-- 主内容区：左右各占50%，左侧上下堆叠 -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:stretch">
 
-                        <!-- ========== 左侧列：工装信息 + 工装照片 ========== -->
-                        <div style="display:flex;flex-direction:column;gap:24px">
+<!-- ========== 左侧列：工装信息 + 工装照片 ========== -->
+<div ref="leftColEl" style="display:flex;flex-direction:column;gap:24px">
 
                         <!-- 工装信息卡片 -->
-                        <div ref="detailLeftCard" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06);min-width:0">
-                            <!-- 渐变条 + 顶部操作栏 -->
-                            <div style="height:6px;background:linear-gradient(90deg,#409eff,#667eea,#764ba2)"></div>
+                        <div ref="detailLeftCard" style="background:#fff;border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-card);min-width:0">
+                            <!-- 顶部操作栏（去掉了原渐变条） -->
                             <div style="padding:14px 18px 10px;display:flex;align-items:center;justify-content:space-between">
                                 <div style="display:flex;align-items:center;gap:8px">
                                     <div style="font-size:14px;font-weight:600;color:#1a1a1a">工装信息</div>
                                 </div>
                                 <div style="display:flex;gap:8px" v-if="!editingTool && canEdit">
-                                    <el-button type="success" size="small" @click="openNewToolDialog">建档</el-button>
                                     <el-button type="primary" size="small" @click="startEditTool">编辑</el-button>
                                 </div>
                                 <div style="display:flex;gap:8px" v-if="editingTool">
@@ -243,125 +595,161 @@
                                 </div>
                             </div>
                             <div style="padding:4px 18px 18px">
-                                <!-- 第一行：编号+图号 | 名称+规格 -->
-                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-                                    <div style="padding:10px 14px;background:linear-gradient(135deg,#f0f5ff 0%,#e8f0ff 100%);border-radius:10px;border:1px solid #adc6ff">
-                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">编号</div>
-                                        <el-input v-if="editingTool" v-model="editingTool.code" size="small" placeholder="自动生成" disabled style="font-size:14px"></el-input>
-                                        <div v-else style="font-size:14px;font-weight:600;color:#10239e">{{ currentTool.code }}</div>
-                                    </div>
-                                    <div style="padding:10px 14px;background:linear-gradient(135deg,#e6f0ff 0%,#dceeff 100%);border-radius:10px;border:1px solid #adc6ff">
-                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">图号</div>
-                                        <el-input v-if="editingTool" v-model="editingTool.drawing_no" size="small" placeholder="请输入图号" style="font-size:14px"></el-input>
-                                        <div v-else style="font-size:14px;font-weight:600;color:#10239e">{{ currentTool.drawing_no || '-' }}</div>
-                                    </div>
-                                </div>
-                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-                                    <div style="padding:10px 14px;background:linear-gradient(135deg,#fff7e6 0%,#fff3d9 100%);border-radius:10px;border:1px solid #ffd591">
-                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">工装名称</div>
-                                        <el-input v-if="editingTool" v-model="editingTool.name" size="small" placeholder="请输入名称" style="font-size:14px"></el-input>
-                                        <div v-else style="font-size:15px;font-weight:700;color:#d46b08">{{ currentTool.name }}</div>
-                                    </div>
-                                    <div style="padding:10px 14px;background:linear-gradient(135deg,#fff3d9 0%,#ffe9cc 100%);border-radius:10px;border:1px solid #ffd591">
-                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">规格型号</div>
-                                        <el-input v-if="editingTool" v-model="editingTool.spec" size="small" placeholder="请输入规格" style="font-size:14px"></el-input>
-                                        <div v-else style="font-size:14px;font-weight:600;color:#d46b08">{{ currentTool.spec || '-' }}</div>
-                                    </div>
-                                </div>
-                                <!-- 第二行：6个信息格 -->
-                                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
-                                    <div style="padding:8px 12px;background:#f5f7fa;border-radius:8px">
-                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">类别</div>
-                                        <el-select v-if="editingTool" v-model="editingTool.category" size="small" placeholder="请选择" clearable style="width:100%;font-size:13px">
-                                            <el-option v-for="c in configLists.category" :key="c.id" :label="c.config_value" :value="c.config_value"></el-option>
-                                        </el-select>
-                                        <div v-else style="font-size:13px;font-weight:600;color:#1677ff">{{ currentTool.category || '-' }}</div>
-                                    </div>
-                                    <div style="padding:8px 12px;background:#f5f7fa;border-radius:8px">
-                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">等级</div>
-                                        <el-select v-if="editingTool" v-model="editingTool.level" size="small" placeholder="请选择" style="width:100%;font-size:13px">
-                                            <el-option label="A（半年检定）" value="A"></el-option>
-                                            <el-option label="B（一年检定）" value="B"></el-option>
-                                            <el-option label="C（不限定）" value="C"></el-option>
-                                        </el-select>
-                                        <div v-else style="font-size:13px;font-weight:600;color:#d46b08">{{ currentTool.level || '-' }}</div>
-                                    </div>
-                                    <div style="padding:8px 12px;background:#f5f7fa;border-radius:8px">
-                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">领用人</div>
-                                        <el-input v-if="editingTool" v-model="editingTool.receiver" size="small" placeholder="请输入" style="font-size:13px"></el-input>
-                                        <div v-else style="font-size:13px;font-weight:600;color:#389e0d">{{ currentTool.receiver || '-' }}</div>
-                                    </div>
-                                    <div style="padding:8px 12px;background:#f5f7fa;border-radius:8px">
-                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">使用分厂</div>
-                                        <el-select v-if="editingTool" v-model="editingTool.factory" size="small" placeholder="请选择" clearable style="width:100%;font-size:13px">
-                                            <el-option v-for="f in factories" :key="f.id" :label="f.config_value" :value="f.config_value"></el-option>
-                                        </el-select>
-                                        <div v-else style="font-size:13px;font-weight:600;color:#722ed1">{{ currentTool.factory || '-' }}</div>
-                                    </div>
-                                    <div style="padding:8px 12px;background:#f5f7fa;border-radius:8px">
-                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">使用班组</div>
-                                        <el-select v-if="editingTool" v-model="editingTool.team" size="small" placeholder="请选择" clearable style="width:100%;font-size:13px">
-                                            <el-option v-for="t in teamsInCurrentFactory" :key="t.id" :label="t.config_value" :value="t.config_value"></el-option>
-                                        </el-select>
-                                        <div v-else style="font-size:13px;font-weight:600;color:#cf1322">{{ currentTool.team || '-' }}</div>
-                                    </div>
-                                    <div style="padding:8px 12px;background:#f5f7fa;border-radius:8px">
-                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">完工日期</div>
-                                        <el-date-picker v-if="editingTool" v-model="editingTool.purchase_date" type="date" value-format="YYYY-MM-DD" size="small" style="width:100%"></el-date-picker>
-                                        <div v-else style="font-size:13px;font-weight:600;color:#595959">{{ fmtDate(currentTool.purchase_date) }}</div>
-                                    </div>
-                                </div>
-                                <!-- 第三行：下次检定 + 入库时间 -->
-                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-                                    <div :style="{padding:'8px 12px',borderRadius:'8px',background: isOverdue(editingTool ? editingTool.next_inspection_date : currentTool.next_inspection_date) ? '#fff2f0' : '#f0f5ff',border:'1px solid ' + (isOverdue(editingTool ? editingTool.next_inspection_date : currentTool.next_inspection_date) ? '#ffccc7' : '#adc6ff')}">
-                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">下次检定</div>
-                                        <div v-if="editingTool" style="font-size:13px;color:#8c8c8c">（由检定记录自动更新）</div>
-                                        <div v-else :style="{fontSize:'13px',fontWeight:'600',color: isOverdue(currentTool.next_inspection_date) ? '#cf1322' : '#10239e'}">{{ fmtDate(currentTool.next_inspection_date) }}</div>
-                                    </div>
-                                    <div style="padding:8px 12px;background:#f5f7fa;border-radius:8px">
-                                        <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">入库时间</div>
-                                        <div style="font-size:13px;font-weight:600;color:#595959">{{ currentTool.created_at ? currentTool.created_at.split(' ')[0] : '-' }}</div>
-                                    </div>
-                                </div>
-                                <!-- 备注 -->
-                                <div style="padding:10px 14px;background:#fafafa;border-radius:8px">
-                                    <div style="font-size:11px;color:#8c8c8c;margin-bottom:4px">备注</div>
-                                    <el-input v-if="editingTool" v-model="editingTool.remark" size="small" type="textarea" :rows="2" placeholder="请输入备注" style="font-size:13px"></el-input>
-                                    <div v-else style="font-size:13px;color:#595959;line-height:1.6">{{ currentTool.remark || '暂无备注' }}</div>
-                                </div>
+                                <table class="tool-info-table">
+                                    <colgroup>
+                                        <col class="col-label"><col><col class="col-label"><col>
+                                    </colgroup>
+                                    <tbody>
+                                        <!-- Row 1: 编号 + 图号 -->
+                                        <tr>
+                                            <th>编号<span v-if="editingTool" class="req">*</span></th>
+                                            <td>
+                                                <el-input v-if="editingTool" v-model="editingTool.code" size="small" :placeholder="isNewTool ? '请输入编号' : '自动生成'" :disabled="!isNewTool"></el-input>
+                                                <span v-else :class="{'empty': !currentTool.code}">{{ currentTool.code || '—' }}</span>
+                                            </td>
+                                            <th>图号<span v-if="editingTool" class="req">*</span></th>
+                                            <td>
+                                                <el-input v-if="editingTool" v-model="editingTool.drawing_no" size="small" placeholder="请输入图号"></el-input>
+                                                <span v-else :class="{'empty': !currentTool.drawing_no}">{{ currentTool.drawing_no || '—' }}</span>
+                                            </td>
+                                        </tr>
+                                        <!-- Row 2: 工装名称 + 规格型号 -->
+                                        <tr>
+                                            <th>工装名称<span v-if="editingTool" class="req">*</span></th>
+                                            <td>
+                                                <el-input v-if="editingTool" v-model="editingTool.name" size="small" placeholder="请输入名称"></el-input>
+                                                <span v-else :class="{'empty': !currentTool.name}">{{ currentTool.name || '—' }}</span>
+                                            </td>
+                                            <th>规格型号<span v-if="editingTool" class="req">*</span></th>
+                                            <td>
+                                                <el-input v-if="editingTool" v-model="editingTool.spec" size="small" placeholder="请输入规格"></el-input>
+                                                <span v-else :class="{'empty': !currentTool.spec}">{{ currentTool.spec || '—' }}</span>
+                                            </td>
+                                        </tr>
+                                        <!-- Row 3: 类别 + 等级 -->
+                                        <tr>
+                                            <th>类别<span v-if="editingTool" class="req">*</span></th>
+                                            <td>
+                                                <el-select v-if="editingTool" v-model="editingTool.category" size="small" placeholder="请选择" clearable style="width:100%">
+                                                    <el-option v-for="c in configLists.category" :key="c.id" :label="c.config_value" :value="c.config_value"></el-option>
+                                                </el-select>
+                                                <span v-else :class="{'empty': !currentTool.category}">{{ currentTool.category || '—' }}</span>
+                                            </td>
+                                            <th>等级<span v-if="editingTool" class="req">*</span></th>
+                                            <td>
+                                                <el-select v-if="editingTool" v-model="editingTool.level" size="small" placeholder="请选择" style="width:100%">
+                                                    <el-option label="A（半年检定）" value="A"></el-option>
+                                                    <el-option label="B（一年检定）" value="B"></el-option>
+                                                    <el-option label="C（不限定）" value="C"></el-option>
+                                                </el-select>
+                                                <span v-else :class="{'empty': !currentTool.level}">{{ currentTool.level || '—' }}</span>
+                                            </td>
+                                        </tr>
+                                        <!-- Row 4: 领用人 + 使用分厂（由借用记录维护，编辑态只读） -->
+                                        <tr>
+                                            <th>领用人</th>
+                                            <td class="borrow-cell">
+                                                <input v-if="editingTool" class="borrow-readonly" :value="activeBorrowInfo?.receiver || ''" readonly placeholder="（借出后自动填入）">
+                                                <span v-else :class="{'empty': !currentTool.receiver}">{{ currentTool.receiver || '—' }}<span v-if="currentTool.receiver" class="borrow-source">由借用记录维护</span></span>
+                                            </td>
+                                            <th>使用分厂</th>
+                                            <td class="borrow-cell">
+                                                <input v-if="editingTool" class="borrow-readonly" :value="activeBorrowInfo?.factory || ''" readonly placeholder="（借出后自动填入）">
+                                                <span v-else :class="{'empty': !currentTool.factory}">{{ currentTool.factory || '—' }}<span v-if="currentTool.factory" class="borrow-source">由借用记录维护</span></span>
+                                            </td>
+                                        </tr>
+                                        <!-- Row 5: 使用班组 + 完工日期 -->
+                                        <tr>
+                                            <th>使用班组</th>
+                                            <td class="borrow-cell">
+                                                <input v-if="editingTool" class="borrow-readonly" :value="activeBorrowInfo?.team || ''" readonly placeholder="（借出后自动填入）">
+                                                <span v-else :class="{'empty': !currentTool.team}">{{ currentTool.team || '—' }}<span v-if="currentTool.team" class="borrow-source">由借用记录维护</span></span>
+                                            </td>
+                                            <th>完工日期<span v-if="editingTool" class="req">*</span></th>
+                                            <td>
+                                                <el-date-picker v-if="editingTool" v-model="editingTool.purchase_date" type="date" value-format="YYYY-MM-DD" size="small" style="width:100%"></el-date-picker>
+                                                <span v-else :class="{'empty': !currentTool.purchase_date}">{{ fmtCompletionDate(currentTool.purchase_date) || '—' }}</span>
+                                            </td>
+                                        </tr>
+                                        <!-- Row 6: 下次检定 + 入库时间 -->
+                                        <tr>
+                                            <th>下次检定</th>
+                                            <td>
+                                                <span v-if="editingTool" class="empty">（由检定记录自动更新）</span>
+                                                <span v-else-if="!isOverdue(currentTool.next_inspection_date)" :class="{'empty': !currentTool.next_inspection_date}">{{ fmtDate(currentTool.next_inspection_date) || '—' }}</span>
+                                                <span v-else><span class="overdue-dot"></span><span class="overdue-text">{{ fmtDate(currentTool.next_inspection_date) }}</span><span style="color:#c0c4cc;font-weight:400;margin-left:4px">（已逾期）</span></span>
+                                            </td>
+                                            <th>入库时间<span v-if="editingTool" class="req">*</span></th>
+                                            <td>
+                                                <el-date-picker v-if="editingTool" v-model="editingTool.storage_date" type="date" value-format="YYYY-MM-DD" size="small" style="width:100%" placeholder="请选择入库时间"></el-date-picker>
+                                                <span v-else :class="{'empty': !currentTool.storage_date}">{{ currentTool.storage_date || '—' }}</span>
+                                            </td>
+                                        </tr>
+                                        <!-- Row 7: 完工资料（支持多份，全宽） -->
+                                        <tr>
+                                            <th>完工资料</th>
+                                            <td colspan="3" class="report-cell">
+                                                <input ref="reportFileInput" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" @change="onReportFileChange">
+                                                <div v-if="editingTool" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                                                    <el-button size="small" type="primary" plain @click="$refs.reportFileInput?.click()">
+                                                        <span style="margin-right:4px">📄</span>上传完工资料
+                                                    </el-button>
+                                                    <span style="font-size:12px;color:#909399">支持 PDF / 图片 / Word，可一次选择多份</span>
+                                                </div>
+                                                <div v-if="(currentTool && currentTool.attachments) ? currentTool.attachments.filter(a => ['完工资料','尺寸检验报告'].includes(a.file_type)).length : 0" class="report-list">
+                                                    <div v-for="f in (currentTool && currentTool.attachments) ? currentTool.attachments.filter(a => ['完工资料','尺寸检验报告'].includes(a.file_type)) : []" :key="f.id" class="report-item">
+                                                        <span class="report-icon">📄</span>
+                                                        <span class="report-name">{{ f.file_name }}</span>
+                                                        <el-button size="small" link type="primary" @click="downloadFile(f)">下载</el-button>
+                                                        <el-button size="small" link type="danger" @click="deleteAttachment(f)" v-if="canEdit">删除</el-button>
+                                                    </div>
+                                                </div>
+                                                <span v-else-if="!editingTool" class="empty">暂无完工资料</span>
+                                            </td>
+                                        </tr>
+                                        <!-- Row 7: 备注（全宽） -->
+                                        <tr>
+                                            <th>备注</th>
+                                            <td colspan="3">
+                                                <el-input v-if="editingTool" v-model="editingTool.remark" size="small" type="textarea" :rows="2" placeholder="请输入备注"></el-input>
+                                                <div v-else class="remark-value" :class="{'empty': !currentTool.remark}">{{ currentTool.remark || '—' }}</div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
 
                         <!-- 工装照片卡片 -->
-                        <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+                        <div style="background:#fff;border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-card)">
                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
                                 <div style="display:flex;align-items:center;gap:8px">
-                                    <div style="width:4px;height:18px;background:linear-gradient(180deg,#409eff,#667eea);border-radius:2px"></div>
+                                    <div style="width:4px;height:18px;background:var(--grad-accent);border-radius:2px"></div>
                                     <span style="font-size:14px;font-weight:600;color:#1a1a1a">工装照片</span>
                                 </div>
                             </div>
                             <!-- 查看模式：显示照片 -->
-                            <div v-if="!editingTool" style="border-radius:12px;overflow:hidden;border:2px dashed #e4e7ed;background:#fafafa;min-height:300px;max-height:350px;height:350px;display:flex;align-items:center;justify-content:center;padding:12px">
+                            <div v-if="!editingTool" style="border-radius:12px;overflow:hidden;border:2px dashed #e4e7ed;background:#fafafa;height:240px;display:flex;align-items:center;justify-content:center;padding:12px">
                                 <div v-if="currentTool.photo_path" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">
                                     <img :src="'/api/tools/'+currentTool.id+'/photo'" style="max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;cursor:pointer" @click="openPhotoPreview(currentTool.id)" @error="$event.target.style.display='none'">
                                 </div>
-                                <div v-else style="text-align:center;padding:80px 20px">
-                                    <div style="font-size:48px;margin-bottom:12px;opacity:.4">📷</div>
+                                <div v-else style="text-align:center;padding:40px 20px">
+                                    <div style="margin-bottom:12px;opacity:.4"><svg viewBox="0 0 24 24" fill="none" stroke="#909399" stroke-width="1.5" style="width:48px;height:48px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div>
                                     <div style="color:#909399;font-size:14px">暂无工装照片</div>
                                 </div>
                             </div>
                             <!-- 编辑模式：上传控件 -->
-                            <div v-else style="border-radius:12px;overflow:hidden;border:2px dashed #e4e7ed;background:#fafafa;min-height:300px;display:flex;align-items:center;justify-content:center;height:100%">
+                            <div v-else style="border-radius:12px;overflow:hidden;border:2px dashed #e4e7ed;background:#fafafa;min-height:240px;display:flex;align-items:center;justify-content:center;padding:12px">
                                 <div style="text-align:center;padding:40px 20px">
                                     <input ref="detailPhotoInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" @change="onDetailPhotoChange">
                                     <div v-if="currentTool.photo_path" style="margin-bottom:16px">
                                         <el-image :src="'/api/tools/'+currentTool.id+'/photo'" style="width:200px;height:200px;display:block;margin:0 auto 12px;border-radius:8px" fit="contain">
                                             <template #error>
-                                                <div style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;color:#c0c4cc;font-size:40px;background:#f5f7fa;border-radius:8px">📷</div>
+                                                <div style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;color:#c0c4cc;background:var(--c-fill);border-radius:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;opacity:.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div>
                                             </template>
                                         </el-image>
                                     </div>
-                                    <div v-else style="font-size:48px;margin-bottom:12px;opacity:.4">📷</div>
+                                    <div v-else style="margin-bottom:12px;opacity:.4"><svg viewBox="0 0 24 24" fill="none" stroke="#909399" stroke-width="1.5" style="width:48px;height:48px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div>
                                     <el-button size="small" type="primary" @click="$refs.detailPhotoInput.click()">{{ currentTool.photo_path ? '更换照片' : '上传照片' }}</el-button>
                                     <el-button v-if="currentTool.photo_path" size="small" type="danger" plain @click="deleteToolPhoto">删除照片</el-button>
                                     <div style="margin-top:8px;font-size:12px;color:#909399">支持 jpg/png/gif/webp</div>
@@ -372,27 +760,22 @@
                         </div><!-- /左侧列 -->
 
                         <!-- ========== 右侧列：记录 ========== -->
-                        <div ref="detailRightCard" style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06);display:flex;flex-direction:column;height:100%">
+                        <div ref="detailRightCard" style="background:#fff;border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-card);display:flex;flex-direction:column;overflow:hidden">
                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
                                 <div style="display:flex;align-items:center;gap:8px">
-                                    <div style="width:4px;height:18px;background:linear-gradient(180deg,#409eff,#667eea);border-radius:2px"></div>
+                                    <div style="width:4px;height:18px;background:var(--grad-accent);border-radius:2px"></div>
                                     <span style="font-size:14px;font-weight:600;color:#1a1a1a">记录</span>
                                 </div>
-                                <div style="display:flex;gap:8px">
-                                    <el-button size="small" type="success" @click="openBorrowDialog(currentTool)" v-if="currentTool.status==='在库'">+ 借用</el-button>
-                                    <el-button size="small" type="danger" @click="openReturnDialog(currentTool)" v-if="currentTool.status==='借出'">+ 退库</el-button>
-                                    <el-button size="small" type="primary" @click="openInspectionDialog(currentTool)">+ 检定</el-button>
-                                </div>
                             </div>
-                            <div v-if="(currentTool.borrow_records && currentTool.borrow_records.length) || (currentTool.inspections && currentTool.inspections.length)" style="flex:1;overflow-y:auto;min-height:0">
+                            <div v-if="(currentTool.in_storage_records && currentTool.in_storage_records.length) || (currentTool.borrow_records && currentTool.borrow_records.length) || (currentTool.inspections && currentTool.inspections.length)" style="flex:1;overflow-y:auto;min-height:0">
                                 <div style="position:relative;padding-left:24px">
-                                    <div style="position:absolute;left:8px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,#409eff,#d3adf7)"></div>
+                                    <div style="position:absolute;left:8px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--c-primary),rgba(64,158,255,.12))"></div>
                                     <div v-for="item in getMergedRecords()" :key="item.key" style="position:relative;margin-bottom:16px">
-                                        <div :style="{position:'absolute',left:'-20px',top:'14px',width:'12px',height:'12px',borderRadius:'50%',background: item.type==='borrow' ? '#52c41a' : item.type==='inspection' ? '#fa8c16' : '#1677ff',border:'2px solid #fff',boxShadow:'0 0 0 2px ' + (item.type==='borrow' ? '#b7eb8f' : item.type==='inspection' ? '#ffd591' : '#adc6ff')}"></div>
+                                        <div :style="{position:'absolute',left:'-20px',top:'14px',width:'12px',height:'12px',borderRadius:'50%',background: item.type==='borrow' ? '#52c41a' : item.type==='inspection' ? '#fa8c16' : item.type==='return' ? '#722ed1' : '#1677ff',border:'2px solid #fff',boxShadow:'0 0 0 2px ' + (item.type==='borrow' ? '#b7eb8f' : item.type==='inspection' ? '#ffd591' : item.type==='return' ? '#efd6ff' : '#adc6ff')}"></div>
                                         <div style="background:#fafbfc;border-radius:12px;border:1px solid #f0f0f0;padding:14px 16px;margin-left:8px">
                                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
                                                 <div style="display:flex;align-items:center;gap:8px">
-                                                    <el-tag :type="item.type==='borrow' ? 'success' : item.type==='inspection' ? 'warning' : 'primary'" size="small" style="font-size:11px">{{ item.typeName }}</el-tag>
+                                                    <el-tag :type="item.type==='borrow' ? 'success' : item.type==='inspection' ? 'warning' : item.type==='return' ? 'info' : 'primary'" size="small" style="font-size:11px">{{ item.typeName }}</el-tag>
                                                     <span style="font-size:13px;font-weight:600;color:#1a1a1a">{{ item.date }}</span>
                                                 </div>
                                             </div>
@@ -443,7 +826,7 @@
                         <el-descriptions-item label="使用班组">{{ currentTool.team || '-' }}</el-descriptions-item>
                         <el-descriptions-item label="领用人">{{ currentTool.receiver || '-' }}</el-descriptions-item>
                         <el-descriptions-item label="状态"><el-tag :type="statusTagType(currentTool.status)">{{ currentTool.status }}</el-tag></el-descriptions-item>
-                        <el-descriptions-item label="完工日期">{{ fmtDate(currentTool.purchase_date) }}</el-descriptions-item>
+                        <el-descriptions-item label="完工日期">{{ fmtCompletionDate(currentTool.purchase_date) }}</el-descriptions-item>
                         <el-descriptions-item label="下次检定">{{ fmtDate(currentTool.next_inspection_date) }}</el-descriptions-item>
                         <el-descriptions-item label="备注" :span="2">{{ currentTool.remark || '-' }}</el-descriptions-item>
                     </el-descriptions>
@@ -528,7 +911,7 @@
                     <div v-else style="color:#909399;padding:10px 0">暂无附件</div>
 
                     <!-- 检定记录 -->
-                    <h4 style="margin:20px 0 10px">🔍 检定记录</h4>
+                    <h4 style="margin:20px 0 10px;font-size:15px;color:var(--c-text-2)">检定记录</h4>
                     <el-table :data="currentTool.inspections" stripe size="small" v-if="currentTool.inspections && currentTool.inspections.length">
                         <el-table-column prop="inspect_date" label="检定日期" width="120">
                             <template #default="scope">{{ fmtDate(scope.row.inspect_date) }}</template>
@@ -544,10 +927,10 @@
                         <el-table-column prop="inspector" label="检定人" width="80"></el-table-column>
                         <el-table-column prop="remark" label="备注" show-overflow-tooltip></el-table-column>
                     </el-table>
-                    <div v-else style="color:#909399;padding:10px 0">暂无检定记录</div>
+                    <div v-else class="empty-state" style="padding:10px 0"><svg class="es-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg><span class="es-text">暂无检定记录</span></div>
 
                     <!-- 工装照片 -->
-                    <h4 style="margin:20px 0 10px">📷 工装照片</h4>
+                    <h4 style="margin:20px 0 10px;font-size:15px;color:var(--c-text-2)">工装照片</h4>
                     <div style="display:flex;align-items:flex-start;gap:16px;padding:10px 0">
                         <el-image
                             v-if="currentTool.photo_path"
@@ -557,10 +940,10 @@
                             :preview-src-list="['/api/tools/'+currentTool.id+'/photo']"
                             preview-teleported>
                             <template #error>
-                                <div style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;color:#c0c4cc;font-size:40px;background:#f5f7fa;border-radius:8px">📷</div>
+                                <div style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;color:#c0c4cc;background:var(--c-fill);border-radius:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;opacity:.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div>
                             </template>
                         </el-image>
-                        <div v-else style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;color:#c0c4cc;font-size:24px;background:#f5f7fa;border:1px solid #dcdfe6;border-radius:8px;flex-shrink:0">暂无照片</div>
+                        <div v-else class="empty-state" style="width:200px;height:200px"><svg class="es-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg><span class="es-text">暂无照片</span></div>
                         <div v-if="toolDetailEditing && canEdit">
                             <input ref="photoInputRef" type="file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" @change="onPhotoChange">
                             <el-button size="small" type="primary" @click="$refs.photoInputRef.click()">{{ currentTool.photo_path ? '更换照片' : '上传照片' }}</el-button>
@@ -632,7 +1015,7 @@
                 <el-divider></el-divider>
 
                 <!-- 工装照片（始终显示） -->
-                <h4 style="margin:0 0 12px">📷 工装照片</h4>
+                <h4 style="margin:0 0 12px;font-size:15px;color:var(--c-text-2)">工装照片</h4>
                 <div v-if="toolForm.id" style="display:flex;align-items:flex-start;gap:16px;padding:8px 0">
                     <el-image
                         v-if="toolForm.photo_path"
@@ -642,10 +1025,10 @@
                         :preview-src-list="['/api/tools/'+toolForm.id+'/photo']"
                         preview-teleported>
                         <template #error>
-                            <div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;color:#c0c4cc;font-size:36px;background:#f5f7fa;border-radius:8px">📷</div>
+                            <div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;color:#c0c4cc;background:var(--c-fill);border-radius:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;opacity:.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div>
                         </template>
                     </el-image>
-                    <div v-else style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;color:#c0c4cc;font-size:20px;background:#f5f7fa;border:1px solid #dcdfe6;border-radius:8px;flex-shrink:0">暂无照片</div>
+                    <div v-else class="empty-state" style="width:160px;height:160px"><svg class="es-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg><span class="es-text">暂无照片</span></div>
                     <div>
                         <input ref="dialogPhotoInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" @change="onDialogPhotoChange">
                         <el-button size="small" type="primary" @click="dialogPhotoInput.click()">{{ toolForm.photo_path ? '更换照片' : '上传照片' }}</el-button>
@@ -667,8 +1050,9 @@
                 <div v-if="toolForm.id" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
                     <input ref="dialogFileInput" type="file" style="display:none" @change="onDialogFileChange">
                     <el-button size="small" type="primary" @click="$refs.dialogFileInput?.click()">上传资料</el-button>
-                    <el-select v-model="uploadFileType" size="small" style="width:120px">
+                    <el-select v-model="uploadFileType" size="small" style="width:140px">
                         <el-option label="入库资料" value="入库资料"></el-option>
+                        <el-option label="完工资料" value="完工资料"></el-option>
                         <el-option label="检定报告" value="检定报告"></el-option>
                         <el-option label="其他" value="其他"></el-option>
                     </el-select>
@@ -700,6 +1084,15 @@
             </el-dialog>
 
             <!-- 借用弹窗 -->
+            <el-dialog v-model="quickPickDialogVisible" :title="quickPickTitle" width="480px">
+                <el-select v-model="quickPickId" filterable placeholder="搜索并选择工装" style="width:100%" size="large">
+                    <el-option v-for="t in quickPickList" :key="t.id" :label="t.code + ' ' + t.name + (t.spec ? ' · ' + t.spec : '') + '（' + t.status + '）'" :value="t.id"></el-option>
+                </el-select>
+                <template #footer>
+                    <el-button @click="quickPickDialogVisible=false">取消</el-button>
+                    <el-button type="primary" @click="confirmQuickPick">确定</el-button>
+                </template>
+            </el-dialog>
             <el-dialog v-model="borrowDialogVisible" title="借用工装" width="480px">
                 <el-form label-width="80px">
                     <el-form-item>{{ borrowForm.tool_name }} ({{ borrowForm.tool_code }})</el-form-item>
@@ -728,6 +1121,13 @@
                     <el-form-item label="工装">{{ currentTool.code }} {{ currentTool.name }}</el-form-item>
                     <el-form-item label="借用分厂">{{ (currentTool.borrow_records || []).find(r=>r.status==='借用中')?.factory || '-' }}</el-form-item>
                     <el-form-item label="借用人">{{ (currentTool.borrow_records || []).find(r=>r.status==='借用中')?.borrower || '-' }}</el-form-item>
+                    <el-form-item label="检验">
+                        <el-select v-model="returnCheck" placeholder="请选择检验结果" style="width:100%">
+                            <el-option label="合格" value="合格"></el-option>
+                            <el-option label="维修" value="维修"></el-option>
+                            <el-option label="报废" value="报废"></el-option>
+                        </el-select>
+                    </el-form-item>
                     <el-form-item label="备注"><el-input v-model="returnRemark" placeholder="退库备注（选填）"></el-input></el-form-item>
                 </el-form>
                 <template #footer>
@@ -866,7 +1266,7 @@
                     <el-table-column prop="factory" label="使用分厂" width="100"></el-table-column>
                     <el-table-column prop="next_inspection_date" label="下次检定日期" width="130">
                         <template #default="scope">
-                            <span :style="{color: isOverdue(scope.row.next_inspection_date) ? '#f56c6c' : ''}">{{ fmtDate(scope.row.next_inspection_date) }}</span>
+                            <span :style="{color: isOverdue(scope.row.next_inspection_date) ? 'var(--c-danger)' : ''}">{{ fmtDate(scope.row.next_inspection_date) }}</span>
                         </template>
                     </el-table-column>
                     <el-table-column prop="days_until_inspection" label="剩余天数" width="100">
@@ -982,6 +1382,30 @@
                 </template>
             </el-dialog>
 
+            <!-- 关于本系统 -->
+            <el-dialog v-model="aboutDialogVisible" title="关于" width="460px">
+                <div class="about-head">
+                    <div class="a-logo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                    </div>
+                    <div>
+                        <div class="a-name">{{ about.app_name }}</div>
+                        <div class="a-en">{{ about.app_name_en }}</div>
+                        <div class="a-ver">v{{ about.version }} · 构建于 {{ about.build_date }}</div>
+                    </div>
+                </div>
+                <div class="about-desc">{{ about.app_desc }}</div>
+                <dl class="about-meta">
+                    <dt>出品</dt><dd>{{ about.publisher }}</dd>
+                    <dt>技术栈</dt><dd>{{ about.tech_stack }}</dd>
+                    <dt>许可协议</dt><dd>{{ about.license }}</dd>
+                    <dt>版权</dt><dd>{{ about.copyright }}</dd>
+                </dl>
+                <template #footer>
+                    <el-button type="primary" @click="aboutDialogVisible=false">确定</el-button>
+                </template>
+            </el-dialog>
+
             <!-- 配置管理页（二级菜单） -->
             <div v-if="currentPage==='configs'" class="page-content">
                 <!-- 子页面1：工装类别 -->
@@ -1021,7 +1445,7 @@
                         <el-col v-for="f in configLists.factory" :key="f.id" :xs="24" :sm="12" :md="6" :lg="6" style="margin-bottom:16px">
                             <el-card shadow="hover" style="min-height:200px">
                                 <div slot="header" style="display:flex;align-items:center;justify-content:space-between">
-                                    <span style="font-weight:bold;font-size:16px">🏭 {{ f.config_value }}</span>
+                                    <span style="font-weight:bold;font-size:16px">{{ f.config_value }}</span>
                                     <el-button type="primary" size="mini" @click="openConfigDialog('team', null, f.config_value)">+ 新增班组</el-button>
                                 </div>
                                 <div v-if="teamsOfFactory(f.config_value).length===0" style="color:#909399;text-align:center;padding:20px 0">
@@ -1032,7 +1456,7 @@
                                         <span>{{ getTeamName(t.config_value) }}</span>
                                         <div>
                                             <el-button size="mini" type="text" @click="openConfigDialog('team', t)">编辑</el-button>
-                                            <el-button size="mini" type="text" style="color:#f56c6c" @click="deleteConfig(t)">删除</el-button>
+                                            <el-button size="mini" type="text" style="color:var(--c-danger)" @click="deleteConfig(t)">删除</el-button>
                                         </div>
                                     </div>
                                 </div>
@@ -1097,7 +1521,40 @@
 </div>
 
 <script>
-const { createApp, ref, reactive, computed, onMounted, watch, nextTick } = Vue;
+const { createApp, ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } = Vue;
+
+/*
+ * ============================================================================
+ * 工装管理系统 前端结构地图（按函数名定位，搜索即达；行号会随编辑变化故不写死）
+ * 说明：setup() 是单一大函数，所有 ref/method 必须同时出现在文件末尾的 return {} 中，
+ *       才对模板可见。漏写进 return → 模板里静默失效、浏览器不报错（本项目已多次踩坑）。
+ * 约定：改完任何功能后跑一次核对 ——  python backend/devtools/audit_bindings.py
+ * ----------------------------------------------------------------------------
+ * 区块与关键函数（Ctrl+F 函数名直达）：
+ *   [登录/鉴权]      handleLogin, handleLogout, statusTagType, isOverdue, formatRole
+ *   [仪表盘/统计]     loadStats, loadMonthlyStats, monthlyChart
+ *   [工装列表+弹窗]   loadTools, openToolDialog, openNewToolPage, saveTool, deleteTool,
+ *                     viewTool, backToTools, openEditTool, toolForm, isNewTool
+ *   [工装详情页]      currentTool, getMergedRecords, startEditTool, cancelEditTool,
+ *                     saveToolDetail, saveToolDetailInline, syncDetailCardsHeight,
+ *                     leftColEl(左列ref), detailRightCard(右卡ref)
+ *   [借用/退库]       loadBorrows, openBorrowDialog, submitBorrow, openReturnDialog,
+ *                     confirmReturn, returnTool, returnRemark, returnCheck
+ *   [检定]            loadInspections, openInspectionDialog, submitInspection,
+ *                     inspectionFiles, onInspectionFileChange, loadInspectionReminders
+ *   [报废]            scrapTool, submitScrap, loadScraps, approveScrap, rejectScrap
+ *   [附件/照片]       onRecordFileChange, onReportFileChange, onDetailPhotoChange,
+ *                     onDialogPhotoChange, onDetailFileChange, onDialogFileChange,
+ *                     onPhotoChange, saveAndUploadPhoto, saveAndUploadFile, deleteToolPhoto
+ *   [用户/权限]       loadUsers, openUserDialog, saveUser, deleteUser, changePwdDialogVisible
+ *   [组织/配置]       loadOrgStructure, teamsByFactory, loadConfigs, openConfigDialog,
+ *                     saveConfig, deleteConfig, configTab
+ *   [导出/导入]       exportTools, exportBorrows, exportInspections, downloadTemplate, importTools
+ *   [分页]            onToolPageChange, onBorrowPageChange, onInspectionPageChange,
+ *                     onReminderPageChange, onScrapPageChange
+ *   [return]          文件末尾 return { ... } —— 暴露给模板的全部键（新增 ref/method 必须在此登记）
+ * ============================================================================
+ */
 
 const api = axios.create({ 
     baseURL: '/api', 
@@ -1114,7 +1571,22 @@ const app = createApp({
         const currentPage = ref('dashboard');
         const saving = ref(false);
         const editingTool = ref(null);  // 详情页内联编辑对象
+        const isNewTool = ref(false);  // 是否新增模式
         const recordFileRefs = reactive({});  // 记录卡片的文件上传 refs
+
+        // 系统关于信息（数据源 backend/version.py，避免前端硬编码版本号）
+        const aboutDialogVisible = ref(false);
+        const about = reactive({
+            app_name: '工装管理系统', app_name_en: 'Tooling Management System',
+            app_desc: '', version: '-', build_date: '-',
+            publisher: '-', copyright: '', license: '-', tech_stack: '-'
+        });
+        const loadAbout = async () => {
+            try {
+                const r = await api.get('/system/about');
+                Object.assign(about, r.data.data);
+            } catch (e) { /* 关于信息不影响主流程，静默失败 */ }
+        };
 
         const isAdmin = computed(() => currentUser.role === 'admin');
         const canEdit = computed(() => currentUser.permissions?.can_edit ?? false);
@@ -1137,14 +1609,14 @@ const app = createApp({
         };
         const pageTitle = computed(() => {
             if (currentPage.value === 'configs') {
-                if (currentSubPage.value === 'config-category') return '⚙️ 配置管理 / 📋 工装类别';
-                if (currentSubPage.value === 'config-users') return '⚙️ 配置管理 / 👥 用户管理';
-                if (currentSubPage.value === 'config-factory') return '⚙️ 配置管理 / 🏭 工厂设置';
+                if (currentSubPage.value === 'config-category') return '配置管理 / 工装类别';
+                if (currentSubPage.value === 'config-users') return '配置管理 / 用户管理';
+                if (currentSubPage.value === 'config-factory') return '配置管理 / 工厂设置';
                 if (currentSubPage.value.startsWith('config-factory-')) {
                     const factory = currentSubPage.value.replace('config-factory-', '');
-                    return `⚙️ 配置管理 / 🏭 工厂设置 / ${factory}`;
+                    return `配置管理 / 工厂设置 / ${factory}`;
                 }
-                return '⚙️ 配置管理';
+                return '配置管理';
             }
             const map = { dashboard: '首页概览', tools: '工装台账', borrows: '借用记录', inspections: '检定记录', 'inspection-reminder': '检定提醒', users: '用户管理', scraps: '报废审批', configs: '配置管理' };
             return map[currentPage.value] || '';
@@ -1152,7 +1624,175 @@ const app = createApp({
 
         // 统计
         const stats = reactive({ total: 0, in_stock: 0, borrowed: 0, repairing: 0, scrapped: 0, due_soon: 0, overdue: 0 });
-        const loadStats = async () => { try { const r = await api.get('/tools/stats'); Object.assign(stats, r.data.data); } catch(e) {} };
+        const loadStats = async () => {
+            try { const r = await api.get('/tools/stats'); Object.assign(stats, r.data.data); } catch(e) {}
+            renderStatusChart();
+        };
+        // 占比展示（统计卡脚注用）
+        const pct = (n, total) => {
+            const a = Number(n) || 0, b = Number(total) || 0;
+            if (!b) return '0%';
+            return (Math.round(a / b * 1000) / 10) + '%';
+        };
+        // 读取 CSS 设计令牌，保证图表配色与全站一致
+        const cssVar = (name, fallback) => {
+            try {
+                const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+                return v || fallback;
+            } catch (e) { return fallback; }
+        };
+
+        // ===== 首页增强：状态分布环形图 =====
+        const statusChart = ref(null);
+        let statusChartInstance = null;
+        const renderStatusChart = () => {
+            const el = statusChart.value;
+            if (!el) return;
+            try {
+                if (statusChartInstance) statusChartInstance.dispose();
+                const PALETTE = {
+                    primary: cssVar('--c-primary', '#409eff'),
+                    success: cssVar('--c-success', '#67c23a'),
+                    warning: cssVar('--c-warning', '#e6a23c'),
+                    danger: cssVar('--c-danger', '#f56c6c'),
+                    text: cssVar('--c-text', '#303133'),
+                    text3: cssVar('--c-text-3', '#909399')
+                };
+                const data = [
+                    { name: '在库', value: stats.in_stock || 0, itemStyle: { color: PALETTE.primary } },
+                    { name: '借出', value: stats.borrowed || 0, itemStyle: { color: PALETTE.success } },
+                    { name: '维修', value: stats.repairing || 0, itemStyle: { color: PALETTE.warning } },
+                    { name: '报废', value: stats.scrapped || 0, itemStyle: { color: PALETTE.danger } }
+                ].filter(d => d.value > 0);
+                statusChartInstance = echarts.init(el);
+                if (!data.length) { statusChartInstance.dispose(); statusChartInstance = null; return; }
+                statusChartInstance.setOption({
+                    title: {
+                        text: String(stats.total || 0),
+                        subtext: '工装总数',
+                        left: 'center', top: '31%',
+                        textStyle: { fontSize: 26, fontWeight: 700, color: PALETTE.text },
+                        subtextStyle: { fontSize: 12, color: PALETTE.text3 },
+                        itemGap: 4
+                    },
+                    tooltip: { trigger: 'item', backgroundColor: '#303133', textStyle: { color: '#fff' }, borderWidth: 0, formatter: '{b}: {c} 件 ({d}%)' },
+                    legend: { bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, itemGap: 14, textStyle: { color: PALETTE.text3, fontSize: 12 } },
+                    series: [{
+                        type: 'pie', radius: ['54%', '74%'], center: ['50%', '42%'],
+                        avoidLabelOverlap: true,
+                        itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 6 },
+                        label: { show: false },
+                        emphasis: { label: { show: true, fontSize: 14, fontWeight: 500, color: PALETTE.text, formatter: '{b}\n{c} 件' } },
+                        labelLine: { show: false },
+                        data
+                    }]
+                });
+            } catch(e) { console.error('状态分布图渲染失败', e); }
+        };
+
+        // ===== 首页增强：待办工作台（30天内到期 + 逾期） =====
+        const todoList = ref([]);
+        const loadTodoList = async () => {
+            try {
+                const [overdue, soon] = await Promise.all([
+                    api.get('/tools/inspection-reminders', { params: { filter: 'overdue', page_size: 5 } }),
+                    api.get('/tools/inspection-reminders', { params: { filter: '30', page_size: 5 } })
+                ]);
+                todoList.value = [...(overdue.data.data.items || []), ...(soon.data.data.items || [])].slice(0, 8);
+            } catch(e) { todoList.value = []; }
+        };
+
+        // ===== 首页增强：近期动态 =====
+        const recentActivities = ref([]);
+        const loadRecentActivities = async () => {
+            try {
+                const r = await api.get('/tools/stats/recent', { params: { limit: 12 } });
+                recentActivities.value = r.data.data.items || [];
+            } catch(e) { recentActivities.value = []; }
+        };
+        const viewToolById = async (id) => {
+            if (!id) return;
+            try { await viewTool({ id }); } catch(e) {}
+        };
+
+        // ===== 顶栏全局搜索（联想直达详情，更多结果跳台账页带关键字，Ctrl+K 聚焦） =====
+        const globalSearch = ref('');
+        const globalSearchInput = ref(null);
+        const fetchGlobalSuggestions = async (queryString, cb) => {
+            if (!queryString || !queryString.trim()) { cb([]); return; }
+            try {
+                const r = await api.get('/tools', { params: { keyword: queryString.trim(), per_page: 8 } });
+                const items = (r.data.data.items || []).map(t => ({
+                    value: `${t.code} ${t.name}`,
+                    tool: t, code: t.code, name: t.name, spec: t.spec, status: t.status
+                }));
+                if (r.data.data.total > items.length) {
+                    items.push({ value: `查看全部 ${r.data.data.total} 条结果…`, more: true, keyword: queryString.trim() });
+                }
+                cb(items);
+            } catch(e) { cb([]); }
+        };
+        const onGlobalSearchSelect = (item) => {
+            if (item?.more) {
+                currentPage.value = 'tools';
+                toolSearch.keyword = item.keyword || '';
+                toolSearch.page = 1;
+                loadTools();
+            } else if (item?.tool) {
+                globalSearch.value = '';
+                viewTool(item.tool);
+            }
+        };
+        const onGlobalSearchEnter = () => {
+            const kw = globalSearch.value.trim();
+            if (!kw) return;  // 已通过 select 处理（选中时输入被清空）
+            currentPage.value = 'tools';
+            toolSearch.keyword = kw;
+            toolSearch.page = 1;
+            loadTools();
+        };
+        // Ctrl+K / Cmd+K 聚焦全局搜索
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                if (globalSearchInput.value) globalSearchInput.value.focus();
+            }
+        });
+
+        // ===== 首页增强：快捷操作（借用/检定/报废 先选工装） =====
+        const quickPickDialogVisible = ref(false);
+        const quickPickList = ref([]);
+        const quickPickTitle = ref('');
+        const quickPickAction = ref('borrow');
+        const quickPickId = ref(null);
+        const openQuickPick = async (action) => {
+            quickPickAction.value = action;
+            quickPickId.value = null;
+            try {
+                let r;
+                if (action === 'borrow') {
+                    quickPickTitle.value = '选择要借出的工装（在库）';
+                    r = await api.get('/tools', { params: { status: '在库', per_page: 300 } });
+                } else if (action === 'inspect') {
+                    quickPickTitle.value = '选择要登记检定的工装';
+                    r = await api.get('/tools', { params: { per_page: 300 } });
+                } else {
+                    quickPickTitle.value = '选择要报废的工装（在库）';
+                    r = await api.get('/tools', { params: { status: '在库', per_page: 300 } });
+                }
+                quickPickList.value = r.data.data.items || [];
+                if (!quickPickList.value.length) { ElMessage.info('没有符合条件的工装'); return; }
+                quickPickDialogVisible.value = true;
+            } catch(e) { ElMessage.error('加载工装列表失败'); }
+        };
+        const confirmQuickPick = () => {
+            const t = quickPickList.value.find(x => x.id === quickPickId.value);
+            if (!t) { ElMessage.warning('请先选择工装'); return; }
+            quickPickDialogVisible.value = false;
+            if (quickPickAction.value === 'borrow') openBorrowDialog(t);
+            else if (quickPickAction.value === 'inspect') openInspectionDialog(t);
+            else scrapTool(t);
+        };
 
         // 月度趋势图表
         const monthlyChart = ref(null);
@@ -1167,37 +1807,65 @@ const app = createApp({
                 }
                 
                 chartInstance = echarts.init(monthlyChart.value);
+                // 图表配色统一取自 :root 设计令牌
+                const PALETTE = {
+                    primary: cssVar('--c-primary', '#409eff'),
+                    success: cssVar('--c-success', '#67c23a'),
+                    danger:  cssVar('--c-danger',  '#f56c6c'),
+                    warning: cssVar('--c-warning', '#e6a23c'),
+                    text2:   cssVar('--c-text-2',  '#606266'),
+                    text3:   cssVar('--c-text-3',  '#909399'),
+                    border:  cssVar('--c-border',  '#e4e7ed')
+                };
                 const option = {
+                    textStyle: { fontFamily: cssVar('--font', 'sans-serif') },
                     tooltip: {
                         trigger: 'axis',
-                        axisPointer: { type: 'shadow' }
+                        axisPointer: { type: 'shadow' },
+                        borderWidth: 0,
+                        backgroundColor: 'rgba(31,35,41,.88)',
+                        textStyle: { color: '#fff', fontSize: 12 },
+                        padding: [8, 12]
                     },
                     legend: {
                         data: ['新增工装', '检定记录', '报废工装', '累计工装'],
-                        bottom: 0
+                        bottom: 0,
+                        icon: 'roundRect',
+                        itemWidth: 10,
+                        itemHeight: 10,
+                        itemGap: 18,
+                        textStyle: { color: PALETTE.text2, fontSize: 12 }
                     },
                     grid: {
                         left: '3%',
                         right: '4%',
                         bottom: '15%',
-                        top: '10%',
+                        top: '12%',
                         containLabel: true
                     },
                     xAxis: {
                         type: 'category',
                         data: labels,
-                        axisLabel: { rotate: 30, fontSize: 11 }
+                        axisLabel: { rotate: 30, fontSize: 11, color: PALETTE.text3 },
+                        axisLine: { lineStyle: { color: PALETTE.border } },
+                        axisTick: { show: false }
                     },
                     yAxis: [
                         {
                             type: 'value',
                             name: '数量',
-                            minInterval: 1
+                            minInterval: 1,
+                            nameTextStyle: { color: PALETTE.text3, fontSize: 11 },
+                            axisLabel: { color: PALETTE.text3, fontSize: 11 },
+                            splitLine: { lineStyle: { color: PALETTE.border, type: 'dashed' } }
                         },
                         {
                             type: 'value',
                             name: '累计',
-                            minInterval: 1
+                            minInterval: 1,
+                            nameTextStyle: { color: PALETTE.text3, fontSize: 11 },
+                            axisLabel: { color: PALETTE.text3, fontSize: 11 },
+                            splitLine: { show: false }
                         }
                     ],
                     series: [
@@ -1205,16 +1873,17 @@ const app = createApp({
                             name: '新增工装',
                             type: 'bar',
                             stack: '总量',
-                            color: '#409eff',
+                            color: PALETTE.primary,
                             data: new_tools,
                             barWidth: '40%',
-                            label: { show: true, position: 'top', fontSize: 10 }
+                            itemStyle: { borderRadius: [0, 0, 0, 0] },
+                            label: { show: true, position: 'top', fontSize: 10, color: PALETTE.text3 }
                         },
                         {
                             name: '检定记录',
                             type: 'bar',
                             stack: '总量',
-                            color: '#67c23a',
+                            color: PALETTE.success,
                             data: inspections,
                             barWidth: '40%'
                         },
@@ -1222,20 +1891,22 @@ const app = createApp({
                             name: '报废工装',
                             type: 'bar',
                             stack: '总量',
-                            color: '#f56c6c',
+                            color: PALETTE.danger,
                             data: scraps,
-                            barWidth: '40%'
+                            barWidth: '40%',
+                            itemStyle: { borderRadius: [3, 3, 0, 0] }
                         },
                         {
                             name: '累计工装',
                             type: 'line',
                             yAxisIndex: 1,
-                            color: '#e6a23c',
+                            color: PALETTE.warning,
                             data: cumulative,
                             smooth: true,
-                            label: { show: true, position: 'top', fontSize: 10 },
-                            lineStyle: { width: 3 },
-                            itemStyle: { borderWidth: 2 }
+                            symbolSize: 6,
+                            label: { show: true, position: 'top', fontSize: 10, color: PALETTE.text3 },
+                            lineStyle: { width: 2.5 },
+                            itemStyle: { borderWidth: 2, borderColor: '#fff' }
                         }
                     ]
                 };
@@ -1254,7 +1925,9 @@ const app = createApp({
         const toolSearch = reactive({ keyword: '', status: '', factory: '', team: '', page: 1 });
         const showScrapped = ref(false);  // 默认不显示报废
 
+        const toolsLoading = ref(false);
         const loadTools = async () => {
+            toolsLoading.value = true;
             try {
                 const params = { ...toolSearch };
                 if (!showScrapped.value && !toolSearch.status) {
@@ -1266,11 +1939,26 @@ const app = createApp({
                 tools.value = r.data.data.items;
                 toolTotal.value = r.data.data.total;
             } catch(e) { ElMessage.error('加载失败'); }
+            finally { toolsLoading.value = false; }
         };
         const toolDialogVisible = ref(false);
         const toolDetailVisible = ref(false);
         const currentTool = ref(null);
         const uploadFileType = ref('入库资料');
+        // 完工资料专用上传 file_type（原"尺寸检验报告"，保留旧类型显示兼容）
+        const REPORT_FILE_TYPE = '完工资料';
+        const COMPLETION_REPORT_TYPES = ['完工资料', '尺寸检验报告'];
+        // 当前工装的完工资料列表（含历史"尺寸检验报告"）
+        const reportFiles = computed(() => {
+            if (!currentTool.value || !currentTool.value.attachments) return [];
+            return currentTool.value.attachments.filter(a => COMPLETION_REPORT_TYPES.includes(a.file_type));
+        });
+        // 当前工装"借用中"的那条借用记录（领用人/使用分厂/使用班组的唯一数据源）
+        const activeBorrowInfo = computed(() => {
+            const t = currentTool.value;
+            if (!t || !Array.isArray(t.borrow_records)) return null;
+            return t.borrow_records.find(r => r.status === '借用中') || null;
+        });
         const toolForm = reactive({ id: null, code: '', drawing_no: '', name: '', spec: '', category: '', level: 'A', factory: '', team: '', receiver: '', status: '在库', purchase_date: '', next_inspection_date: '', remark: '' });
 
         const openToolDialog = (tool = null) => {
@@ -1280,6 +1968,20 @@ const app = createApp({
         };
 
         const openNewToolDialog = () => openToolDialog(null);
+
+        // 新增工装：进入详情页编辑模式
+        const openNewToolPage = () => {
+            isNewTool.value = true;
+            currentTool.value = {
+                id: null, code: '', drawing_no: '', name: '', spec: '',
+                category: '', level: 'A', factory: '', team: '', receiver: '',
+                status: '在库', purchase_date: '', storage_date: '', next_inspection_date: '', remark: '',
+                borrow_records: [], in_storage_records: [], inspections: [], attachments: []
+            };
+            editingTool.value = JSON.parse(JSON.stringify(currentTool.value));
+            currentPage.value = 'tool-detail';
+            toolDetailEditing.value = true;
+        };
 
         const saveTool = async () => {
             if (!toolForm.code || !toolForm.name) { ElMessage.warning('编号和名称不能为空'); return; }
@@ -1352,6 +2054,13 @@ const app = createApp({
                     ElMessage.success('删除成功'); 
                     loadTools(); 
                     loadStats();
+                    // 若从详情页删除当前工装，删除成功后关闭详情页并返回工装台账
+                    if (currentPage.value === 'tool-detail' && currentTool.value && currentTool.value.id === tool.id) {
+                        currentTool.value = null;
+                        editingTool.value = null;
+                        toolDetailEditing.value = false;
+                        currentPage.value = 'tools';
+                    }
                 } else {
                     ElMessage.error(res.data.msg || '删除失败');
                 }
@@ -1361,12 +2070,14 @@ const app = createApp({
             }
         };
 
-        // 点击工装行 → 进入详情页
+        // 点击工装行 → 进入详情页（查看模式）
         const viewTool = async (tool) => {
             try { 
                 const r = await api.get(`/tools/${tool.id}`); 
-                currentTool.value = r.data.data; 
-                toolDetailEditing.value = false;
+                currentTool.value = r.data.data;
+                isNewTool.value = false;  // 确保不是新增模式
+                toolDetailEditing.value = false;  // 查看模式
+                editingTool.value = null;
                 currentPage.value = 'tool-detail';  // 跳转到详情页
                 nextTick(syncDetailCardsHeight);  // 同步卡片高度
             } catch(e) { ElMessage.error('加载失败'); }
@@ -1374,7 +2085,23 @@ const app = createApp({
 
         // 返回工装台账列表
         const backToTools = () => {
-            currentPage.value = 'tools';
+            if (editingTool.value) {
+                ElMessageBox.confirm('当前有未保存的修改，确定要放弃吗？', '提示', {
+                    confirmButtonText: '放弃',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    isNewTool.value = false;
+                    editingTool.value = null;
+                    toolDetailEditing.value = false;
+                    currentPage.value = 'tools';
+                }).catch(() => {});
+            } else {
+                isNewTool.value = false;
+                editingTool.value = null;
+                toolDetailEditing.value = false;
+                currentPage.value = 'tools';
+            }
         };
 
         // 打开编辑弹窗（从详情页的操作区触发）
@@ -1397,33 +2124,97 @@ const app = createApp({
             editingTool.value = null;
         };
 
-        // 同步左右卡片高度（右侧跟随左侧）
+        // 同步左右卡片高度：右「记录」卡高度 = 左侧整列高度（含工装信息+工装照片），内容超出内部滚动
         const syncDetailCardsHeight = () => {
             nextTick(() => {
-                const left = document.querySelector('[ref=detailLeftCard]');
-                const right = document.querySelector('[ref=detailRightCard]');
-                if (left && right) {
-                    right.style.minHeight = left.offsetHeight + 'px';
-                }
+                if (!leftColEl.value || !detailRightCard.value) return;
+                detailRightCard.value.style.height = leftColEl.value.offsetHeight + 'px';
             });
         };
         // 挂载时 + 编辑状态变化时同步
-        onMounted(syncDetailCardsHeight);
+        onMounted(() => {
+            syncDetailCardsHeight();
+            // 浏览器关闭/刷新时提醒未保存
+            window.addEventListener('beforeunload', (e) => {
+                if (editingTool.value) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
+        });
         watch(editingTool, syncDetailCardsHeight);
 
-        // 保存内联编辑
+        // 保存内联编辑（支持新增和编辑）
         const saveToolDetailInline = async () => {
-            if (!editingTool.value.name) { ElMessage.warning('名称不能为空'); return; }
+            // 新增工装：强制校验必填字段（领用人/使用分厂/使用班组/备注 除外）
+            if (isNewTool.value) {
+                const requiredMap = [
+                    ['code', '编号'],
+                    ['drawing_no', '图号'],
+                    ['name', '工装名称'],
+                    ['spec', '规格型号'],
+                    ['category', '类别'],
+                    ['level', '等级'],
+                    ['purchase_date', '完工日期'],
+                    ['storage_date', '入库时间'],
+                ];
+                for (const [key, label] of requiredMap) {
+                    const val = editingTool.value[key];
+                    if (val === undefined || val === null || (typeof val === 'string' && val.trim() === '')) {
+                        ElMessage.error(`请填写必填项：${label}`);
+                        return;
+                    }
+                }
+            } else {
+                // 编辑模式：名称仍必填（保持原逻辑）
+                if (!editingTool.value.name) { ElMessage.warning('名称不能为空'); return; }
+            }
             saving.value = true;
             try {
-                const res = await api.put(`/tools/${editingTool.value.id}`, editingTool.value);
-                if (res.data.code === 200) {
-                    currentTool.value = JSON.parse(JSON.stringify(editingTool.value));
-                    editingTool.value = null;
-                    syncDetailCardsHeight();
-                    ElMessage.success('保存成功');
-                } else { ElMessage.error(res.data.message || '保存失败'); }
-            } catch(e) { ElMessage.error('保存失败'); }
+                // 领用人/使用分厂/使用班组 由借用记录维护，从提交 payload 中剥离
+                const payload = { ...editingTool.value };
+                delete payload.factory; delete payload.team; delete payload.receiver;
+                let res;
+                if (isNewTool.value) {
+                    // 新增模式：根据入库时间自动推算下次检定时间（A类+6个月，B类+1年，C类不推算）
+                    if (editingTool.value.level !== 'C' && !editingTool.value.next_inspection_date && editingTool.value.storage_date) {
+                        editingTool.value.next_inspection_date = calcNextInspection(editingTool.value.level, editingTool.value.storage_date);
+                        payload.next_inspection_date = editingTool.value.next_inspection_date;
+                    }
+                    // 新增模式
+                    res = await api.post('/tools/', payload);
+                    if (res.data.code === 200) {
+                        const newId = res.data.data.id;
+                        // 自动创建入库记录（独立 try/catch，失败不影响主流程）
+                        try {
+                            await api.post('/in_storage/', {
+                                tool_id: newId,
+                                storage_date: editingTool.value.storage_date || new Date().toISOString().slice(0, 10),
+                                supplier: '', batch_no: '', quantity: 1,
+                                storage_location: '', operator: currentUser.username
+                            });
+                        } catch (e2) { console.error('自动入库失败:', e2); }
+                        ElMessage.success('新建成功');
+                        isNewTool.value = false;
+                        loadTools(); loadStats();
+                        const r = await api.get(`/tools/${newId}`);
+                        currentTool.value = r.data.data;
+                        editingTool.value = null;
+                        toolDetailEditing.value = false;
+                    } else { ElMessage.error(res.data.msg || '新建失败'); }
+                } else {
+                    // 编辑模式
+                    res = await api.put(`/tools/${editingTool.value.id}`, payload);
+                    if (res.data.code === 200) {
+                        // 重新拉取以保留 borrow_records 等关系数据与借出信息
+                        const r = await api.get(`/tools/${editingTool.value.id}`);
+                        currentTool.value = r.data.data;
+                        editingTool.value = null;
+                        syncDetailCardsHeight();
+                        ElMessage.success('保存成功');
+                    } else { ElMessage.error(res.data.msg || '保存失败'); }
+                }
+            } catch(e) { ElMessage.error(e.response?.data?.msg || '保存失败'); }
             finally { saving.value = false; }
         };
 
@@ -1440,24 +2231,23 @@ const app = createApp({
                         typeName: '建档',
                         date: r.storage_date || '-',
                         fields: [
-                            { label: '供应商', value: r.supplier || '-' },
-                            { label: '批次号', value: r.batch_no || '-' },
-                            { label: '存放位置', value: r.storage_location || '-' },
                             { label: '操作人', value: r.operator || '-' },
+                            { label: '存放位置', value: r.storage_location || '-' },
                             { label: '备注', value: r.remark || '-' },
                         ],
                         attachments: []
                     });
                 });
             }
-            // 借用记录
+            // 借用记录（借出与退库拆成两条独立节点）
             if (tool.borrow_records) {
                 tool.borrow_records.forEach(r => {
+                    // 借用（借出）节点
                     records.push({
                         key: 'b_' + r.id,
                         type: 'borrow',
-                        typeName: r.status === '借用中' ? '借用' : '已还',
-                        date: r.borrow_time ? r.borrow_time.split(' ')[0] : '-',
+                        typeName: '借用',
+                        date: r.borrow_time ? r.borrow_time : '-',
                         fields: [
                             { label: '借用分厂', value: r.factory || '-' },
                             { label: '借用班组', value: r.team || '-' },
@@ -1467,6 +2257,21 @@ const app = createApp({
                         ],
                         attachments: []
                     });
+                    // 退库（归还）节点——独立成条，不与借用合并
+                    if (r.status === '已归还' && r.return_time) {
+                        records.push({
+                            key: 'r_' + r.id,
+                            type: 'return',
+                            typeName: '退库',
+                            date: r.return_time,
+                            fields: [
+                                { label: '退库人', value: r.return_operator || '-' },
+                                { label: '检验', value: r.return_check || '-' },
+                                { label: '退库备注', value: r.return_remark || '-' },
+                            ],
+                            attachments: []
+                        });
+                    }
                 });
             }
             // 检定记录
@@ -1596,6 +2401,7 @@ const app = createApp({
         // 退库
         const returnDialogVisible = ref(false);
         const returnRemark = ref('');
+        const returnCheck = ref('');
         let activeBorrowRecordId = null;
 
         const openReturnDialog = (tool) => {
@@ -1604,6 +2410,7 @@ const app = createApp({
             if (!active) { ElMessage.warning('没有可退库的借用记录'); return; }
             activeBorrowRecordId = active.id;
             returnRemark.value = '';
+            returnCheck.value = '';
             returnDialogVisible.value = true;
         };
 
@@ -1611,7 +2418,7 @@ const app = createApp({
             if (!activeBorrowRecordId) return;
             saving.value = true;
             try {
-                await api.post(`/borrows/${activeBorrowRecordId}/return`);
+                await api.post(`/borrows/${activeBorrowRecordId}/return`, { remark: returnRemark.value, check: returnCheck.value });
                 ElMessage.success('退库成功');
                 returnDialogVisible.value = false;
                 // 刷新当前工具详情
@@ -1640,6 +2447,10 @@ const app = createApp({
         const inspectionDialogVisible = ref(false);
         const inspectionUploadRef = ref(null);  // 新增：检定附件上传组件引用
         const inspectionFiles = ref([]);  // 新增：检定附件文件列表
+        // 检定附件上传（el-upload 非自动上传）：把当前文件列表同步到 inspectionFiles，供 submitInspection 上传
+        const onInspectionFileChange = (file, fileList) => {
+            inspectionFiles.value = fileList;
+        };
         const inspectionForm = reactive({ tool_id: null, tool_code: '', tool_name: '', inspect_date: '', result: '合格', next_date: '', inspector: '', remark: '' });
 
         const loadInspections = async () => {
@@ -1725,7 +2536,12 @@ const app = createApp({
         };
 
         const openInspectionDialog = (tool) => {
-            Object.assign(inspectionForm, { tool_id: tool.id, tool_code: tool.code, tool_name: tool.name, inspect_date: '', result: '合格', next_date: '', inspector: '', remark: '' });
+            // 预填下次检定时间：已检定过的工装以最近一次检定日期为基准，否则以入库时间为基准
+            const inspList = (tool.inspections || []).slice().sort((a, b) => (a.inspect_date < b.inspect_date ? 1 : -1));
+            const lastInsp = inspList[0];
+            const refDate = (lastInsp && lastInsp.inspect_date) || tool.storage_date || tool.purchase_date || '';
+            const autoNext = tool.level !== 'C' ? calcNextInspection(tool.level, refDate) : '';
+            Object.assign(inspectionForm, { tool_id: tool.id, tool_code: tool.code, tool_name: tool.name, inspect_date: '', result: '合格', next_date: autoNext, inspector: '', remark: '' });
             inspectionFiles.value = [];  // 清空文件列表
             inspectionDialogVisible.value = true;
         };
@@ -1753,6 +2569,13 @@ const app = createApp({
                     loadTools(); 
                     loadInspections(); 
                     loadStats();
+                    // 若检定的是当前打开的工装，刷新详情以更新检定记录与下次检定时间
+                    if (currentTool.value && inspectionForm.tool_id === currentTool.value.id) {
+                        try {
+                            const r = await api.get(`/tools/${currentTool.value.id}`);
+                            currentTool.value = r.data.data;
+                        } catch (e) { /* 忽略刷新失败 */ }
+                    }
                 } else {
                     ElMessage.error(res.data.msg || '添加失败');
                 }
@@ -1836,15 +2659,24 @@ const app = createApp({
             e.target.value = '';
         };
 
-        // 详情页照片上传（内联编辑模式）
+        // 详情页照片上传（内联编辑模式，含"新建工装未保存"场景）
         const onDetailPhotoChange = async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
-            // 验证图片尺寸
-            const resizedFile = await resizeImage(file);
-            const formData = new FormData();
-            formData.append('photo', resizedFile, file.name);
             try {
+                // 新建工装尚未保存（无 id）时，先自动保存工装，再上传照片
+                if (!currentTool.value.id) {
+                    if (!editingTool.value || !editingTool.value.name) {
+                        ElMessage.warning('请先完整填写必填项（编号/图号/名称/规格/类别/等级/完工日期）后再上传照片');
+                        e.target.value = '';
+                        return;
+                    }
+                    await saveToolDetailInline();
+                    if (!currentTool.value.id) { e.target.value = ''; return; }
+                }
+                const resizedFile = await resizeImage(file);
+                const formData = new FormData();
+                formData.append('photo', resizedFile, file.name);
                 const res = await api.post(`/tools/${currentTool.value.id}/photo`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
@@ -1854,8 +2686,8 @@ const app = createApp({
                 } else {
                     ElMessage.error(res.data.msg || '上传失败');
                 }
-            } catch(e) {
-                ElMessage.error(e.response?.data?.msg || '上传失败');
+            } catch(err) {
+                ElMessage.error(err.response?.data?.msg || '上传失败');
             }
             e.target.value = '';
         };
@@ -1966,6 +2798,38 @@ const app = createApp({
                 ElMessage.error(err.response?.data?.msg || '上传失败');
             }
             e.target.value = '';
+        };
+        // 详情页"完工资料"行上传（可一次多份，自动标记 file_type=完工资料）
+        const onReportFileChange = async (e) => {
+            const files = e.target.files ? Array.from(e.target.files) : [];
+            if (!files.length) return;
+            let okCount = 0, failCount = 0;
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('tool_id', currentTool.value.id);
+                formData.append('file_type', REPORT_FILE_TYPE);
+                try {
+                    const res = await api.post('/attachments/upload', formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    });
+                    if (res.data.code === 200) okCount++;
+                    else { failCount++; ElMessage.error((file.name || '文件') + '：' + (res.data.msg || '上传失败')); }
+                } catch(err) {
+                    failCount++;
+                    ElMessage.error((file.name || '文件') + '：' + (err.response?.data?.msg || '上传失败'));
+                }
+            }
+            e.target.value = '';
+            if (okCount) ElMessage.success(`成功上传 ${okCount} 份完工资料` + (failCount ? `，${failCount} 份失败` : ''));
+            if (okCount || failCount) viewTool(currentTool.value);
+        };
+        // 文件大小格式化
+        const formatFileSize = (bytes) => {
+            if (!bytes || bytes < 0) return '—';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
         };
         // 弹窗内上传资料（通过axios带cookie）
         const onDialogFileChange = async (e) => {
@@ -2191,6 +3055,8 @@ const app = createApp({
                     Object.assign(currentUser, r.data.data);
                     loadStats();
                     loadMonthlyStats();
+                    loadTodoList();
+                    loadRecentActivities();
                     loadOrgStructure();
                     loadConfigs();
                     ElMessage.success('登录成功');
@@ -2210,6 +3076,8 @@ const app = createApp({
         const isOverdue = (dateStr) => { if (!dateStr) return false; return new Date(dateStr) < new Date(); };
         const formatRole = (row) => row.role === 'admin' ? '管理员' : row.role === 'employee' ? '一般员工' : '查阅';
         const fmtDate = (d) => { if (!d) return '-'; const m = d.match(/^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}):(\d{2}):?(\d{2})?)?/); if (!m) return d; const [, y, mo, da, h, mi] = m; return `${y}年${mo}月${da}日${h ? ' ' + h + ':' + mi : ''}`; };
+        // 完工日期专用：ISO 格式 YYYY-MM-DD（零填充），如 2026-07-31
+        const fmtCompletionDate = (d) => { if (!d) return '-'; const m = d.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (!m) return d; const [, y, mo, da] = m; const p = (n) => String(n).padStart(2, '0'); return `${y}-${p(mo)}-${p(da)}`; };
         // 根据等级和完工日期自动计算下次检定日期
         const calcNextInspection = (level, purchaseDate) => {
             if (!purchaseDate || level === 'C') return '';
@@ -2223,10 +3091,13 @@ const app = createApp({
             if (lv !== 'C') toolForm.next_inspection_date = calcNextInspection(lv, pd);
             else toolForm.next_inspection_date = '';
         });
-        // 详情页编辑模式：等级或完工日期变化时自动更新下次检定
-        watch([() => currentTool.value?.level, () => currentTool.value?.purchase_date, toolDetailEditing], () => {
-            if (toolDetailEditing.value && currentTool.value) {
-                currentTool.value.next_inspection_date = calcNextInspection(currentTool.value.level, currentTool.value.purchase_date);
+        // 详情页编辑模式：等级或入库时间变化时自动更新下次检定（已检定过的工装不覆盖，由检定记录决定；库内用编辑副本 editingTool）
+        watch([() => editingTool.value?.level, () => editingTool.value?.storage_date], ([lv, sd]) => {
+            if (toolDetailEditing.value && editingTool.value) {
+                const hasInsp = (currentTool.value?.inspections || []).length > 0;
+                if (!hasInsp) {
+                    editingTool.value.next_inspection_date = calcNextInspection(lv, sd);
+                }
             }
         });
         // 关闭详情弹窗时退出编辑模式
@@ -2326,7 +3197,7 @@ const app = createApp({
 
         // 页面切换加载
         watch(currentPage, (page) => {
-            if (page === 'dashboard') loadStats();
+            if (page === 'dashboard') { loadStats(); loadTodoList(); loadRecentActivities(); }
             if (page === 'tools') loadTools();
             if (page === 'borrows') loadBorrows();
             if (page === 'inspections') loadInspections();
@@ -2340,22 +3211,51 @@ const app = createApp({
             if (sub === 'config-users') loadUsers();
         });
 
+        // 详情页：右侧「记录」卡高度跟随左侧整列（leftColEl.offsetHeight），超出内部滚动
+        const leftColEl = ref(null);
+        const detailRightCard = ref(null);
+        let _detailRo = null;
+
+        // 左侧列尺寸变化（含图片异步加载、编辑/查看切换）时，同步右侧高度
+        watch(leftColEl, (el) => {
+            if (_detailRo) { _detailRo.disconnect(); _detailRo = null; }
+            if (el && window.ResizeObserver) {
+                _detailRo = new ResizeObserver(syncDetailCardsHeight);
+                _detailRo.observe(el);
+            }
+            if (el) syncDetailCardsHeight();
+        }, { immediate: true, flush: 'post' });
+
+        // 切换工具 / 切编辑态 / 切页面时重测
+        watch([() => currentTool.value, () => editingTool.value, () => currentPage.value], () => syncDetailCardsHeight(), { flush: 'post' });
+
+        // 窗口缩放时重测
+        window.addEventListener('resize', syncDetailCardsHeight);
+        onBeforeUnmount(() => {
+            if (_detailRo) _detailRo.disconnect();
+            window.removeEventListener('resize', syncDetailCardsHeight);
+        });
+
         onMounted(() => {
+            loadAbout();
             loadOrgStructure();
             loadConfigs();
-            api.get('/auth/info').then(r => { if (r.data.code === 200) { loggedIn.value = true; Object.assign(currentUser, r.data.data); loadStats(); } }).catch(() => {});
             // 监听 api 拦截器发出的 401 登出事件
             window.addEventListener('app:logout', () => { loggedIn.value = false; currentPage.value = 'dashboard'; });
         });
 
         return {
             loggedIn, loginLoading, loginForm, currentUser, currentPage, saving, isAdmin, pageTitle,
-            canEdit, canDelete, canApproveScrap, canManageUsers, canManageConfig, canReturnBorrow, canExport,
-            stats, loadStats, monthlyChart, loadMonthlyStats,
-            tools, toolTotal, toolSearch, loadTools, toolDialogVisible, toolDetailVisible, currentTool, toolForm, openToolDialog, saveTool, deleteTool, viewTool, openEditTool, backToTools, onToolRowClick, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail, editingTool, startEditTool, cancelEditTool, saveToolDetailInline, getMergedRecords, onRecordFileChange, recordFileRefs,
+            about, aboutDialogVisible,
+            canEdit, canDelete, canApproveScrap, canManageUsers, canManageConfig, canReturnBorrow, canExport, isNewTool, openNewToolPage,
+            stats, loadStats, monthlyChart, loadMonthlyStats, pct,
+            statusChart, todoList, loadTodoList, recentActivities, loadRecentActivities, viewToolById,
+            quickPickDialogVisible, quickPickList, quickPickTitle, quickPickId, openQuickPick, confirmQuickPick,
+            globalSearch, globalSearchInput, fetchGlobalSuggestions, onGlobalSearchSelect, onGlobalSearchEnter,
+            tools, toolTotal, toolSearch, loadTools, toolsLoading, toolDialogVisible, toolDetailVisible, currentTool, toolForm, openToolDialog, saveTool, deleteTool, viewTool, openEditTool, backToTools, onToolRowClick, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail, editingTool, startEditTool, cancelEditTool, saveToolDetailInline, getMergedRecords, onRecordFileChange, recordFileRefs,
             photoInputRef, onPhotoChange, deleteToolPhoto, onDialogPhotoChange, dialogDeletePhoto, dialogPhotoInput, saveAndUploadPhoto, saveAndUploadFile, onDetailFileChange, onDialogFileChange,
             showScrapped,
-            borrows, borrowTotal, borrowSearch, loadBorrows, borrowDialogVisible, borrowForm, openBorrowDialog, submitBorrow, returnTool, openNewToolDialog, openReturnDialog,
+            borrows, borrowTotal, borrowSearch, loadBorrows, borrowDialogVisible, borrowForm, openBorrowDialog, submitBorrow, returnTool, openNewToolDialog, openReturnDialog, returnDialogVisible, returnRemark, returnCheck, confirmReturn,
             scrapDialogVisible, scrapForm, scrapSearch, scraps, scrapTotal,
             loadScraps, approveScrap, rejectScrap, scrapTool, submitScrap,
             inspections, inspectionTotal, inspectionSearch, loadInspections, inspectionDialogVisible, inspectionForm, openInspectionDialog, submitInspection, exportTools, exportBorrows, exportInspections,
@@ -2363,11 +3263,12 @@ const app = createApp({
             users, loadUsers, userDialogVisible, userForm, openUserDialog, saveUser, deleteUser,
             changePwdDialogVisible, changePwdForm, submitChangePwd,
             downloadTemplate, importTools,
-            handleLogin, handleLogout, statusTagType, isOverdue, formatRole, getTeamName, fmtDate, calcNextInspection,
+            handleLogin, handleLogout, statusTagType, isOverdue, formatRole, getTeamName, fmtDate, fmtCompletionDate, calcNextInspection,
             onToolPageChange, onBorrowPageChange, onInspectionPageChange, onReminderPageChange, onScrapPageChange,
             factories, allTeams, teamsByFactory,
             configTab, configTypeNames, configLists, loadConfigs, openConfigDialog, saveConfig, deleteConfig, configDialogVisible, configForm, teamsInCurrentFactory, teamsOfFactory,
-            currentSubPage, configMenuOpen, factoryMenuOpen, toggleConfigMenu, toggleFactoryMenu, goToConfig
+            currentSubPage, configMenuOpen, factoryMenuOpen, toggleConfigMenu, toggleFactoryMenu, goToConfig,
+            activeBorrowInfo, REPORT_FILE_TYPE, onReportFileChange, onDetailPhotoChange, onInspectionFileChange, inspectionFiles, openPhotoPreview, leftColEl, detailRightCard
         };
     }
 });
