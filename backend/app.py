@@ -28,7 +28,8 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 }
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB 上传限制
-app.config['SECRET_KEY'] = 'tooling-management-secret-key-2026'
+# 优先读取环境变量，未设置时回退到默认值（保持向后兼容）
+app.config['SECRET_KEY'] = os.environ.get('TOOLING_SECRET_KEY', 'tooling-management-secret-key-2026')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)  # cookie有效期（实际超时由服务端last_activity控制）
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # 允许同站请求携带cookie
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -80,6 +81,33 @@ app.register_blueprint(export_bp, url_prefix='/api/export')
 app.register_blueprint(import_bp, url_prefix='/api/import')
 app.register_blueprint(in_storage_bp, url_prefix='/api/in_storage')
 
+# 健康检查（公开端点，供监控探活；不返回任何敏感信息）
+@app.route('/api/health')
+def health_check():
+    """监控系统探活端点：返回服务状态与当前时间，无需登录。"""
+    from flask import jsonify
+    from datetime import datetime
+    try:
+        # 轻量数据库连通性探测，确保服务与数据库都正常
+        with app.app_context():
+            from sqlalchemy import text
+            db.session.execute(text('SELECT 1'))
+        return jsonify({
+            'status': 'ok',
+            'time': datetime.now().isoformat(timespec='seconds'),
+            'service': 'tooling-management'
+        }), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'detail': str(e)}), 500
+
+# 关于信息（公开端点，供登录页页脚与「关于」对话框读取）
+@app.route('/api/system/about')
+def system_about():
+    """返回系统版本与出品信息。数据源：backend/version.py"""
+    from flask import jsonify
+    from version import get_about
+    return jsonify({'code': 200, 'data': get_about()})
+
 # 前端路由
 @app.route('/')
 def index():
@@ -95,11 +123,12 @@ with app.app_context():
     # 创建默认管理员
     from models import User
     if not User.query.filter_by(username='admin').first():
-        admin = User(username='admin', role='admin')
+        # 同时设置 user_no='admin'，否则全新安装时登录接口（按工号校验）无法登录
+        admin = User(username='admin', user_no='admin', role='admin')
         admin.set_password('admin123')
         db.session.add(admin)
         db.session.commit()
-        print('✅ 默认管理员创建: admin / admin123')
+        print('✅ 默认管理员创建: admin / admin123（工号 admin）')
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000, threaded=True)

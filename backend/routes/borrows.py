@@ -98,6 +98,11 @@ def return_borrow(record_id):
     # 更新借用记录
     record.status = '已归还'
     record.return_time = datetime.now()
+    # 记录退库人与备注（退库动作独立成事件）
+    data = request.get_json(silent=True) or {}
+    record.return_operator = session.get('username') or session.get('user_no') or ''
+    record.return_remark = (data.get('remark') or '').strip()
+    record.return_check = (data.get('check') or '').strip()
 
     # 更新工装状态，清除借用信息
     tool = Tool.query.get(record.tool_id)

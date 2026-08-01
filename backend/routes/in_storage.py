@@ -1,6 +1,7 @@
 from flask import Blueprint, request, session
 from models import db, Tool, InStorageRecord, OperationLog
 from datetime import datetime
+from routes.auth import login_required, edit_required, admin_required, add_log
 
 in_storage_bp = Blueprint('in_storage', __name__)
 
@@ -29,6 +30,7 @@ def list_in_storage():
 
 
 @in_storage_bp.route('/', methods=['POST'])
+@edit_required
 def create_in_storage():
     """创建入库记录"""
     data = request.get_json() or {}
@@ -60,7 +62,7 @@ def create_in_storage():
     # 更新工具状态为在库
     tool.status = '在库'
     if storage_date_str:
-        tool.purchase_date = storage_date_str
+        tool.storage_date = storage_date  # 写入独立的入库时间，不再覆盖完工日期
 
     db.session.add(record)
     db.session.commit()
@@ -69,6 +71,7 @@ def create_in_storage():
 
 
 @in_storage_bp.route('/<int:record_id>', methods=['DELETE'])
+@admin_required
 def delete_in_storage(record_id):
     """删除入库记录"""
     record = InStorageRecord.query.get_or_404(record_id)
@@ -77,16 +80,3 @@ def delete_in_storage(record_id):
     db.session.commit()
     add_log('删除入库记录', f'编号 {tool.code if tool else ""}')
     return {'message': 'deleted'}
-
-
-def add_log(action, detail):
-    """操作日志"""
-    username = session.get('username', '')
-    log = OperationLog(
-        user=username,
-        action=action,
-        detail=detail,
-        ip=request.remote_addr
-    )
-    db.session.add(log)
-    db.session.commit()

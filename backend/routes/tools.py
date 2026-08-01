@@ -98,11 +98,14 @@ def create_tool():
         team=data.get('team', ''),
         receiver=data.get('receiver', ''),
         status=data.get('status', '在库'),
-        remark=data.get('remark', '')
+        remark=data.get('remark', ''),
+        created_by=data.get('created_by', '')
     )
 
     if data.get('purchase_date'):
         tool.purchase_date = datetime.strptime(data['purchase_date'], '%Y-%m-%d').date()
+    if data.get('storage_date'):
+        tool.storage_date = datetime.strptime(data['storage_date'], '%Y-%m-%d').date()
     if data.get('next_inspection_date'):
         tool.next_inspection_date = datetime.strptime(data['next_inspection_date'], '%Y-%m-%d').date()
 
@@ -115,6 +118,7 @@ def create_tool():
 
 
 @tools_bp.route('/inspection-reminders', methods=['GET'])
+@login_required
 def get_inspection_reminders():
     """获取检定提醒列表"""
     filter_type = request.args.get('filter', 'overdue')  # overdue, 30, 60, all
@@ -218,6 +222,10 @@ def update_tool(tool_id):
         tool.next_inspection_date = datetime.strptime(data['next_inspection_date'], '%Y-%m-%d').date()
     elif 'next_inspection_date' in data and not data['next_inspection_date']:
         tool.next_inspection_date = None
+    if 'storage_date' in data and data['storage_date']:
+        tool.storage_date = datetime.strptime(data['storage_date'], '%Y-%m-%d').date()
+    elif 'storage_date' in data and not data['storage_date']:
+        tool.storage_date = None
 
     db.session.commit()
 
@@ -330,6 +338,12 @@ def delete_tool(tool_id):
 
     add_log('删除工装', f'编号 {tool.code}，名称 {tool.name}')
 
+    # 先删除关联的子表记录（入库/借用/附件），避免外键约束导致删除失败
+    for rec in tool.in_storage_records:
+        db.session.delete(rec)
+    for br in tool.borrow_records:
+        db.session.delete(br)
+
     # 删除关联附件文件
     for att in tool.attachments:
         if os.path.exists(att.file_path):
@@ -393,24 +407,29 @@ def tool_stats():
 @login_required
 def tool_stats_monthly():
     """月度统计 - 过去12个月的新增、鉴定、报废趋势"""
-    from datetime import timedelta
+    from datetime import timedelta, date
     from sqlalchemy import func
-    
+
     today = datetime.now()
-    
-    # 生成过去12个月的日期范围
+    base_month = today.replace(day=1)
+
+    def add_months(d, delta):
+        """返回 d 偏移 delta 个月后的 1 号（正确处理跨年/闰年）"""
+        total = (d.year * 12 + (d.month - 1)) + delta
+        y, m = divmod(total, 12)
+        return date(y, m + 1, 1)
+
+    # 生成过去12个月（含本月）的真实自然月边界（原实现用 timedelta(days=i*30) 会错位月份）
     months = []
     for i in range(11, -1, -1):
-        # 计算第i个月的第一天和最后一天
-        target_month = today.replace(day=1) - timedelta(days=i * 30)
-        first_day = target_month.replace(day=1)
-        if target_month.month == 12:
-            last_day = target_month.replace(year=target_month.year + 1, month=1, day=1) - timedelta(days=1)
+        first_day = add_months(base_month, -i)
+        if first_day.month == 12:
+            last_day = first_day.replace(year=first_day.year + 1, month=1, day=1) - timedelta(days=1)
         else:
-            last_day = target_month.replace(month=target_month.month + 1, day=1) - timedelta(days=1)
+            last_day = first_day.replace(month=first_day.month + 1, day=1) - timedelta(days=1)
         months.append({
-            'label': target_month.strftime('%Y年%m月'),
-            'year_month': target_month.strftime('%Y-%m'),
+            'label': first_day.strftime('%Y年%m月'),
+            'year_month': first_day.strftime('%Y-%m'),
             'start': first_day,
             'end': last_day
         })
@@ -428,8 +447,8 @@ def tool_stats_monthly():
     inspections = {}
     for m in months:
         count = Inspection.query.filter(
-            Inspection.inspect_date >= m['start'].date(),
-            Inspection.inspect_date <= m['end'].date()
+            Inspection.inspect_date >= m['start'],
+            Inspection.inspect_date <= m['end']
         ).count()
         inspections[m['year_month']] = count
     
@@ -468,3 +487,45 @@ def tool_stats_monthly():
             'cumulative': cumulative
         }
     })
+
+
+@tools_bp.route('/stats/recent', methods=['GET'])
+@login_required
+def recent_activities():
+    """首页近期动态 - 合并最近借用/归还/新增工装事件，按时间倒序"""
+    limit = min(request.args.get('limit', 6, type=int), 20)
+    events = []
+
+    # 借用事件
+    for b in BorrowRecord.query.order_by(BorrowRecord.borrow_time.desc()).limit(8).all():
+        events.append({
+            'full_time': b.borrow_time.strftime('%Y-%m-%d %H:%M:%S'),
+            'type': 'borrow',
+            'tool_id': b.tool_id,
+            'text': f"{b.borrower} 借出 {b.tool.name if b.tool else ''}"
+        })
+
+    # 归还事件
+    for b in BorrowRecord.query.filter(BorrowRecord.return_time != None).order_by(BorrowRecord.return_time.desc()).limit(8).all():
+        events.append({
+            'full_time': b.return_time.strftime('%Y-%m-%d %H:%M:%S'),
+            'type': 'return',
+            'tool_id': b.tool_id,
+            'text': f"{b.return_operator or b.borrower} 归还 {b.tool.name if b.tool else ''}"
+        })
+
+    # 新增工装事件
+    for t in Tool.query.order_by(Tool.created_at.desc()).limit(8).all():
+        events.append({
+            'full_time': t.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'type': 'create',
+            'tool_id': t.id,
+            'text': f"新增工装 {t.name}"
+        })
+
+    # 按时间倒序合并，取前 limit 条；显示时间格式 MM-DD HH:MM
+    events.sort(key=lambda e: e['full_time'], reverse=True)
+    for e in events[:limit]:
+        e['time'] = e['full_time'][5:16]
+
+    return jsonify({'code': 200, 'data': {'items': events[:limit]}})

@@ -87,12 +87,14 @@ class Tool(db.Model):
     team = db.Column(db.String(100))       # 使用班组
     receiver = db.Column(db.String(80))    # 领用人
     status = db.Column(db.String(20), default='在库')  # 在库/借出/维修/报废
-    purchase_date = db.Column(db.Date)
+    purchase_date = db.Column(db.Date)  # 完工日期
+    storage_date = db.Column(db.Date)  # 入库时间
     next_inspection_date = db.Column(db.Date)
     remark = db.Column(db.Text)
     photo_path = db.Column(db.String(500))  # 照片文件路径
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_by = db.Column(db.String(80))  # 建档人
 
     def to_dict(self):
         return {
@@ -108,11 +110,13 @@ class Tool(db.Model):
             'receiver': self.receiver or '',
             'status': self.status,
             'purchase_date': self.purchase_date.strftime('%Y-%m-%d') if self.purchase_date else '',
+            'storage_date': self.storage_date.strftime('%Y-%m-%d') if self.storage_date else '',
             'next_inspection_date': self.next_inspection_date.strftime('%Y-%m-%d') if self.next_inspection_date else '',
             'remark': self.remark or '',
             'photo_path': self.photo_path or '',
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else ''
+            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else '',
+            'created_by': self.created_by or ''
         }
 
 
@@ -128,6 +132,9 @@ class BorrowRecord(db.Model):
     receiver = db.Column(db.String(80))    # 领用人
     borrow_time = db.Column(db.DateTime, default=datetime.now)
     return_time = db.Column(db.DateTime)
+    return_operator = db.Column(db.String(80))  # 退库人
+    return_remark = db.Column(db.Text)  # 退库备注
+    return_check = db.Column(db.String(20))  # 退库检验结果：合格/维修/报废
     status = db.Column(db.String(20), default='借用中')  # 借用中/已归还
 
     tool = db.relationship('Tool', backref='borrow_records')
@@ -144,6 +151,9 @@ class BorrowRecord(db.Model):
             'borrower': self.borrower,
             'borrow_time': self.borrow_time.strftime('%Y-%m-%d %H:%M:%S'),
             'return_time': self.return_time.strftime('%Y-%m-%d %H:%M:%S') if self.return_time else '',
+            'return_operator': self.return_operator or '',
+            'return_remark': self.return_remark or '',
+            'return_check': self.return_check or '',
             'status': self.status
         }
 
