@@ -463,12 +463,22 @@ def tool_stats_monthly():
         ).count()
         scraps[m['year_month']] = count
     
+    # 查询借出（出库）数量（按月份，基于 BorrowRecord 的 borrow_time）
+    borrows = {}
+    for m in months:
+        count = BorrowRecord.query.filter(
+            BorrowRecord.borrow_time >= m['start'],
+            BorrowRecord.borrow_time < m['end'] + timedelta(days=1)
+        ).count()
+        borrows[m['year_month']] = count
+
     # 组装返回数据
     labels = [m['label'] for m in months]
     new_data = [new_tools.get(m['year_month'], 0) for m in months]
     inspection_data = [inspections.get(m['year_month'], 0) for m in months]
     scrap_data = [scraps.get(m['year_month'], 0) for m in months]
-    
+    borrow_data = [borrows.get(m['year_month'], 0) for m in months]
+
     # 计算累计工装数量
     cumulative = []
     running_total = 0
@@ -476,7 +486,7 @@ def tool_stats_monthly():
     for m in months:
         running_total += new_tools.get(m['year_month'], 0)
         cumulative.append(running_total)
-    
+
     return jsonify({
         'code': 200,
         'data': {
@@ -484,6 +494,7 @@ def tool_stats_monthly():
             'new_tools': new_data,
             'inspections': inspection_data,
             'scraps': scrap_data,
+            'borrows': borrow_data,
             'cumulative': cumulative
         }
     })

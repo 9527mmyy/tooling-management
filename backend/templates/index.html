@@ -104,68 +104,117 @@
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 16px 20px; background: var(--c-surface); border-radius: var(--radius); box-shadow: var(--shadow-card); }
         .header h2 { font-size: 18px; color: var(--c-text); }
         .card { background: var(--c-surface); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow-card); }
-        .stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
-        .stat-card { position: relative; background: var(--c-surface); border-radius: var(--radius); padding: 18px 20px; text-align: left; box-shadow: var(--shadow-card); overflow: hidden; transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+        .stat-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 16px; }
+        .stat-card { position: relative; background: var(--c-surface); border-radius: var(--radius); padding: 16px 16px 14px; text-align: left; box-shadow: var(--shadow-card); overflow: hidden; transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
         .stat-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--sc-color, var(--c-primary)); }
         .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+        .stat-card.is-clickable { cursor: pointer; }
+        .stat-card.is-clickable:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
         .stat-card .sc-top { display: flex; align-items: center; gap: 8px; }
-        .stat-card .sc-ico { width: 28px; height: 28px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; color: var(--sc-color); background: var(--sc-soft); flex-shrink: 0; }
-        .stat-card .sc-ico svg { width: 16px; height: 16px; }
-        .stat-card .label { color: var(--c-text-2); font-size: 13px; font-weight: 500; }
-        .stat-card .sc-value { display: flex; align-items: baseline; gap: 4px; margin: 12px 0 6px; }
-        .stat-card .number { font-size: 30px; font-weight: 700; line-height: 1; color: var(--sc-color); font-variant-numeric: tabular-nums; }
-        .stat-card .unit { font-size: 13px; color: var(--c-text-3); }
-        .stat-card .sc-foot { font-size: 12px; color: var(--c-text-3); line-height: 1.4; }
+        .stat-card .sc-ico { width: 26px; height: 26px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; color: var(--sc-color); background: var(--sc-soft); flex-shrink: 0; }
+        .stat-card .sc-ico svg { width: 15px; height: 15px; }
+        .stat-card .label { color: var(--c-text-2); font-size: 13px; font-weight: 500; white-space: nowrap; }
+        .stat-card .sc-value { display: flex; align-items: baseline; gap: 4px; margin: 10px 0 5px; }
+        .stat-card .number { font-size: 26px; font-weight: 700; line-height: 1; color: var(--sc-color); font-variant-numeric: tabular-nums; }
+        .stat-card .unit { font-size: 12px; color: var(--c-text-3); }
+        .stat-card .sc-foot { font-size: 12px; color: var(--c-text-3); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .stat-card .sc-foot b { color: var(--c-text-2); font-weight: 600; }
         .stat-card.blue { --sc-color: var(--c-primary); --sc-soft: var(--c-primary-soft); }
         .stat-card.green { --sc-color: var(--c-success); --sc-soft: var(--c-success-soft); }
         .stat-card.orange { --sc-color: var(--c-warning); --sc-soft: var(--c-warning-soft); }
         .stat-card.red { --sc-color: var(--c-danger); --sc-soft: var(--c-danger-soft); }
+        .stat-card.gray { --sc-color: var(--c-text-3); --sc-soft: var(--c-fill); }
         .toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
         .chart-container { background: var(--c-surface); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow-card); transition: box-shadow .25s var(--ease); }
         .chart-container:hover { box-shadow: var(--shadow-hover); }
         .chart-title { font-size: 16px; font-weight: 600; color: var(--c-text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
         .chart-title .ct-bar { width: 3px; height: 15px; border-radius: 2px; background: var(--grad-accent); flex-shrink: 0; }
         .chart-title .ct-sub { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--c-text-3); }
-        .chart-wrapper { height: 320px; }
-        /* 首页增强：双列布局 + 快捷操作 + 待办 + 状态分布 + 近期动态 */
-        .dash-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 20px; align-items: start; }
-        .dash-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-        .dash-card { padding: 18px 20px; }
+        .chart-wrapper { height: 280px; }
+        /* 首页布局：快捷操作 | 待办工作台（上排各占一半）/ 近期动态 | 月度趋势（下排各占一半） */
+        .dash-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 16px; margin-bottom: 20px; align-items: start; }
+        .dash-card { padding: 18px 20px; min-width: 0; display: flex; flex-direction: column; }
+        .dash-card[data-region="trend"]    { grid-column: 1 / 2; grid-row: 1 / 2; align-self: stretch; }
+        .dash-card[data-region="todo"]     { grid-column: 2 / 3; grid-row: 1 / 2; align-self: stretch; }
+        .dash-card[data-region="activity"] { grid-column: 1 / 2; grid-row: 2 / 3; align-self: stretch; }
+        .dash-card[data-region="quick"]    { grid-column: 2 / 3; grid-row: 2 / 3; align-self: stretch; }
         .dash-card-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--c-text); margin-bottom: 12px; }
         .dash-card-title .ct-bar { width: 3px; height: 14px; border-radius: 2px; background: var(--grad-accent); }
         .dash-card-title .ct-sub { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--c-text-3); }
-        .quick-actions { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
-        .qa-btn { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 14px 8px; border: 1px solid var(--c-border); border-radius: var(--radius); background: var(--c-surface); cursor: pointer; transition: all .22s var(--ease); color: var(--c-text-2); font-size: 12px; font-family: var(--font); }
-        .qa-btn svg { width: 20px; height: 20px; }
-        .qa-btn:hover { border-color: var(--c-primary); color: var(--c-primary); background: var(--c-primary-soft); transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+        /* 快捷操作：竖向列表，窄列里比 5 宫格更紧凑易读 */
+        .quick-actions { display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; min-height: 0; }
+        .qa-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid transparent; border-radius: var(--radius-sm); background: var(--c-fill-2); cursor: pointer; transition: all .2s var(--ease); color: var(--c-text-2); font-size: 13px; font-family: var(--font); text-align: left; }
+        .qa-btn .qa-ico { width: 28px; height: 28px; border-radius: var(--radius-sm); background: var(--c-surface); color: var(--c-text-3); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .2s var(--ease); }
+        .qa-btn svg { width: 16px; height: 16px; }
+        .qa-btn .qa-label { flex: 1; min-width: 0; }
+        .qa-btn .qa-arrow { font-size: 13px; color: var(--c-text-3); opacity: 0; transform: translateX(-4px); transition: all .2s var(--ease); }
+        .qa-btn:hover { border-color: var(--c-primary); color: var(--c-primary); background: var(--c-primary-soft); }
+        .qa-btn:hover .qa-ico { background: var(--c-primary); color: #fff; }
+        .qa-btn:hover .qa-arrow { opacity: 1; transform: translateX(0); color: var(--c-primary); }
+        .qa-btn:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 1px; }
         .qa-btn.qa-danger:hover { border-color: var(--c-danger); color: var(--c-danger); background: var(--c-danger-soft); }
+        .qa-btn.qa-danger:hover .qa-ico { background: var(--c-danger); }
+        .qa-btn.qa-danger:hover .qa-arrow { color: var(--c-danger); }
+        .qa-btn .qa-count { flex-shrink: 0; font-size: 11px; font-weight: 600; color: var(--c-text-3); background: var(--c-fill); border-radius: var(--radius-pill); padding: 1px 7px; font-variant-numeric: tabular-nums; }
+        .qa-btn:hover .qa-count { background: var(--c-surface); color: inherit; }
         .todo-list, .activity-list { overflow-y: auto; }
-        .todo-item { display: flex; align-items: center; gap: 10px; padding: 10px 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background .18s var(--ease); border-left: 3px solid transparent; }
+        .todo-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background .18s var(--ease); border-left: 3px solid transparent; }
         .todo-item:hover { background: #f5f7fa; border-left-color: var(--c-primary); }
-        .todo-item.overdue { border-left-color: var(--c-danger); background: #fef0f0; }
-        .todo-item.warning { border-left-color: var(--c-warning); background: #fdf6ec; }
-        .todo-badge { flex-shrink: 0; min-width: 46px; text-align: center; font-size: 12px; font-weight: 600; border-radius: var(--radius-pill); padding: 2px 8px; }
+        .todo-item.overdue { border-left-color: var(--c-danger); background: var(--c-danger-soft); }
+        .todo-item.warning { border-left-color: var(--c-warning); background: var(--c-warning-soft); }
+        .todo-badge { flex-shrink: 0; min-width: 56px; text-align: center; font-size: 12px; font-weight: 600; border-radius: var(--radius-pill); padding: 4px 8px; line-height: 1.2; }
         .bd-warning { color: var(--c-warning); background: var(--c-warning-soft); }
         .bd-danger { color: var(--c-danger); background: var(--c-danger-soft); }
-        .todo-name { flex: 1; font-size: 13px; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .todo-date { font-size: 12px; color: var(--c-text-3); flex-shrink: 0; }
+        .todo-item.overdue .bd-danger, .todo-item.warning .bd-warning { background: var(--c-surface); }
+        .todo-code { flex-shrink: 0; font-size: 12px; font-weight: 600; color: var(--c-primary); font-variant-numeric: tabular-nums; }
+        .todo-name { flex: 1; min-width: 0; font-size: 13px; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .todo-date { font-size: 12px; color: var(--c-text-3); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+        /* 待办项快捷「登记检定」：hover 才出现，避免列表噪音 */
+        .todo-act { flex-shrink: 0; width: 0; overflow: hidden; opacity: 0; transition: opacity .18s var(--ease), width .18s var(--ease); }
+        .todo-item:hover .todo-act { width: 76px; opacity: 1; }
+        .todo-act button { width: 100%; padding: 3px 8px; font-size: 12px; font-family: var(--font); color: var(--c-primary); background: var(--c-surface); border: 1px solid var(--c-primary); border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap; transition: all .18s var(--ease); }
+        .todo-act button:hover { background: var(--c-primary); color: #fff; }
+        .todo-act button:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 1px; }
         .status-chart { height: 210px; }
-        .activity-item { display: flex; align-items: center; gap: 10px; padding: 10px 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background .18s var(--ease); }
-        .activity-item:hover { background: #f5f7fa; transform: translateX(2px); }
+        .activity-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background .18s var(--ease); }
+        .activity-item:hover { background: #f5f7fa; }
         .act-time { flex-shrink: 0; font-size: 12px; color: var(--c-text-3); font-variant-numeric: tabular-nums; }
         .act-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
         .dot-borrow { background: var(--c-warning); }
         .dot-return { background: var(--c-success); }
         .dot-create { background: var(--c-primary); }
-        .act-text { font-size: 13px; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .act-text { flex: 1; min-width: 0; font-size: 13px; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* 近期动态类型筛选 */
+        .act-filter { display: flex; gap: 6px; margin-left: auto; }
+        .act-filter button { padding: 2px 10px; font-size: 12px; font-family: var(--font); color: var(--c-text-3); background: transparent; border: 1px solid var(--c-border); border-radius: var(--radius-pill); cursor: pointer; transition: all .18s var(--ease); }
+        .act-filter button:hover { color: var(--c-primary); border-color: var(--c-primary); }
+        .act-filter button.on { color: #fff; background: var(--c-primary); border-color: var(--c-primary); }
+        .act-filter button:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 1px; }
         .dash-empty { padding: 22px 0; text-align: center; color: var(--c-text-3); font-size: 13px; }
+        /* 月度趋势：ECharts 柱状图容器 */
+        .monthly-chart { flex: 1 1 auto; min-height: 240px; width: 100%; }
+        .trend-mode { display: flex; gap: 6px; margin-left: auto; align-items: center; }
+        .trend-mode button { padding: 3px 10px; font-size: 12px; font-family: var(--font); color: var(--c-text-3); background: transparent; border: 1px solid var(--c-border); border-radius: var(--radius-pill); cursor: pointer; transition: all .18s var(--ease); }
+        .trend-mode button:hover { color: var(--c-primary); border-color: var(--c-primary); }
+        .trend-mode button.active { color: #fff; background: var(--c-primary); border-color: var(--c-primary); }
+        /* 顶部两卡强制等高：列表区随卡片伸缩填充，超长内部滚动 */
+        .dash-card[data-region="todo"] .todo-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; max-height: 300px; }
+        .dash-card[data-region="activity"] .activity-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; max-height: 340px; }
         /* 顶栏全局搜索联想项 */
         .gs-item { display: flex; align-items: center; gap: 10px; min-width: 320px; }
         .gs-item .gs-code { font-size: 12px; color: var(--c-primary); font-weight: 600; font-variant-numeric: tabular-nums; flex-shrink: 0; }
         .gs-item .gs-name { flex: 1; font-size: 13px; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .gs-item .gs-spec { font-size: 12px; color: var(--c-text-3); flex-shrink: 0; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        @media (max-width: 1280px) { .dash-grid { grid-template-columns: 1fr; } .quick-actions { grid-template-columns: repeat(2, 1fr); } }
+        /* 响应式：宽屏 5 卡一行，中屏 3 列，窄屏 2 列；仪表盘两列在中屏折叠为单列 */
+        @media (max-width: 1280px) {
+            .stat-cards { grid-template-columns: repeat(3, 1fr); }
+            .dash-grid { grid-template-columns: 1fr; }
+            .dash-card[data-region] { grid-column: auto !important; grid-row: auto !important; }
+            .dash-card[data-region="trend"] { order: -1; }
+            .quick-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .qa-btn .qa-arrow { display: none; }
+        }
+        @media (max-width: 860px) { .stat-cards { grid-template-columns: repeat(2, 1fr); } .quick-actions { grid-template-columns: repeat(2, 1fr); } }
         .page-container { display: flex; justify-content: flex-end; margin-top: 16px; }
         /* Tier3 微交互 */
         .menu-item, .submenu-item { transition: background .18s var(--ease), color .18s var(--ease); }
@@ -301,7 +350,7 @@
                     </div>
                     <!-- 二级菜单 -->
                     <div v-show="configMenuOpen || currentPage==='configs'" class="submenu">
-                        <div class="submenu-item" :class="{active: currentSubPage==='config-category'}" @click="goToConfig('config-category')">
+                        <div class="submenu-item" :class="{active: currentPage==='configs' && currentSubPage==='config-category'}" @click="goToConfig('config-category')">
                             <span style="display:flex;align-items:center;gap:8px">
                                 <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59A2 2 0 0 0 3.83 11l9.58 9.58a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.82z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
                                 <span data-i18n="工装类别">工装类别</span>
@@ -313,7 +362,7 @@
                                 <span data-i18n="工厂设置">工厂设置</span>
                             </span>
                         </div>
-                        <div class="submenu-item" :class="{active: currentSubPage==='config-users'}" @click="goToConfig('config-users')">
+                        <div class="submenu-item" :class="{active: currentPage==='configs' && currentSubPage==='config-users'}" @click="goToConfig('config-users')">
                             <span style="display:flex;align-items:center;gap:8px">
                                 <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                                 <span data-i18n="用户管理">用户管理</span>
@@ -374,18 +423,18 @@
                 </el-autocomplete>
             </div>
 
-            <!-- 首页概览 -->
+            <!-- 首页概览：统计卡 → 待办/快捷操作 → 动态/趋势 -->
             <div v-if="currentPage==='dashboard'">
                 <div class="stat-cards">
-                    <div class="stat-card blue">
+                    <div class="stat-card blue is-clickable" role="button" tabindex="0" @click="goToTools('')" @keyup.enter="goToTools('')">
                         <div class="sc-top">
                             <span class="sc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7l-8-4-8 4 8 4 8-4z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/></svg></span>
                             <span class="label" data-i18n="工装总数">工装总数</span>
                         </div>
                         <div class="sc-value"><span class="number">{{ stats.total || 0 }}</span><span class="unit">件</span></div>
-                        <div class="sc-foot">在库 <b>{{ stats.in_stock || 0 }}</b> · 借出 <b>{{ stats.borrowed || 0 }}</b></div>
+                        <div class="sc-foot">在用 <b>{{ (stats.in_stock || 0) + (stats.borrowed || 0) }}</b> 件</div>
                     </div>
-                    <div class="stat-card green">
+                    <div class="stat-card green is-clickable" role="button" tabindex="0" @click="goToTools('在库')" @keyup.enter="goToTools('在库')">
                         <div class="sc-top">
                             <span class="sc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v13H3z"/><path d="M3 7l2-3h14l2 3"/><path d="M10 12h4"/></svg></span>
                             <span class="label" data-i18n="在库">在库</span>
@@ -393,7 +442,7 @@
                         <div class="sc-value"><span class="number">{{ stats.in_stock || 0 }}</span><span class="unit">件</span></div>
                         <div class="sc-foot">占总数 <b>{{ pct(stats.in_stock, stats.total) }}</b></div>
                     </div>
-                    <div class="stat-card orange">
+                    <div class="stat-card orange is-clickable" role="button" tabindex="0" @click="goToTools('借出')" @keyup.enter="goToTools('借出')">
                         <div class="sc-top">
                             <span class="sc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h7v7"/><path d="M21 5l-8.5 8.5"/><path d="M20 14v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5"/></svg></span>
                             <span class="label" data-i18n="借出">借出</span>
@@ -401,7 +450,7 @@
                         <div class="sc-value"><span class="number">{{ stats.borrowed || 0 }}</span><span class="unit">件</span></div>
                         <div class="sc-foot">占总数 <b>{{ pct(stats.borrowed, stats.total) }}</b></div>
                     </div>
-                    <div class="stat-card red">
+                    <div class="stat-card red is-clickable" role="button" tabindex="0" @click="goToReminder('overdue')" @keyup.enter="goToReminder('overdue')">
                         <div class="sc-top">
                             <span class="sc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
                             <span class="label" data-i18n="检定逾期">检定逾期</span>
@@ -409,78 +458,113 @@
                         <div class="sc-value"><span class="number">{{ stats.overdue || 0 }}</span><span class="unit">件</span></div>
                         <div class="sc-foot">30天内到期 <b>{{ stats.due_soon || 0 }}</b> 件</div>
                     </div>
+                    <div class="stat-card gray is-clickable" role="button" tabindex="0" @click="goToTools('报废')" @keyup.enter="goToTools('报废')">
+                        <div class="sc-top">
+                            <span class="sc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+                            <span class="label" data-i18n="报废">报废</span>
+                        </div>
+                        <div class="sc-value"><span class="number">{{ stats.scrapped || 0 }}</span><span class="unit">件</span></div>
+                        <div class="sc-foot">占总数 <b>{{ pct(stats.scrapped, stats.total) }}</b></div>
+                    </div>
                 </div>
-                <!-- 首页增强：快捷操作 + 待办 | 状态分布 + 近期动态 -->
+
+
+                <!-- 待办 + 快捷操作 / 近期动态 + 月度趋势 -->
                 <div class="dash-grid">
-                    <div class="dash-col">
-                        <div class="card dash-card">
-                            <div class="dash-card-title"><span class="ct-bar"></span><span data-i18n="快捷操作">快捷操作</span></div>
-                            <div class="quick-actions">
-                                <button class="qa-btn" @click="currentPage='tools'" aria-label="查看台账">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7l-8-4-8 4 8 4 8-4z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/></svg>
-                                    <span data-i18n="查看台账">查看台账</span>
-                                </button>
-                                <button class="qa-btn" @click="openNewToolPage()" aria-label="新增工装">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-                                    <span data-i18n="新增工装">新增工装</span>
-                                </button>
-                                <button class="qa-btn" @click="openQuickPick('borrow')" aria-label="快速借用">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                                    <span data-i18n="快速借用">快速借用</span>
-                                </button>
-                                <button class="qa-btn" @click="openQuickPick('inspect')" aria-label="登记检定">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg>
-                                    <span data-i18n="登记检定">登记检定</span>
-                                </button>
-                                <button class="qa-btn qa-danger" @click="openQuickPick('scrap')" aria-label="报废审批">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></svg>
-                                    <span data-i18n="报废审批">报废审批</span>
-                                </button>
-                            </div>
+                    <div class="card dash-card" data-region="todo">
+                        <div class="dash-card-title">
+                            <span class="ct-bar"></span><span data-i18n="待办工作台">待办工作台</span>
+                            <span class="ct-sub">{{ todoList.length }} 项待处理</span>
                         </div>
-                        <div class="card dash-card">
-                            <div class="dash-card-title"><span class="ct-bar"></span><span data-i18n="待办工作台">待办工作台</span></div>
-                            <div v-if="todoList.length === 0" class="dash-empty" data-i18n="暂无待办，检定计划一切正常">暂无待办，检定计划一切正常</div>
-                            <div v-else class="todo-list">
-                                <div v-for="t in todoList" :key="'td' + t.id" class="todo-item" @click="viewTool(t)">
-                                    <span class="todo-badge" :class="t.days_until_inspection < 0 ? 'bd-danger' : 'bd-warning'">{{ t.days_until_inspection < 0 ? '已逾期' : (t.days_until_inspection + ' 天') }}</span>
-                                    <span class="todo-name">{{ t.name }}</span>
-                                    <span class="todo-date">{{ t.next_inspection_date }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card dash-card">
-                            <div class="dash-card-title">
-                                <span class="ct-bar"></span><span data-i18n="工装月度统计趋势">月度趋势</span>
-                                <span class="ct-sub">过去 12 个月</span>
-                            </div>
-                            <div ref="monthlyChart" class="chart-wrapper"></div>
-                        </div>
-                    </div>
-                    <div class="dash-col">
-                        <!-- 状态分布（已隐藏） -->
-                        <div class="card dash-card" style="display:none">
-                            <div class="dash-card-title"><span class="ct-bar"></span><span data-i18n="状态分布">状态分布</span></div>
-                            <div ref="statusChart" class="status-chart"></div>
-                        </div>
-                        <div class="card dash-card">
-                            <div class="dash-card-title"><span class="ct-bar"></span><span data-i18n="近期动态">近期动态</span></div>
-                            <div v-if="recentActivities.length === 0" class="dash-empty" data-i18n="暂无动态">暂无动态</div>
-                            <div v-else class="activity-list">
-                                <div v-for="(a, i) in recentActivities" :key="'act' + i + a.full_time" class="activity-item" @click="viewToolById(a.tool_id)">
-                                    <span class="act-time">{{ a.time }}</span>
-                                    <span class="act-dot" :class="'dot-' + a.type"></span>
-                                    <span class="act-text">{{ a.text }}</span>
-                                </div>
+                        <div v-if="todoList.length === 0" class="dash-empty" data-i18n="暂无待办，检定计划一切正常">暂无待办，检定计划一切正常</div>
+                        <div v-else class="todo-list">
+                            <div v-for="t in todoList" :key="'td' + t.id" class="todo-item" :class="t.days_until_inspection < 0 ? 'overdue' : 'warning'" @click="viewTool(t)">
+                                <span class="todo-badge" :class="t.days_until_inspection < 0 ? 'bd-danger' : 'bd-warning'">
+                                    <template v-if="t.days_until_inspection < 0">检定逾期 {{ Math.abs(t.days_until_inspection) }} 天</template>
+                                    <template v-else>{{ t.days_until_inspection === 0 ? '今天' : '还有 ' + t.days_until_inspection + ' 天' }}检定到期</template>
+                                </span>
+                                <span class="todo-code" v-if="t.code">{{ t.code }}</span>
+                                <span class="todo-name">{{ t.name }}</span>
+                                <span class="todo-date">{{ t.next_inspection_date }}</span>
+                                <span class="todo-act" v-if="canEdit">
+                                    <button type="button" @click.stop="quickInspectFromTodo(t)" aria-label="登记检定">登记检定</button>
+                                </span>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="card" v-if="stats.due_soon > 0">
-                    <el-alert title="检定提醒" :description="`有 ${stats.due_soon} 个工装将在30天内到期检定`" type="warning" show-icon :closable="false"></el-alert>
-                </div>
-                <div class="card" v-if="stats.overdue > 0">
-                    <el-alert title="逾期警告" :description="`有 ${stats.overdue} 个工装检定已逾期，请尽快处理`" type="error" show-icon :closable="false"></el-alert>
+
+                    <div class="card dash-card" data-region="quick">
+                        <div class="dash-card-title"><span class="ct-bar"></span><span data-i18n="快捷操作">快捷操作</span></div>
+                        <div class="quick-actions">
+                            <button class="qa-btn" @click="goToTools('')" aria-label="查看台账">
+                                <span class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7l-8-4-8 4 8 4 8-4z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/></svg></span>
+                                <span class="qa-label" data-i18n="查看台账">查看台账</span>
+                                <span class="qa-count">{{ stats.total || 0 }}</span>
+                                <span class="qa-arrow">→</span>
+                            </button>
+                            <button class="qa-btn" v-if="canEdit" @click="openNewToolPage()" aria-label="新增工装">
+                                <span class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>
+                                <span class="qa-label" data-i18n="新增工装">新增工装</span>
+                                <span class="qa-arrow">→</span>
+                            </button>
+                            <button class="qa-btn" v-if="canEdit" @click="openQuickPick('borrow')" aria-label="快速借用">
+                                <span class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></span>
+                                <span class="qa-label" data-i18n="快速借用">快速借用</span>
+                                <span class="qa-count">{{ stats.in_stock || 0 }} 可借</span>
+                                <span class="qa-arrow">→</span>
+                            </button>
+                            <button class="qa-btn" v-if="canEdit" @click="openQuickPick('inspect')" aria-label="登记检定">
+                                <span class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg></span>
+                                <span class="qa-label" data-i18n="登记检定">登记检定</span>
+                                <span class="qa-arrow">→</span>
+                            </button>
+                            <button class="qa-btn qa-danger" v-if="canApproveScrap" @click="currentPage='scraps'" aria-label="报废审批">
+                                <span class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></svg></span>
+                                <span class="qa-label" data-i18n="报废审批">报废审批</span>
+                                <span class="qa-arrow">→</span>
+                            </button>
+                            <button class="qa-btn qa-danger" v-else-if="canEdit" @click="openQuickPick('scrap')" aria-label="申请报废">
+                                <span class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></svg></span>
+                                <span class="qa-label" data-i18n="申请报废">申请报废</span>
+                                <span class="qa-arrow">→</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card dash-card" data-region="activity">
+                        <div class="dash-card-title">
+                            <span class="ct-bar"></span><span data-i18n="近期动态">近期动态</span>
+                            <span class="act-filter">
+                                <button type="button" v-for="f in activityFilters" :key="f.value"
+                                        :class="{ on: activityFilter === f.value }"
+                                        @click="activityFilter = f.value">{{ f.label }}</button>
+                            </span>
+                        </div>
+                        <div v-if="filteredActivities.length === 0" class="dash-empty" data-i18n="暂无动态">暂无动态</div>
+                        <div v-else class="activity-list">
+                            <div v-for="(a, i) in filteredActivities" :key="'act' + i + a.full_time" class="activity-item" @click="viewToolById(a.tool_id)">
+                                <span class="act-time">{{ a.time }}</span>
+                                <span class="act-dot" :class="'dot-' + a.type"></span>
+                                <span class="act-text">{{ a.text }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card dash-card" data-region="trend">
+                        <div class="dash-card-title">
+                            <span class="ct-bar"></span>
+                            <span data-i18n="月度趋势">月度趋势</span>
+                            <span class="ct-sub">近 12 月</span>
+                            <span class="trend-mode">
+                                <button :class="{ active: trendMode === 'default' }" @click="trendMode = 'default'">默认</button>
+                                <button :class="{ active: trendMode === 'inbound' }" @click="trendMode = 'inbound'">入库</button>
+                                <button :class="{ active: trendMode === 'outbound' }" @click="trendMode = 'outbound'">出库</button>
+                                <button :class="{ active: trendMode === 'scrap' }" @click="trendMode = 'scrap'">报废数量</button>
+                                <button :class="{ active: trendMode === 'total' }" @click="trendMode = 'total'">总数</button>
+                            </span>
+                        </div>
+                        <div ref="monthlyChart" class="monthly-chart"></div>
+                    </div>
                 </div>
             </div>
 
@@ -1702,17 +1786,55 @@ const app = createApp({
             } catch(e) { todoList.value = []; }
         };
 
-        // ===== 首页增强：近期动态 =====
+        // ===== 首页增强：近期动态（支持按事件类型本地筛选） =====
         const recentActivities = ref([]);
+        const activityFilter = ref('all');
+        const activityFilters = [
+            { label: '全部', value: 'all' },
+            { label: '借用', value: 'borrow' },
+            { label: '归还', value: 'return' },
+            { label: '新增', value: 'create' }
+        ];
+        const filteredActivities = computed(() => {
+            if (activityFilter.value === 'all') return recentActivities.value;
+            return recentActivities.value.filter(a => a.type === activityFilter.value);
+        });
         const loadRecentActivities = async () => {
             try {
-                const r = await api.get('/tools/stats/recent', { params: { limit: 12 } });
+                const r = await api.get('/tools/stats/recent', { params: { limit: 20 } });
                 recentActivities.value = r.data.data.items || [];
             } catch(e) { recentActivities.value = []; }
         };
         const viewToolById = async (id) => {
             if (!id) return;
             try { await viewTool({ id }); } catch(e) {}
+        };
+
+        // ===== 首页增强：统计卡 / 提醒条点击直达对应列表 =====
+        const goToTools = (status) => {
+            toolSearch.keyword = '';
+            toolSearch.factory = '';
+            toolSearch.team = '';
+            toolSearch.status = status || '';
+            toolSearch.page = 1;
+            showScrapped.value = (status === '报废');
+            currentPage.value = 'tools';
+            loadTools();
+        };
+        const goToReminder = (filter) => {
+            reminderFilter.value = filter || 'overdue';
+            reminderPage.value = 1;
+            currentPage.value = 'inspection-reminder';
+            loadInspectionReminders();
+        };
+
+        // 待办项一键登记检定：待办数据来自提醒接口，缺 inspections 字段，先补全再开弹窗
+        const quickInspectFromTodo = async (t) => {
+            if (!t || !t.id) return;
+            try {
+                const r = await api.get(`/tools/${t.id}`);
+                openInspectionDialog(r.data.data);
+            } catch(e) { ElMessage.error('加载工装信息失败'); }
         };
 
         // ===== 顶栏全局搜索（联想直达详情，更多结果跳台账页带关键字，Ctrl+K 聚焦） =====
@@ -1797,125 +1919,96 @@ const app = createApp({
         // 月度趋势图表
         const monthlyChart = ref(null);
         let chartInstance = null;
-        const loadMonthlyStats = async () => {
-            try {
-                const r = await api.get('/tools/stats/monthly');
-                const { labels, new_tools, inspections, scraps, cumulative } = r.data.data;
-                
-                if (chartInstance) {
-                    chartInstance.dispose();
+        const trendMode = ref('default'); // default | inbound | outbound | scrap | total
+        const resizeChart = () => { if (chartInstance) chartInstance.resize(); };
+        window.addEventListener('resize', resizeChart);
+        watch(trendMode, () => { loadMonthlyStats(); });
+
+        const buildTrendOption = (labels, new_tools, borrows, scraps, cumulative) => {
+            const PALETTE = {
+                primary: cssVar('--c-primary', '#409eff'),
+                success: cssVar('--c-success', '#67c23a'),
+                danger:  cssVar('--c-danger',  '#f56c6c'),
+                warning: cssVar('--c-warning', '#e6a23c'),
+                text2:   cssVar('--c-text-2',  '#606266'),
+                text3:   cssVar('--c-text-3',  '#909399'),
+                border:  cssVar('--c-border',  '#e4e7ed')
+            };
+            const base = {
+                textStyle: { fontFamily: cssVar('--font', 'sans-serif') },
+                tooltip: {
+                    trigger: 'axis',
+                    borderWidth: 0,
+                    backgroundColor: 'rgba(31,35,41,.88)',
+                    textStyle: { color: '#fff', fontSize: 12 },
+                    padding: [8, 12]
+                },
+                grid: { left: '3%', right: '4%', bottom: '15%', top: '12%', containLabel: true },
+                xAxis: {
+                    type: 'category',
+                    data: labels,
+                    axisLabel: { rotate: 30, fontSize: 11, color: PALETTE.text3 },
+                    axisLine: { lineStyle: { color: PALETTE.border } },
+                    axisTick: { show: false }
                 }
-                
-                chartInstance = echarts.init(monthlyChart.value);
-                // 图表配色统一取自 :root 设计令牌
-                const PALETTE = {
-                    primary: cssVar('--c-primary', '#409eff'),
-                    success: cssVar('--c-success', '#67c23a'),
-                    danger:  cssVar('--c-danger',  '#f56c6c'),
-                    warning: cssVar('--c-warning', '#e6a23c'),
-                    text2:   cssVar('--c-text-2',  '#606266'),
-                    text3:   cssVar('--c-text-3',  '#909399'),
-                    border:  cssVar('--c-border',  '#e4e7ed')
-                };
-                const option = {
-                    textStyle: { fontFamily: cssVar('--font', 'sans-serif') },
-                    tooltip: {
-                        trigger: 'axis',
-                        axisPointer: { type: 'shadow' },
-                        borderWidth: 0,
-                        backgroundColor: 'rgba(31,35,41,.88)',
-                        textStyle: { color: '#fff', fontSize: 12 },
-                        padding: [8, 12]
-                    },
-                    legend: {
-                        data: ['新增工装', '检定记录', '报废工装', '累计工装'],
-                        bottom: 0,
-                        icon: 'roundRect',
-                        itemWidth: 10,
-                        itemHeight: 10,
-                        itemGap: 18,
-                        textStyle: { color: PALETTE.text2, fontSize: 12 }
-                    },
-                    grid: {
-                        left: '3%',
-                        right: '4%',
-                        bottom: '15%',
-                        top: '12%',
-                        containLabel: true
-                    },
-                    xAxis: {
-                        type: 'category',
-                        data: labels,
-                        axisLabel: { rotate: 30, fontSize: 11, color: PALETTE.text3 },
-                        axisLine: { lineStyle: { color: PALETTE.border } },
-                        axisTick: { show: false }
-                    },
-                    yAxis: [
-                        {
-                            type: 'value',
-                            name: '数量',
-                            minInterval: 1,
-                            nameTextStyle: { color: PALETTE.text3, fontSize: 11 },
-                            axisLabel: { color: PALETTE.text3, fontSize: 11 },
-                            splitLine: { lineStyle: { color: PALETTE.border, type: 'dashed' } }
-                        },
-                        {
-                            type: 'value',
-                            name: '累计',
-                            minInterval: 1,
-                            nameTextStyle: { color: PALETTE.text3, fontSize: 11 },
-                            axisLabel: { color: PALETTE.text3, fontSize: 11 },
-                            splitLine: { show: false }
-                        }
-                    ],
+            };
+            const legend = (data) => ({ data, bottom: 0, icon: 'roundRect', itemWidth: 10, itemHeight: 10, itemGap: 18, textStyle: { color: PALETTE.text2, fontSize: 12 } });
+            const yAxisCount = {
+                type: 'value', name: '数量', minInterval: 1,
+                nameTextStyle: { color: PALETTE.text3, fontSize: 11 },
+                axisLabel: { color: PALETTE.text3, fontSize: 11 },
+                splitLine: { lineStyle: { color: PALETTE.border, type: 'dashed' } }
+            };
+            const yAxisTotal = {
+                type: 'value', name: '累计', minInterval: 1,
+                nameTextStyle: { color: PALETTE.text3, fontSize: 11 },
+                axisLabel: { color: PALETTE.text3, fontSize: 11 },
+                splitLine: { show: false }
+            };
+            const singleLine = (name, color, data) => ({
+                name, type: 'line', color, data, smooth: true, symbolSize: 6,
+                label: { show: true, position: 'top', fontSize: 10, color: PALETTE.text3 },
+                lineStyle: { width: 2.5 },
+                itemStyle: { borderWidth: 2, borderColor: '#fff' },
+                areaStyle: { opacity: 0.12, color }
+            });
+
+            if (trendMode.value === 'default') {
+                return {
+                    ...base,
+                    tooltip: { ...base.tooltip, axisPointer: { type: 'shadow' } },
+                    legend: legend(['入库', '出库', '报废数量']),
+                    yAxis: yAxisCount,
                     series: [
-                        {
-                            name: '新增工装',
-                            type: 'bar',
-                            stack: '总量',
-                            color: PALETTE.primary,
-                            data: new_tools,
-                            barWidth: '40%',
-                            itemStyle: { borderRadius: [0, 0, 0, 0] },
-                            label: { show: true, position: 'top', fontSize: 10, color: PALETTE.text3 }
-                        },
-                        {
-                            name: '检定记录',
-                            type: 'bar',
-                            stack: '总量',
-                            color: PALETTE.success,
-                            data: inspections,
-                            barWidth: '40%'
-                        },
-                        {
-                            name: '报废工装',
-                            type: 'bar',
-                            stack: '总量',
-                            color: PALETTE.danger,
-                            data: scraps,
-                            barWidth: '40%',
-                            itemStyle: { borderRadius: [3, 3, 0, 0] }
-                        },
-                        {
-                            name: '累计工装',
-                            type: 'line',
-                            yAxisIndex: 1,
-                            color: PALETTE.warning,
-                            data: cumulative,
-                            smooth: true,
-                            symbolSize: 6,
-                            label: { show: true, position: 'top', fontSize: 10, color: PALETTE.text3 },
-                            lineStyle: { width: 2.5 },
-                            itemStyle: { borderWidth: 2, borderColor: '#fff' }
-                        }
+                        { name: '入库', type: 'bar', stack: '总量', color: PALETTE.primary, data: new_tools, barWidth: '40%', itemStyle: { borderRadius: [0, 0, 0, 0] }, label: { show: true, position: 'top', fontSize: 10, color: PALETTE.text3 } },
+                        { name: '出库', type: 'bar', stack: '总量', color: PALETTE.warning, data: borrows, barWidth: '40%' },
+                        { name: '报废数量', type: 'bar', stack: '总量', color: PALETTE.danger, data: scraps, barWidth: '40%', itemStyle: { borderRadius: [3, 3, 0, 0] } }
                     ]
                 };
-                chartInstance.setOption(option);
-                
-                // 响应窗口大小变化
-                window.addEventListener('resize', () => {
-                    if (chartInstance) chartInstance.resize();
-                });
+            }
+            if (trendMode.value === 'inbound') {
+                return { ...base, legend: legend(['入库']), yAxis: yAxisCount, series: [singleLine('入库', PALETTE.primary, new_tools)] };
+            }
+            if (trendMode.value === 'outbound') {
+                return { ...base, legend: legend(['出库']), yAxis: yAxisCount, series: [singleLine('出库', PALETTE.warning, borrows)] };
+            }
+            if (trendMode.value === 'scrap') {
+                return { ...base, legend: legend(['报废数量']), yAxis: yAxisCount, series: [singleLine('报废数量', PALETTE.danger, scraps)] };
+            }
+            // total
+            return { ...base, legend: legend(['总数']), yAxis: yAxisTotal, series: [singleLine('总数', PALETTE.success, cumulative)] };
+        };
+
+        const loadMonthlyStats = async () => {
+            if (!monthlyChart.value) await nextTick();
+            if (!monthlyChart.value) return;
+            try {
+                const r = await api.get('/tools/stats/monthly');
+                const { labels, new_tools, borrows, scraps, cumulative } = r.data.data;
+                if (chartInstance) chartInstance.dispose();
+                chartInstance = echarts.init(monthlyChart.value);
+                chartInstance.setOption(buildTrendOption(labels, new_tools, borrows, scraps, cumulative));
+                requestAnimationFrame(() => { if (chartInstance) chartInstance.resize(); });
             } catch(e) { console.error('加载月度统计失败', e); }
         };
 
@@ -3197,7 +3290,7 @@ const app = createApp({
 
         // 页面切换加载
         watch(currentPage, (page) => {
-            if (page === 'dashboard') { loadStats(); loadTodoList(); loadRecentActivities(); }
+            if (page === 'dashboard') { loadStats(); loadTodoList(); loadRecentActivities(); loadMonthlyStats(); }
             if (page === 'tools') loadTools();
             if (page === 'borrows') loadBorrows();
             if (page === 'inspections') loadInspections();
@@ -3248,8 +3341,10 @@ const app = createApp({
             loggedIn, loginLoading, loginForm, currentUser, currentPage, saving, isAdmin, pageTitle,
             about, aboutDialogVisible,
             canEdit, canDelete, canApproveScrap, canManageUsers, canManageConfig, canReturnBorrow, canExport, isNewTool, openNewToolPage,
-            stats, loadStats, monthlyChart, loadMonthlyStats, pct,
+            stats, loadStats, monthlyChart, loadMonthlyStats, trendMode, pct,
             statusChart, todoList, loadTodoList, recentActivities, loadRecentActivities, viewToolById,
+            activityFilter, activityFilters, filteredActivities,
+            goToTools, goToReminder, quickInspectFromTodo,
             quickPickDialogVisible, quickPickList, quickPickTitle, quickPickId, openQuickPick, confirmQuickPick,
             globalSearch, globalSearchInput, fetchGlobalSuggestions, onGlobalSearchSelect, onGlobalSearchEnter,
             tools, toolTotal, toolSearch, loadTools, toolsLoading, toolDialogVisible, toolDetailVisible, currentTool, toolForm, openToolDialog, saveTool, deleteTool, viewTool, openEditTool, backToTools, onToolRowClick, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail, editingTool, startEditTool, cancelEditTool, saveToolDetailInline, getMergedRecords, onRecordFileChange, recordFileRefs,

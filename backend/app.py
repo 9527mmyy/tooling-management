@@ -131,7 +131,7 @@ with app.app_context():
         print('✅ 默认管理员创建: admin / admin123（工号 admin）')
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=5000, threaded=True)
+    app.run(debug=False, host='127.0.0.1', port=5000, threaded=True)
 
 @app.route('/test')
 def test_page():
