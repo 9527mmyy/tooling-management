@@ -109,6 +109,15 @@ def system_about():
     return jsonify({'code': 200, 'data': get_about()})
 
 # 前端路由
+@app.route('/')
+def index():
+    """工装管理系统首页（直接显示登录页）"""
+    response = make_response(send_from_directory('templates', 'index.html'))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
 @app.route('/tooling')
 def tooling_index():
     """工装管理系统入口（禁用缓存）"""
