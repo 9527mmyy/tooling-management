@@ -24,7 +24,7 @@
             --c-sidebar-active: #409eff; /* = --c-primary，此处需字面值供 sidebar 使用 */
             --c-text: #1f2329;
             --c-text-2: #606266;
-            --c-text-3: #909399;
+            --c-text-3: #6b7280;
             --c-border: #e4e7ed;
             --c-fill: #f5f7fa;
             --c-fill-2: #fafbfc;
@@ -46,7 +46,7 @@
             --grad-accent: linear-gradient(180deg, var(--c-primary), var(--c-primary-light));
             --ease: cubic-bezier(.22,.61,.36,1);
         }
-        body { font-family: var(--font); background: var(--c-bg); color: var(--c-text); }
+        body { font-family: var(--font); background: var(--c-bg); color: var(--c-text); line-height: 1.5; }
         .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--grad-brand); }
         .login-box { background: var(--c-surface); border-radius: var(--radius-lg); padding: 40px; width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
         .login-title { text-align: center; font-size: 24px; font-weight: bold; color: var(--c-text); margin-bottom: 30px; }
@@ -262,13 +262,13 @@
         .tool-info-table .borrow-cell { position: relative; }
         .tool-info-table .borrow-cell .borrow-readonly { width: 100%; box-sizing: border-box; padding: 1px 11px; height: 24px; line-height: 24px; font-size: 12px; color: #606266; background: #f5f7fa; border: 1px solid #e4e7ed; border-radius: 4px; cursor: not-allowed; outline: none; font-family: inherit; }
         .tool-info-table .borrow-cell .borrow-readonly::placeholder { color: #c0c4cc; }
-        .tool-info-table .borrow-cell .borrow-source { display: inline-block; margin-left: 6px; font-size: 11px; color: #909399; line-height: 1; }
+        .tool-info-table .borrow-cell .borrow-source { display: inline-block; margin-left: 6px; font-size: 11px; color: var(--c-text-3); line-height: 1; }
         .tool-info-table .borrow-cell .borrow-source::before { content: '↗'; margin-right: 3px; opacity: .7; }
         .report-list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
         .report-item { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: #fafbfc; border: 1px solid #f0f0f0; border-radius: 4px; font-size: 13px; }
         .report-item .report-icon { color: var(--c-primary); flex-shrink: 0; }
         .report-item .report-name { color: #1f2329; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .report-item .report-size { color: #909399; font-size: 12px; flex-shrink: 0; }
+        .report-item .report-size { color: var(--c-text-3); font-size: 12px; flex-shrink: 0; }
         .report-item .report-meta { color: #c0c4cc; font-size: 12px; flex-shrink: 0; }
         .report-item:hover { background: #f5f7fa; }
 
@@ -282,6 +282,12 @@
             height: auto;
             line-height: 1.4;
         }
+        /* 表格列头清晰度：明确字重与底色，列更易区分、信息更易扫读 */
+        .el-table th.el-table__cell { background: var(--c-fill-2); font-weight: 600; color: var(--c-text-2); }
+        .el-table .cell { line-height: 1.55; }
+        .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell { background: var(--c-fill-2); }
+        /* 列表项舒适行高，密集信息更易阅读 */
+        .todo-item, .activity-item, .gs-item { line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -643,7 +649,7 @@
                         <div style="flex:1;display:flex;align-items:center;gap:12px">
                             <div style="display:flex;flex-direction:column;gap:6px">
                                 <div style="display:flex;align-items:center;gap:12px">
-                                    <h1 style="margin:0;font-size:20px;font-weight:700;color:#1a1a1a">{{ currentTool.name }}</h1>
+                                    <h1 style="margin:0;font-size:20px;font-weight:700;color:var(--c-text)">{{ currentTool.name }}</h1>
                                     <el-tag :type="statusTagType(currentTool.status)" class="tool-status-pill">{{ currentTool.status }}</el-tag>
                                 </div>
                             </div>
@@ -668,7 +674,7 @@
                             <!-- 顶部操作栏（去掉了原渐变条） -->
                             <div style="padding:14px 18px 10px;display:flex;align-items:center;justify-content:space-between">
                                 <div style="display:flex;align-items:center;gap:8px">
-                                    <div style="font-size:14px;font-weight:600;color:#1a1a1a">工装信息</div>
+                                    <div style="font-size:14px;font-weight:600;color:var(--c-text)">工装信息</div>
                                 </div>
                                 <div style="display:flex;gap:8px" v-if="!editingTool && canEdit">
                                     <el-button type="primary" size="small" @click="startEditTool">编辑</el-button>
@@ -778,7 +784,7 @@
                                                     <el-button size="small" type="primary" plain @click="$refs.reportFileInput?.click()">
                                                         <span style="margin-right:4px">📄</span>上传完工资料
                                                     </el-button>
-                                                    <span style="font-size:12px;color:#909399">支持 PDF / 图片 / Word，可一次选择多份</span>
+                                                    <span style="font-size:12px;color:var(--c-text-3)">支持 PDF / 图片 / Word，可一次选择多份</span>
                                                 </div>
                                                 <div v-if="(currentTool && currentTool.attachments) ? currentTool.attachments.filter(a => ['完工资料','尺寸检验报告'].includes(a.file_type)).length : 0" class="report-list">
                                                     <div v-for="f in (currentTool && currentTool.attachments) ? currentTool.attachments.filter(a => ['完工资料','尺寸检验报告'].includes(a.file_type)) : []" :key="f.id" class="report-item">
@@ -809,7 +815,7 @@
                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
                                 <div style="display:flex;align-items:center;gap:8px">
                                     <div style="width:4px;height:18px;background:var(--grad-accent);border-radius:2px"></div>
-                                    <span style="font-size:14px;font-weight:600;color:#1a1a1a">工装照片</span>
+                                    <span style="font-size:14px;font-weight:600;color:var(--c-text)">工装照片</span>
                                 </div>
                             </div>
                             <!-- 查看模式：显示照片 -->
@@ -818,8 +824,8 @@
                                     <img :src="'/api/tools/'+currentTool.id+'/photo'" style="max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;cursor:pointer" @click="openPhotoPreview(currentTool.id)" @error="$event.target.style.display='none'">
                                 </div>
                                 <div v-else style="text-align:center;padding:40px 20px">
-                                    <div style="margin-bottom:12px;opacity:.4"><svg viewBox="0 0 24 24" fill="none" stroke="#909399" stroke-width="1.5" style="width:48px;height:48px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div>
-                                    <div style="color:#909399;font-size:14px">暂无工装照片</div>
+                                    <div style="margin-bottom:12px;opacity:.4"><svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.5" style="width:48px;height:48px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div>
+                                    <div style="color:var(--c-text-3);font-size:14px">暂无工装照片</div>
                                 </div>
                             </div>
                             <!-- 编辑模式：上传控件 -->
@@ -833,10 +839,10 @@
                                             </template>
                                         </el-image>
                                     </div>
-                                    <div v-else style="margin-bottom:12px;opacity:.4"><svg viewBox="0 0 24 24" fill="none" stroke="#909399" stroke-width="1.5" style="width:48px;height:48px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div>
+                                    <div v-else style="margin-bottom:12px;opacity:.4"><svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.5" style="width:48px;height:48px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div>
                                     <el-button size="small" type="primary" @click="$refs.detailPhotoInput.click()">{{ currentTool.photo_path ? '更换照片' : '上传照片' }}</el-button>
                                     <el-button v-if="currentTool.photo_path" size="small" type="danger" plain @click="deleteToolPhoto">删除照片</el-button>
-                                    <div style="margin-top:8px;font-size:12px;color:#909399">支持 jpg/png/gif/webp</div>
+                                    <div style="margin-top:8px;font-size:12px;color:var(--c-text-3)">支持 jpg/png/gif/webp</div>
                                 </div>
                             </div>
                         </div>
@@ -848,7 +854,7 @@
                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
                                 <div style="display:flex;align-items:center;gap:8px">
                                     <div style="width:4px;height:18px;background:var(--grad-accent);border-radius:2px"></div>
-                                    <span style="font-size:14px;font-weight:600;color:#1a1a1a">记录</span>
+                                    <span style="font-size:14px;font-weight:600;color:var(--c-text)">记录</span>
                                 </div>
                             </div>
                             <div v-if="(currentTool.in_storage_records && currentTool.in_storage_records.length) || (currentTool.borrow_records && currentTool.borrow_records.length) || (currentTool.inspections && currentTool.inspections.length)" style="flex:1;overflow-y:auto;min-height:0">
@@ -860,7 +866,7 @@
                                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
                                                 <div style="display:flex;align-items:center;gap:8px">
                                                     <el-tag :type="item.type==='borrow' ? 'success' : item.type==='inspection' ? 'warning' : item.type==='return' ? 'info' : 'primary'" size="small" style="font-size:11px">{{ item.typeName }}</el-tag>
-                                                    <span style="font-size:13px;font-weight:600;color:#1a1a1a">{{ item.date }}</span>
+                                                    <span style="font-size:13px;font-weight:600;color:var(--c-text)">{{ item.date }}</span>
                                                 </div>
                                             </div>
                                             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;font-size:12px;color:#595959">
@@ -992,7 +998,7 @@
                             </template>
                         </el-table-column>
                     </el-table>
-                    <div v-else style="color:#909399;padding:10px 0">暂无附件</div>
+                    <div v-else style="color:var(--c-text-3);padding:10px 0">暂无附件</div>
 
                     <!-- 检定记录 -->
                     <h4 style="margin:20px 0 10px;font-size:15px;color:var(--c-text-2)">检定记录</h4>
@@ -1032,7 +1038,7 @@
                             <input ref="photoInputRef" type="file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" @change="onPhotoChange">
                             <el-button size="small" type="primary" @click="$refs.photoInputRef.click()">{{ currentTool.photo_path ? '更换照片' : '上传照片' }}</el-button>
                             <el-button v-if="currentTool.photo_path" size="small" type="danger" plain @click="deleteToolPhoto">删除照片</el-button>
-                            <div style="margin-top:6px;font-size:12px;color:#909399">支持 jpg/png/gif/webp</div>
+                            <div style="margin-top:6px;font-size:12px;color:var(--c-text-3)">支持 jpg/png/gif/webp</div>
                         </div>
                     </div>
                 </template>
@@ -1091,7 +1097,7 @@
                         </el-col>
                         <el-col :span="12">
                     <el-form-item label="下次检定" v-if="toolForm.level !== 'C'"><el-date-picker v-model="toolForm.next_inspection_date" type="date" value-format="YYYY-MM-DD" style="width:100%"></el-date-picker></el-form-item>
-                    <el-form-item label="下次检定" v-else><span style="color:#909399">不限定</span></el-form-item>
+                    <el-form-item label="下次检定" v-else><span style="color:var(--c-text-3)">不限定</span></el-form-item>
                         </el-col>
                     </el-row>
                     <el-form-item label="备注"><el-input v-model="toolForm.remark" type="textarea" :rows="2"></el-input></el-form-item>
@@ -1117,14 +1123,14 @@
                         <input ref="dialogPhotoInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" @change="onDialogPhotoChange">
                         <el-button size="small" type="primary" @click="dialogPhotoInput.click()">{{ toolForm.photo_path ? '更换照片' : '上传照片' }}</el-button>
                         <el-button v-if="toolForm.photo_path" size="small" type="danger" plain @click="dialogDeletePhoto">删除照片</el-button>
-                        <div style="margin-top:6px;font-size:12px;color:#909399">支持 jpg/png/gif/webp</div>
+                        <div style="margin-top:6px;font-size:12px;color:var(--c-text-3)">支持 jpg/png/gif/webp</div>
                     </div>
                 </div>
                 <div v-else style="padding:8px 0">
                     <input ref="dialogPhotoInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" @change="onDialogPhotoChange">
                     <div style="width:160px;height:120px;display:flex;align-items:center;justify-content:center;color:#c0c4cc;font-size:16px;background:#f5f7fa;border:1px solid #dcdfe6;border-radius:8px;margin-bottom:8px">请先保存工装</div>
                     <el-button size="small" type="primary" @click="saveAndUploadPhoto">先保存再上传照片</el-button>
-                    <div style="margin-top:4px;font-size:12px;color:#909399">需要先保存工装才能上传照片</div>
+                    <div style="margin-top:4px;font-size:12px;color:var(--c-text-3)">需要先保存工装才能上传照片</div>
                 </div>
 
                 <el-divider></el-divider>
@@ -1143,7 +1149,7 @@
                 </div>
                 <div v-else style="margin-bottom:10px">
                     <el-button size="small" type="primary" @click="saveAndUploadFile">先保存再上传资料</el-button>
-                    <div style="margin-top:4px;font-size:12px;color:#909399">需要先保存工装才能上传资料</div>
+                    <div style="margin-top:4px;font-size:12px;color:var(--c-text-3)">需要先保存工装才能上传资料</div>
                 </div>
                 <el-table :data="toolForm.attachments" stripe size="small" v-if="toolForm.attachments && toolForm.attachments.length">
                     <el-table-column prop="file_name" label="文件名"></el-table-column>
@@ -1159,7 +1165,7 @@
                         </template>
                     </el-table-column>
                 </el-table>
-                <div v-else style="color:#909399;padding:8px 0">暂无附件</div>
+                <div v-else style="color:var(--c-text-3);padding:8px 0">暂无附件</div>
 
                 <template #footer>
                     <el-button @click="toolDialogVisible=false">关闭</el-button>
@@ -1521,7 +1527,7 @@
                             <el-tag v-for="f in configLists.factory" :key="f.id" closable @click="openConfigDialog('factory', f)" @close="deleteConfig(f)" style="cursor:pointer;padding:6px 12px;font-size:14px">
                                 {{ f.config_value }}
                             </el-tag>
-                            <span v-if="configLists.factory.length===0" style="color:#909399">暂无分厂，点击右上角"新增分厂"</span>
+                            <span v-if="configLists.factory.length===0" style="color:var(--c-text-3)">暂无分厂，点击右上角"新增分厂"</span>
                         </div>
                     </div>
                     <!-- 分厂卡片网格 -->
@@ -1532,7 +1538,7 @@
                                     <span style="font-weight:bold;font-size:16px">{{ f.config_value }}</span>
                                     <el-button type="primary" size="mini" @click="openConfigDialog('team', null, f.config_value)">+ 新增班组</el-button>
                                 </div>
-                                <div v-if="teamsOfFactory(f.config_value).length===0" style="color:#909399;text-align:center;padding:20px 0">
+                                <div v-if="teamsOfFactory(f.config_value).length===0" style="color:var(--c-text-3);text-align:center;padding:20px 0">
                                     暂无班组
                                 </div>
                                 <div v-else>
@@ -1740,7 +1746,7 @@ const app = createApp({
                     warning: cssVar('--c-warning', '#e6a23c'),
                     danger: cssVar('--c-danger', '#f56c6c'),
                     text: cssVar('--c-text', '#303133'),
-                    text3: cssVar('--c-text-3', '#909399')
+                    text3: cssVar('--c-text-3', '#6b7280')
                 };
                 const data = [
                     { name: '在库', value: stats.in_stock || 0, itemStyle: { color: PALETTE.primary } },
@@ -1931,7 +1937,7 @@ const app = createApp({
                 danger:  cssVar('--c-danger',  '#f56c6c'),
                 warning: cssVar('--c-warning', '#e6a23c'),
                 text2:   cssVar('--c-text-2',  '#606266'),
-                text3:   cssVar('--c-text-3',  '#909399'),
+                text3:   cssVar('--c-text-3',  '#6b7280'),
                 border:  cssVar('--c-border',  '#e4e7ed')
             };
             const base = {
@@ -3329,10 +3335,26 @@ const app = createApp({
             window.removeEventListener('resize', syncDetailCardsHeight);
         });
 
+        // 检查后端 session（页面刷新后恢复登录状态）
+        const checkSession = async () => {
+            try {
+                const r = await api.get('/auth/info');
+                if (r.data.code === 200) {
+                    loggedIn.value = true;
+                    Object.assign(currentUser, r.data.data);
+                    loadStats();
+                    loadMonthlyStats();
+                    loadTodoList();
+                    loadRecentActivities();
+                    loadOrgStructure();
+                    loadConfigs();
+                }
+            } catch { /* 未登录，忽略 */ }
+        };
+
         onMounted(() => {
+            checkSession();  // 优先检查已有 session，再加载其他数据
             loadAbout();
-            loadOrgStructure();
-            loadConfigs();
             // 监听 api 拦截器发出的 401 登出事件
             window.addEventListener('app:logout', () => { loggedIn.value = false; currentPage.value = 'dashboard'; });
         });
@@ -3358,7 +3380,7 @@ const app = createApp({
             users, loadUsers, userDialogVisible, userForm, openUserDialog, saveUser, deleteUser,
             changePwdDialogVisible, changePwdForm, submitChangePwd,
             downloadTemplate, importTools,
-            handleLogin, handleLogout, statusTagType, isOverdue, formatRole, getTeamName, fmtDate, fmtCompletionDate, calcNextInspection,
+            handleLogin, handleLogout, checkSession, statusTagType, isOverdue, formatRole, getTeamName, fmtDate, fmtCompletionDate, calcNextInspection,
             onToolPageChange, onBorrowPageChange, onInspectionPageChange, onReminderPageChange, onScrapPageChange,
             factories, allTeams, teamsByFactory,
             configTab, configTypeNames, configLists, loadConfigs, openConfigDialog, saveConfig, deleteConfig, configDialogVisible, configForm, teamsInCurrentFactory, teamsOfFactory,
