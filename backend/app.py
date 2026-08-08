@@ -109,15 +109,6 @@ def system_about():
     return jsonify({'code': 200, 'data': get_about()})
 
 # 前端路由
-@app.route('/')
-def portal():
-    """统一门户首页"""
-    response = make_response(send_from_directory('templates', 'portal.html'))
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    return response
-
 @app.route('/tooling')
 def tooling_index():
     """工装管理系统入口（禁用缓存）"""
@@ -127,15 +118,6 @@ def tooling_index():
     response.headers['Expires'] = '0'
     return response
 
-@app.route('/process')
-def process_redirect():
-    """重定向到工艺开发系统"""
-    return redirect('http://172.16.120.79:5001', code=302)
-
-@app.route('/cost')
-def cost_redirect():
-    """重定向到成本估算系统"""
-    return redirect('http://172.16.120.79:5002', code=302)
 
 with app.app_context():
     db.create_all()
