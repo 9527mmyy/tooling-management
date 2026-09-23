@@ -2,10 +2,26 @@
 from models import db, Tool, BorrowRecord, Attachment, Inspection, OperationLog, InStorageRecord
 from routes.auth import login_required, admin_required, edit_required, add_log
 from datetime import datetime
+import calendar
 import os
 import uuid
 
 tools_bp = Blueprint('tools', __name__)
+
+
+def add_months(d, months):
+    """加 N 个月，目标月无该日时对齐月末（避免 8/31 + 6 月溢出成 3/3）。"""
+    y = d.year + (d.month - 1 + months) // 12
+    m = (d.month - 1 + months) % 12 + 1
+    last_day = calendar.monthrange(y, m)[1]
+    return d.replace(year=y, month=m, day=min(d.day, last_day))
+
+
+def calc_next_inspection(level, storage_date):
+    """按等级与入库时间推算下次检定日期：A=半年，B=一年，C 级或无基准日不推算。"""
+    if not storage_date or level not in ('A', 'B'):
+        return None
+    return add_months(storage_date, 6 if level == 'A' else 12)
 
 
 @tools_bp.route('/', methods=['GET'])
@@ -109,6 +125,10 @@ def create_tool():
     if data.get('next_inspection_date'):
         tool.next_inspection_date = datetime.strptime(data['next_inspection_date'], '%Y-%m-%d').date()
 
+    # 兜底：A/B 级工装未指定下次检定日期时，按等级与入库时间自动推算
+    if not tool.next_inspection_date:
+        tool.next_inspection_date = calc_next_inspection(tool.level, tool.storage_date)
+
     db.session.add(tool)
     db.session.commit()
 
@@ -189,6 +209,9 @@ def update_tool(tool_id):
     tool = Tool.query.get_or_404(tool_id)
     data = request.get_json()
 
+    old_level = tool.level
+    old_storage_date = tool.storage_date
+
     if 'code' in data:
         new_code = data['code'].strip()
         if new_code != tool.code and Tool.query.filter_by(code=new_code).first():
@@ -226,6 +249,17 @@ def update_tool(tool_id):
         tool.storage_date = datetime.strptime(data['storage_date'], '%Y-%m-%d').date()
     elif 'storage_date' in data and not data['storage_date']:
         tool.storage_date = None
+
+    # 兜底：未检定过的工装，在等级/入库时间变化、或此前漏算（日期为空）时，
+    # 按当前等级与入库时间重算下次检定日期。显式传入 next_inspection_date 时以其为准；
+    # C 级不推算，保持原值不动。
+    if 'next_inspection_date' not in data:
+        changed = (tool.level != old_level) or (tool.storage_date != old_storage_date)
+        has_inspection = Inspection.query.filter_by(tool_id=tool_id).count() > 0
+        if (changed or not tool.next_inspection_date) and not has_inspection:
+            recalc = calc_next_inspection(tool.level, tool.storage_date)
+            if recalc:
+                tool.next_inspection_date = recalc
 
     db.session.commit()
 

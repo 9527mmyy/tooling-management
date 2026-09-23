@@ -3177,13 +3177,21 @@ const app = createApp({
         const fmtDate = (d) => { if (!d) return '-'; const m = d.match(/^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}):(\d{2}):?(\d{2})?)?/); if (!m) return d; const [, y, mo, da, h, mi] = m; return `${y}年${mo}月${da}日${h ? ' ' + h + ':' + mi : ''}`; };
         // 完工日期专用：ISO 格式 YYYY-MM-DD（零填充），如 2026-07-31
         const fmtCompletionDate = (d) => { if (!d) return '-'; const m = d.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (!m) return d; const [, y, mo, da] = m; const p = (n) => String(n).padStart(2, '0'); return `${y}-${p(mo)}-${p(da)}`; };
-        // 根据等级和完工日期自动计算下次检定日期
-        const calcNextInspection = (level, purchaseDate) => {
-            if (!purchaseDate || level === 'C') return '';
-            const d = new Date(purchaseDate);
-            if (level === 'A') d.setMonth(d.getMonth() + 6);
-            else if (level === 'B') d.setFullYear(d.getFullYear() + 1);
-            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        // 根据等级和基准日自动计算下次检定日期（A=半年，B=一年，C 不推算）
+        // 加月后对齐月末，避免 setMonth 把 2026-08-31 + 6 月溢出成 2027-03-03
+        const calcNextInspection = (level, baseDate) => {
+            if (!baseDate || level === 'C') return '';
+            const m = String(baseDate).match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+            if (!m) return '';
+            let y = Number(m[1]), mo = Number(m[2]), da = Number(m[3]);
+            if (level === 'A') mo += 6;
+            else if (level === 'B') y += 1;
+            else return '';
+            y += Math.floor((mo - 1) / 12);
+            mo = ((mo - 1) % 12) + 1;
+            const lastDay = new Date(y, mo, 0).getDate();
+            if (da > lastDay) da = lastDay;
+            return `${y}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
         };
         // toolForm：等级或完工日期变化时自动更新下次检定
         watch([() => toolForm.level, () => toolForm.purchase_date], ([lv, pd]) => {
