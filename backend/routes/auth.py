@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, session
+import login_guard
 from models import db, User, OperationLog
 from functools import wraps
 from datetime import datetime, timedelta
@@ -113,9 +114,21 @@ def login():
     if not user_no or not password:
         return jsonify({'code': 400, 'msg': '工号和密码不能为空'})
 
+    # 限流：已锁定则直接拒绝，不再查库、不再比对密码（见 login_guard.py）
+    remain_lock = login_guard.locked_seconds(user_no)
+    if remain_lock:
+        return jsonify({'code': 429, 'msg': login_guard.lockout_message(remain_lock)})
+
     user = User.query.filter_by(user_no=user_no).first()
     if not user or not user.check_password(password):
+        triggered, left = login_guard.register_failure(user_no)
+        if triggered:
+            return jsonify({'code': 429, 'msg': login_guard.lockout_message(login_guard.LOCKOUT_SECONDS)})
+        if left <= 2:
+            return jsonify({'code': 401, 'msg': f'工号或密码错误，还可尝试 {left} 次'})
         return jsonify({'code': 401, 'msg': '工号或密码错误'})
+
+    login_guard.clear(user_no)      # 登录成功 → 清零该（工号, IP）的失败计数
 
     session.permanent = True
     session['user_id'] = user.id
