@@ -28,8 +28,23 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 }
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB 上传限制
-# 优先读取环境变量，未设置时回退到默认值（保持向后兼容）
-app.config['SECRET_KEY'] = os.environ.get('TOOLING_SECRET_KEY', 'tooling-management-secret-key-2026')
+# 会话密钥：优先环境变量（nssm AppEnvironmentExtra，2026-09-30 实测生效）；
+# 环境变量缺失时回退到「仓库外的密钥文件」，避免回落到代码里那个**已公开**的兜底常量。
+# 密钥不进代码库、不进 git。
+def _read_secret(env_name, fallback):
+    import os as _os
+    v = _os.environ.get(env_name)
+    if not v:
+        try:
+            with open(_os.path.join(r'D:\web_sys\_secrets', env_name + '.key'),
+                      encoding='utf-8') as f:
+                v = f.read().strip()
+        except OSError:
+            v = ''
+    return v or fallback
+
+
+app.config['SECRET_KEY'] = _read_secret('TOOLING_SECRET_KEY', 'tooling-management-secret-key-2026')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)  # cookie有效期（实际超时由服务端last_activity控制）
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # 允许同站请求携带cookie
 app.config['SESSION_COOKIE_HTTPONLY'] = True
