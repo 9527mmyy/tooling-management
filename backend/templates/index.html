@@ -1261,12 +1261,12 @@
                     <el-form-item label="下次检定"><el-date-picker v-model="inspectionForm.next_date" type="date" value-format="YYYY-MM-DD"></el-date-picker></el-form-item>
                     <el-form-item label="检定人"><el-input v-model="inspectionForm.inspector"></el-input></el-form-item>
                     <el-form-item label="备注"><el-input v-model="inspectionForm.remark" type="textarea" :rows="2"></el-input></el-form-item>
-                    <el-form-item label="附件">
+                    <el-form-item label="附件" required>
                         <el-upload ref="inspectionUploadRef" :auto-upload="false" :limit="3" :on-change="onInspectionFileChange" :file-list="inspectionFiles" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
                             <el-button size="small" type="primary">选择文件</el-button>
                             <template #tip>
                                 <div style="font-size:12px;color:#999;margin-top:5px;">
-                                    支持 pdf/jpg/png/doc/xls，最多3个文件
+                                    必填，至少上传 1 个文件；支持 pdf/jpg/png/doc/xls，最多3个文件
                                 </div>
                             </template>
                         </el-upload>
@@ -2702,23 +2702,36 @@ const app = createApp({
 
         const submitInspection = async () => {
             if (!inspectionForm.inspect_date || !inspectionForm.result) { ElMessage.warning('请填写检定日期和结果'); return; }
+            // 检定附件为必填：未选择文件时不予提交
+            if (!inspectionFiles.value.length) { ElMessage.warning('请上传检定附件（至少 1 个文件）'); return; }
             saving.value = true;
             try { 
                 const res = await api.post('/inspections/', inspectionForm);
                 console.log('检定响应:', res);
                 if (res.data.code === 200) {
                     const inspectionId = res.data.data.id;
-                    // 上传附件
+                    // 上传附件。注意：检定记录此刻已创建，故上传失败不能抛到外层 catch——
+                    // 否则会误报「添加失败」，用户重做一次就会产生重复的检定记录。
+                    let uploadFailed = 0;
                     for (const file of inspectionFiles.value) {
-                        const formData = new FormData();
-                        formData.append('file', file.raw);
-                        formData.append('inspection_id', inspectionId);
-                        formData.append('file_type', '检定报告');
-                        await api.post('/attachments/upload', formData, {
-                            headers: { 'Content-Type': 'multipart/form-data' }
-                        });
+                        try {
+                            const formData = new FormData();
+                            formData.append('file', file.raw);
+                            formData.append('inspection_id', inspectionId);
+                            formData.append('file_type', '检定报告');
+                            await api.post('/attachments/upload', formData, {
+                                headers: { 'Content-Type': 'multipart/form-data' }
+                            });
+                        } catch (e2) {
+                            console.error('检定附件上传失败:', file.name, e2);
+                            uploadFailed += 1;
+                        }
                     }
-                    ElMessage.success('检定记录添加成功'); 
+                    if (uploadFailed) {
+                        ElMessage.warning(`检定记录已保存，但有 ${uploadFailed} 个附件上传失败，请到工装详情页补传`);
+                    } else {
+                        ElMessage.success('检定记录添加成功');
+                    }
                     inspectionDialogVisible.value = false; 
                     loadTools(); 
                     loadInspections(); 
