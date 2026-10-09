@@ -109,6 +109,11 @@ def create_tool():
     if Tool.query.filter_by(code=code).first():
         return jsonify({'code': 400, 'msg': '编号已存在'})
 
+    universality = (data.get('universality') or '通用').strip()
+    product_drawing_no = (data.get('product_drawing_no') or '').strip()
+    if universality == '专用' and not product_drawing_no:
+        return jsonify({'code': 400, 'msg': '通用性为「专用」时必须填写专用产品图号'})
+
     tool = Tool(
         code=code,
         drawing_no=data.get('drawing_no', ''),
@@ -121,6 +126,8 @@ def create_tool():
         receiver=data.get('receiver', ''),
         status=data.get('status', '在库'),
         remark=data.get('remark', ''),
+        universality=universality,
+        product_drawing_no=product_drawing_no,
         created_by=data.get('created_by', '')
     )
 
@@ -215,6 +222,13 @@ def update_tool(tool_id):
     tool = Tool.query.get_or_404(tool_id)
     data = request.get_json()
 
+    # 通用性校验前置（在任何字段赋值之前），避免改了一半再回滚。
+    # 取「本次传入值，否则沿用库中现值」作为生效值。
+    eff_universality = (data.get('universality', tool.universality) or '通用').strip()
+    eff_product_drawing_no = (data.get('product_drawing_no', tool.product_drawing_no) or '').strip()
+    if eff_universality == '专用' and not eff_product_drawing_no:
+        return jsonify({'code': 400, 'msg': '通用性为「专用」时必须填写专用产品图号'})
+
     old_level = tool.level
     old_storage_date = tool.storage_date
 
@@ -243,6 +257,10 @@ def update_tool(tool_id):
         tool.status = data['status']
     if 'remark' in data:
         tool.remark = data['remark'] or ''
+    if 'universality' in data:
+        tool.universality = (data['universality'] or '通用').strip()
+    if 'product_drawing_no' in data:
+        tool.product_drawing_no = (data['product_drawing_no'] or '').strip()
     if 'purchase_date' in data and data['purchase_date']:
         tool.purchase_date = datetime.strptime(data['purchase_date'], '%Y-%m-%d').date()
     elif 'purchase_date' in data and not data['purchase_date']:

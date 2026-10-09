@@ -92,6 +92,9 @@ class Tool(db.Model):
     next_inspection_date = db.Column(db.Date)
     remark = db.Column(db.Text)
     photo_path = db.Column(db.String(500))  # 照片文件路径
+    # 通用性：通用 / 专用。专用工装需登记所服务的产品图号（非工装自身图号）
+    universality = db.Column(db.String(10), default='通用')
+    product_drawing_no = db.Column(db.String(100))  # 专用产品图号（仅专用工装填写）
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     created_by = db.Column(db.String(80))  # 建档人
@@ -114,6 +117,8 @@ class Tool(db.Model):
             'next_inspection_date': self.next_inspection_date.strftime('%Y-%m-%d') if self.next_inspection_date else '',
             'remark': self.remark or '',
             'photo_path': self.photo_path or '',
+            'universality': self.universality or '通用',
+            'product_drawing_no': self.product_drawing_no or '',
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S'),
             'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else '',
             'created_by': self.created_by or ''

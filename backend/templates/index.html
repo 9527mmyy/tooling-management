@@ -783,6 +783,22 @@
                                                 <span v-else :class="{'empty': !currentTool.storage_date}">{{ currentTool.storage_date || '—' }}</span>
                                             </td>
                                         </tr>
+                                        <!-- 通用性 + 专用产品图号（选「专用」时右侧才出现并强制填写） -->
+                                        <tr>
+                                            <th>通用性</th>
+                                            <td :colspan="isDedicated ? 1 : 3">
+                                                <el-select v-if="editingTool" v-model="editingTool.universality" size="small" placeholder="请选择" style="width:100%">
+                                                    <el-option label="通用" value="通用"></el-option>
+                                                    <el-option label="专用" value="专用"></el-option>
+                                                </el-select>
+                                                <span v-else :class="{'empty': !currentTool.universality}">{{ currentTool.universality || '—' }}</span>
+                                            </td>
+                                            <th v-if="isDedicated">专用产品图号<span v-if="editingTool" class="req">*</span></th>
+                                            <td v-if="isDedicated">
+                                                <el-input v-if="editingTool" v-model="editingTool.product_drawing_no" size="small" placeholder="请输入该专用工装对应的产品图号"></el-input>
+                                                <span v-else :class="{'empty': !currentTool.product_drawing_no}">{{ currentTool.product_drawing_no || '—' }}</span>
+                                            </td>
+                                        </tr>
                                         <!-- Row 7: 完工资料（支持多份，全宽） -->
                                         <tr>
                                             <th>完工资料</th>
@@ -2060,6 +2076,12 @@ const app = createApp({
         const toolDialogVisible = ref(false);
         const toolDetailVisible = ref(false);
         const currentTool = ref(null);
+        // 通用性为「专用」时，详情页才显示「专用产品图号」并要求必填。
+        // 编辑态读 editingTool，查看态读 currentTool；两者都为空时按非专用处理。
+        const isDedicated = computed(() => {
+            const t = editingTool.value || currentTool.value;
+            return !!(t && t.universality === '专用');
+        });
         const uploadFileType = ref('入库资料');
         // 完工资料专用上传 file_type（原"尺寸检验报告"，保留旧类型显示兼容）
         const REPORT_FILE_TYPE = '完工资料';
@@ -2092,6 +2114,7 @@ const app = createApp({
                 id: null, code: '', drawing_no: '', name: '', spec: '',
                 category: '', level: 'A', factory: '', team: '', receiver: '',
                 status: '在库', purchase_date: '', storage_date: '', next_inspection_date: '', remark: '',
+                universality: '通用', product_drawing_no: '',
                 borrow_records: [], in_storage_records: [], inspections: [], attachments: []
             };
             editingTool.value = JSON.parse(JSON.stringify(currentTool.value));
@@ -2293,6 +2316,12 @@ const app = createApp({
             } else {
                 // 编辑模式：名称仍必填（保持原逻辑）
                 if (!editingTool.value.name) { ElMessage.warning('名称不能为空'); return; }
+            }
+            // 通用性为「专用」时，专用产品图号必填（新增、编辑两种模式都校验）
+            if (editingTool.value.universality === '专用'
+                && !(editingTool.value.product_drawing_no || '').trim()) {
+                ElMessage.error('请填写必填项：专用产品图号');
+                return;
             }
             saving.value = true;
             try {
@@ -3406,7 +3435,7 @@ const app = createApp({
             goToTools, goToReminder, quickInspectFromTodo,
             quickPickDialogVisible, quickPickList, quickPickTitle, quickPickId, openQuickPick, confirmQuickPick,
             globalSearch, globalSearchInput, fetchGlobalSuggestions, onGlobalSearchSelect, onGlobalSearchEnter,
-            tools, toolTotal, toolSearch, abSearch, isAbView, activeSearch, loadTools, toolsLoading, toolDialogVisible, toolDetailVisible, currentTool, toolForm, openToolDialog, saveTool, deleteTool, viewTool, openEditTool, backToTools, onToolRowClick, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail, editingTool, startEditTool, cancelEditTool, saveToolDetailInline, getMergedRecords, onRecordFileChange, recordFileRefs,
+            tools, toolTotal, toolSearch, abSearch, isAbView, activeSearch, loadTools, toolsLoading, toolDialogVisible, toolDetailVisible, currentTool, isDedicated, toolForm, openToolDialog, saveTool, deleteTool, viewTool, openEditTool, backToTools, onToolRowClick, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail, editingTool, startEditTool, cancelEditTool, saveToolDetailInline, getMergedRecords, onRecordFileChange, recordFileRefs,
             photoInputRef, onPhotoChange, deleteToolPhoto, onDialogPhotoChange, dialogDeletePhoto, dialogPhotoInput, saveAndUploadPhoto, saveAndUploadFile, onDetailFileChange, onDialogFileChange,
             showScrapped,
             borrows, borrowTotal, borrowSearch, loadBorrows, borrowDialogVisible, borrowForm, openBorrowDialog, submitBorrow, returnTool, openNewToolDialog, openReturnDialog, returnDialogVisible, returnRemark, returnCheck, confirmReturn,
