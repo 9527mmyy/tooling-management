@@ -1752,7 +1752,7 @@ const app = createApp({
         const procedureHtml = ref('');
         const procedureLoading = ref(false);
         const PROCEDURE_URL = '/static/docs/procedure.html';
-        const PROCEDURE_VER = '20261009d';  // 静态资源有 1 天缓存，改动正文后须同步改这个版本号
+        const PROCEDURE_VER = '20261009e';  // 静态资源有 1 天缓存，改动正文后须同步改这个版本号
         const loadProcedure = async () => {
             if (procedureHtml.value || procedureLoading.value) return;
             procedureLoading.value = true;
