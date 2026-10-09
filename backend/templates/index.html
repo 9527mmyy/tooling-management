@@ -9,7 +9,7 @@
     <script src="/static/libs/element-plus.min.js"></script>
     <script src="/static/libs/axios.min.js"></script>
     <script src="/static/libs/echarts.min.js"></script>
-    <script src="/static/js/i18n.js?v=20260717231841"></script>
+    <script src="/static/js/i18n.js?v=20261009115800"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -329,6 +329,10 @@
                     <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
                     <span data-i18n="工装台账">工装台账</span>
                 </div>
+                <div class="menu-item" :class="{active: currentPage==='ab-class'}" @click="currentPage='ab-class'">
+                    <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>
+                    <span data-i18n="A/B类">A/B类</span>
+                </div>
                 <div class="menu-item" :class="{active: currentPage==='borrows'}" @click="currentPage='borrows'">
                     <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
                     <span data-i18n="借用记录">借用记录</span>
@@ -575,28 +579,32 @@
             </div>
 
             <!-- 工装台账 -->
-            <div v-if="currentPage==='tools'">
+            <div v-if="currentPage==='tools' || currentPage==='ab-class'">
                 <div class="toolbar">
-                    <el-input v-model="toolSearch.keyword" placeholder="搜索编号/名称/图号/规格" style="width:250px" clearable @clear="loadTools" @keyup.enter="loadTools"></el-input>
-                    <el-select v-model="toolSearch.status" placeholder="状态筛选" style="width:140px" clearable @change="loadTools">
+                    <el-input v-model="activeSearch.keyword" placeholder="搜索编号/名称/图号/规格" style="width:250px" clearable @clear="loadTools" @keyup.enter="loadTools"></el-input>
+                    <el-select v-model="activeSearch.status" placeholder="状态筛选" style="width:140px" clearable @change="loadTools">
                         <el-option label="在库" value="在库"></el-option>
                         <el-option label="借出" value="借出"></el-option>
                         <el-option label="维修" value="维修"></el-option>
                         <el-option label="报废" value="报废"></el-option>
                     </el-select>
-                    <el-select v-model="toolSearch.factory" placeholder="分厂筛选" style="width:150px" clearable @change="toolSearch.team=''; loadTools()">
+                    <el-select v-model="activeSearch.factory" placeholder="分厂筛选" style="width:150px" clearable @change="activeSearch.team=''; loadTools()">
                         <el-option v-for="f in factories" :key="f" :label="f" :value="f"></el-option>
                     </el-select>
-                    <el-select v-model="toolSearch.team" placeholder="班组筛选" style="width:150px" clearable @change="loadTools">
+                    <el-select v-model="activeSearch.team" placeholder="班组筛选" style="width:150px" clearable @change="loadTools">
                         <el-option v-for="t in allTeams" :key="t" :label="t" :value="t"></el-option>
                     </el-select>
                     <el-button type="primary" @click="loadTools" data-i18n="搜索">搜索</el-button>
                     <el-switch v-model="showScrapped" active-text="显示报废" inactive-text="" @change="loadTools" style="margin-left:10px"></el-switch>
-                    <el-button type="success" @click="openNewToolPage()" v-if="canEdit" data-i18n="新建">新增工装</el-button>
+                    <el-button type="success" @click="openNewToolPage()" v-if="canEdit && !isAbView" data-i18n="新建">新增工装</el-button>
                     <el-button type="info" @click="exportTools" style="margin-left:4px" data-i18n="导出">导出Excel</el-button>
-                    <el-button type="warning" @click="downloadTemplate" v-if="canEdit" style="margin-left:4px" data-i18n="下载模板">下载模板</el-button>
-                    <el-button type="warning" @click="$refs.importFileInput.click()" v-if="canEdit" style="margin-left:4px" data-i18n="导入">导入Excel</el-button>
+                    <el-button type="warning" @click="downloadTemplate" v-if="canEdit && !isAbView" style="margin-left:4px" data-i18n="下载模板">下载模板</el-button>
+                    <el-button type="warning" @click="$refs.importFileInput.click()" v-if="canEdit && !isAbView" style="margin-left:4px" data-i18n="导入">导入Excel</el-button>
                     <input type="file" ref="importFileInput" accept=".xlsx,.xls" style="display:none" @change="importTools($event)">
+                </div>
+                <!-- A/B类视图说明：本页为只读筛选视图，A/B 类需周期检定，C 类不检定故不纳入 -->
+                <div v-if="isAbView" style="margin:0 0 12px 2px;font-size:12px;color:var(--c-text-3)">
+                    仅显示 A 类与 B 类工装（C 类不做周期检定，不在本视图内）；新增与编辑请到「工装台账」。
                 </div>
                 <!-- 加载骨架屏 -->
                 <div class="table-skeleton card" v-if="toolsLoading">
@@ -1708,7 +1716,7 @@ const app = createApp({
                 }
                 return '配置管理';
             }
-            const map = { dashboard: '首页概览', tools: '工装台账', borrows: '借用记录', inspections: '检定记录', 'inspection-reminder': '检定提醒', users: '用户管理', scraps: '报废审批', configs: '配置管理' };
+            const map = { dashboard: '首页概览', tools: '工装台账', 'ab-class': 'A/B类', borrows: '借用记录', inspections: '检定记录', 'inspection-reminder': '检定提醒', users: '用户管理', scraps: '报废审批', configs: '配置管理' };
             return map[currentPage.value] || '';
         });
 
@@ -2022,14 +2030,23 @@ const app = createApp({
         const tools = ref([]);
         const toolTotal = ref(0);
         const toolSearch = reactive({ keyword: '', status: '', factory: '', team: '', page: 1 });
+        // 「A/B类」视图：独立筛选状态，避免与工装台账的筛选条件互相污染
+        const abSearch = reactive({ keyword: '', status: '', factory: '', team: '', page: 1 });
+        const isAbView = computed(() => currentPage.value === 'ab-class');
+        // 当前生效的筛选状态。用 computed 从 currentPage 派生，
+        // 任何调用点在设置完 currentPage 后取值都会拿到正确的那个，无需手动同步。
+        const activeSearch = computed(() => isAbView.value ? abSearch : toolSearch);
         const showScrapped = ref(false);  // 默认不显示报废
 
         const toolsLoading = ref(false);
         const loadTools = async () => {
             toolsLoading.value = true;
             try {
-                const params = { ...toolSearch };
-                if (!showScrapped.value && !toolSearch.status) {
+                const s = activeSearch.value;
+                const params = { ...s };
+                // 「A/B类」视图固定只看 A、B 两类（不含 C）
+                if (isAbView.value) params.levels = 'A,B';
+                if (!showScrapped.value && !s.status) {
                     params.exclude_status = '报废';
                 } else if (showScrapped.value) {
                     delete params.exclude_status;
@@ -2078,6 +2095,7 @@ const app = createApp({
                 borrow_records: [], in_storage_records: [], inspections: [], attachments: []
             };
             editingTool.value = JSON.parse(JSON.stringify(currentTool.value));
+            markDetailReturn();  // 新增入口只在工装台账，返回时回工装台账
             currentPage.value = 'tool-detail';
             toolDetailEditing.value = true;
         };
@@ -2153,12 +2171,12 @@ const app = createApp({
                     ElMessage.success('删除成功'); 
                     loadTools(); 
                     loadStats();
-                    // 若从详情页删除当前工装，删除成功后关闭详情页并返回工装台账
+                    // 若从详情页删除当前工装，删除成功后关闭详情页并返回来源列表
                     if (currentPage.value === 'tool-detail' && currentTool.value && currentTool.value.id === tool.id) {
                         currentTool.value = null;
                         editingTool.value = null;
                         toolDetailEditing.value = false;
-                        currentPage.value = 'tools';
+                        currentPage.value = detailReturnPage.value;
                     }
                 } else {
                     ElMessage.error(res.data.msg || '删除失败');
@@ -2169,6 +2187,13 @@ const app = createApp({
             }
         };
 
+        // 从哪个列表页进入详情（工装台账 / A/B类），返回时回到原页面。
+        // 仅认这两个列表页；其余入口（首页待办、全局搜索等）保持原有行为回工装台账。
+        const detailReturnPage = ref('tools');
+        const markDetailReturn = () => {
+            detailReturnPage.value = (currentPage.value === 'ab-class') ? 'ab-class' : 'tools';
+        };
+
         // 点击工装行 → 进入详情页（查看模式）
         const viewTool = async (tool) => {
             try { 
@@ -2177,6 +2202,7 @@ const app = createApp({
                 isNewTool.value = false;  // 确保不是新增模式
                 toolDetailEditing.value = false;  // 查看模式
                 editingTool.value = null;
+                markDetailReturn();  // 记录来源页，返回时回到原列表
                 currentPage.value = 'tool-detail';  // 跳转到详情页
                 nextTick(syncDetailCardsHeight);  // 同步卡片高度
             } catch(e) { ElMessage.error('加载失败'); }
@@ -2193,13 +2219,13 @@ const app = createApp({
                     isNewTool.value = false;
                     editingTool.value = null;
                     toolDetailEditing.value = false;
-                    currentPage.value = 'tools';
+                    currentPage.value = detailReturnPage.value;
                 }).catch(() => {});
             } else {
                 isNewTool.value = false;
                 editingTool.value = null;
                 toolDetailEditing.value = false;
-                currentPage.value = 'tools';
+                currentPage.value = detailReturnPage.value;
             }
         };
 
@@ -3214,8 +3240,10 @@ const app = createApp({
         // 导出Excel（触发浏览器下载）
         const exportTools = async () => {
             try {
-                const params = { ...toolSearch };
-                if (!showScrapped.value && !toolSearch.status) params.exclude_status = '报废';
+                const s = activeSearch.value;
+                const params = { ...s };
+                if (isAbView.value) params.levels = 'A,B';
+                if (!showScrapped.value && !s.status) params.exclude_status = '报废';
                 else if (showScrapped.value) delete params.exclude_status;
                 const res = await api.get('/export/tools', { params, responseType: 'blob' });
                 const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -3296,7 +3324,7 @@ const app = createApp({
                 URL.revokeObjectURL(url);
             } catch(e) { ElMessage.error('导出失败'); }
         };
-        const onToolPageChange = (p) => { toolSearch.page = p; loadTools(); };
+        const onToolPageChange = (p) => { activeSearch.value.page = p; loadTools(); };
         const onBorrowPageChange = (p) => { borrowSearch.page = p; loadBorrows(); };
         const onInspectionPageChange = (p) => { inspectionSearch.page = p; loadInspections(); };
         const onReminderPageChange = (p) => { reminderPage = p; loadInspectionReminders(); };
@@ -3306,6 +3334,7 @@ const app = createApp({
         watch(currentPage, (page) => {
             if (page === 'dashboard') { loadStats(); loadTodoList(); loadRecentActivities(); loadMonthlyStats(); }
             if (page === 'tools') loadTools();
+            if (page === 'ab-class') loadTools();   // 与工装台账共用表格与加载逻辑，仅筛选不同
             if (page === 'borrows') loadBorrows();
             if (page === 'inspections') loadInspections();
             if (page === 'inspection-reminder') loadInspectionReminders();
@@ -3377,7 +3406,7 @@ const app = createApp({
             goToTools, goToReminder, quickInspectFromTodo,
             quickPickDialogVisible, quickPickList, quickPickTitle, quickPickId, openQuickPick, confirmQuickPick,
             globalSearch, globalSearchInput, fetchGlobalSuggestions, onGlobalSearchSelect, onGlobalSearchEnter,
-            tools, toolTotal, toolSearch, loadTools, toolsLoading, toolDialogVisible, toolDetailVisible, currentTool, toolForm, openToolDialog, saveTool, deleteTool, viewTool, openEditTool, backToTools, onToolRowClick, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail, editingTool, startEditTool, cancelEditTool, saveToolDetailInline, getMergedRecords, onRecordFileChange, recordFileRefs,
+            tools, toolTotal, toolSearch, abSearch, isAbView, activeSearch, loadTools, toolsLoading, toolDialogVisible, toolDetailVisible, currentTool, toolForm, openToolDialog, saveTool, deleteTool, viewTool, openEditTool, backToTools, onToolRowClick, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail, editingTool, startEditTool, cancelEditTool, saveToolDetailInline, getMergedRecords, onRecordFileChange, recordFileRefs,
             photoInputRef, onPhotoChange, deleteToolPhoto, onDialogPhotoChange, dialogDeletePhoto, dialogPhotoInput, saveAndUploadPhoto, saveAndUploadFile, onDetailFileChange, onDialogFileChange,
             showScrapped,
             borrows, borrowTotal, borrowSearch, loadBorrows, borrowDialogVisible, borrowForm, openBorrowDialog, submitBorrow, returnTool, openNewToolDialog, openReturnDialog, returnDialogVisible, returnRemark, returnCheck, confirmReturn,

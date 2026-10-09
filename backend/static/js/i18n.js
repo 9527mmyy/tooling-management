@@ -20,6 +20,7 @@
         // 侧边栏菜单
         '首页概览': { en: 'Dashboard' },
         '工装台账': { en: 'Tooling' },
+        'A/B类': { en: 'A/B Class' },
         '借用记录': { en: 'Borrowings' },
         '检定记录': { en: 'Inspections' },
         '检定提醒': { en: 'Reminders' },

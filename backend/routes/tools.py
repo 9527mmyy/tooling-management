@@ -33,6 +33,8 @@ def list_tools():
     factory = request.args.get('factory', '').strip()
     team = request.args.get('team', '').strip()
     exclude_status = request.args.get('exclude_status', '').strip()
+    # 等级筛选：逗号分隔多值，如 levels=A,B（供「A/B类」视图复用本接口）
+    levels = request.args.get('levels', '').strip()
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 20))
 
@@ -56,6 +58,10 @@ def list_tools():
     if exclude_status:
         # 排除指定状态（如'报废'）
         query = query.filter(Tool.status != exclude_status)
+    if levels:
+        lv = [x.strip() for x in levels.split(',') if x.strip()]
+        if lv:
+            query = query.filter(Tool.level.in_(lv))
 
     pagination = query.order_by(Tool.id.desc()).paginate(
         page=page, per_page=per_page, error_out=False

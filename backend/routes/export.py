@@ -64,6 +64,8 @@ def export_tools():
     status = request.args.get('status', '').strip()
     factory = request.args.get('factory', '').strip()
     team = request.args.get('team', '').strip()
+    # 等级筛选：逗号分隔多值，如 levels=A,B（与列表接口保持一致，供「A/B类」视图导出）
+    levels = request.args.get('levels', '').strip()
 
     query = Tool.query
     if keyword:
@@ -81,6 +83,10 @@ def export_tools():
         query = query.filter(Tool.factory.contains(factory))
     if team:
         query = query.filter(Tool.team.contains(team))
+    if levels:
+        lv = [x.strip() for x in levels.split(',') if x.strip()]
+        if lv:
+            query = query.filter(Tool.level.in_(lv))
 
     tools = query.order_by(Tool.id.desc()).all()
 
