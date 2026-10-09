@@ -256,6 +256,41 @@
         /* 必填字段标记（新建态显示） */
         .tool-info-table .req { color: var(--c-danger); margin-left: 2px; font-weight: 700; }
 
+        /* ── 制度文件页（工装管理程序）── */
+        .doc-card { padding: 28px 32px 32px; }
+        .doc { color: var(--c-text); font-size: 13.5px; line-height: 1.75; }
+        .doc-head { padding-bottom: 16px; border-bottom: 2px solid var(--c-primary); margin-bottom: 22px; }
+        .doc-head h1 { margin: 0 0 6px; font-size: 22px; font-weight: 700; letter-spacing: .5px; }
+        .doc-sub { margin: 0 0 12px; color: var(--c-text-3); font-size: 12.5px; }
+        .doc-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+        .doc-tag { display: inline-block; padding: 2px 10px; font-size: 12px; color: var(--c-primary); background: rgba(64,158,255,.09); border: 1px solid rgba(64,158,255,.25); border-radius: var(--radius-pill); }
+        .doc-sign { margin: 0; font-size: 12.5px; color: var(--c-text-2); }
+        .doc section { margin-bottom: 26px; }
+        .doc h2 { font-size: 16px; font-weight: 700; margin: 0 0 12px; padding-left: 10px; border-left: 3px solid var(--c-primary); line-height: 1.3; }
+        .doc h3 { font-size: 13.5px; font-weight: 700; margin: 16px 0 6px; }
+        .doc h3::before { content: '▍'; color: var(--c-primary); margin-right: 5px; font-size: 12px; }
+        .doc p { margin: 0 0 8px; }
+        .doc ul { margin: 0 0 8px; padding-left: 20px; }
+        .doc li { margin-bottom: 5px; }
+        .doc-quote { margin: 0; padding: 12px 16px; background: #f7f9fc; border-left: 3px solid #c6d4e6; border-radius: 0 6px 6px 0; color: var(--c-text-2); }
+        .doc-note { margin: 12px 0 0; padding: 10px 14px; background: rgba(64,158,255,.07); border: 1px dashed rgba(64,158,255,.35); border-radius: 6px; font-size: 12.5px; color: var(--c-text-2); }
+        .doc-dim { color: var(--c-text-3); font-size: 12.5px; }
+        .doc-strong { font-weight: 700; color: var(--c-primary); }
+        .doc-center { text-align: center; }
+        .doc-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 4px 0 8px; }
+        .doc-table th { background: #f5f7fa; color: #4b5563; font-weight: 600; text-align: left; padding: 9px 12px; border: 1px solid #e5e7eb; }
+        .doc-table td { padding: 9px 12px; border: 1px solid #e5e7eb; vertical-align: top; }
+        .doc-table tbody tr:nth-child(even) td { background: #fcfcfd; }
+        .doc-table tbody tr:hover td { background: #f7faff; }
+        .doc-flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 18px; padding: 0; list-style: none; }
+        .doc-flow li { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; background: #f5f7fa; border: 1px solid #e5e7eb; border-radius: var(--radius-pill); font-size: 12px; color: var(--c-text-2); }
+        .doc-flow li:not(:last-child)::after { content: '→'; margin-left: 3px; color: #c0c4cc; }
+        .doc-flow .fl-no { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: var(--c-primary); color: #fff; font-size: 10px; flex-shrink: 0; }
+        .doc-loading { padding: 60px 0; text-align: center; color: var(--c-text-3); font-size: 13px; }
+        .doc-foot { margin-top: 26px; padding-top: 14px; border-top: 1px solid #e5e7eb; color: var(--c-text-3); font-size: 12px; }
+        /* 侧边栏底部文字链接（关于 / 工装管理程序）的可聚焦样式 */
+        .sidebar-version .sv-link:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; border-radius: var(--radius-sm); }
+
         /* 完工资料行（支持多份资料） */
         .tool-info-table .report-cell { padding: 10px 12px; }
         /* 由借用记录维护的字段：编辑态统一灰色禁用 + 来源提示 */
@@ -401,10 +436,11 @@
                     </el-tooltip>
                 </div>
             </div>
-            <!-- 版本号（点击查看关于） -->
-            <div class="sidebar-version" @click="aboutDialogVisible=true" role="button" tabindex="0" @keyup.enter="aboutDialogVisible=true">
+            <!-- 版本号 / 关于 / 制度文件（工装管理程序） -->
+            <div class="sidebar-version">
                 <span>v{{ about.version }}</span>
-                <span class="sv-link">关于</span>
+                <span class="sv-link" @click="aboutDialogVisible=true" role="button" tabindex="0" @keyup.enter="aboutDialogVisible=true">关于</span>
+                <span class="sv-link" @click="currentPage='procedure'" role="button" tabindex="0" @keyup.enter="currentPage='procedure'">工装管理程序</span>
             </div>
         </div>
 
@@ -1521,6 +1557,14 @@
             </el-dialog>
 
             <!-- 配置管理页（二级菜单） -->
+            <!-- 制度文件：工装管理程序（内容来自 static/docs/procedure.html，按需加载后缓存） -->
+            <div v-if="currentPage==='procedure'">
+                <div class="card doc-card">
+                    <div v-if="procedureHtml" v-html="procedureHtml"></div>
+                    <div v-else class="doc-loading">{{ procedureLoading ? '制度文件加载中…' : '制度文件暂不可用，请刷新重试' }}</div>
+                </div>
+            </div>
+
             <div v-if="currentPage==='configs'" class="page-content">
                 <!-- 子页面1：工装类别 -->
                 <div v-show="currentSubPage==='config-category'">
@@ -1702,6 +1746,28 @@ const app = createApp({
             } catch (e) { /* 关于信息不影响主流程，静默失败 */ }
         };
 
+        // 制度文件《工装管理程序》：正文放在 static/docs/procedure.html，本页按需拉取。
+        // 用原生 fetch —— api 实例的 baseURL 是 /api，取静态文件不合适。
+        // 拉取一次后缓存在 procedureHtml，来回切页面不重复请求。
+        const procedureHtml = ref('');
+        const procedureLoading = ref(false);
+        const PROCEDURE_URL = '/static/docs/procedure.html';
+        const PROCEDURE_VER = '20261009b';  // 静态资源有 1 天缓存，改动正文后须同步改这个版本号
+        const loadProcedure = async () => {
+            if (procedureHtml.value || procedureLoading.value) return;
+            procedureLoading.value = true;
+            try {
+                const r = await fetch(`${PROCEDURE_URL}?v=${PROCEDURE_VER}`, { credentials: 'same-origin' });
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                procedureHtml.value = await r.text();
+            } catch (e) {
+                console.error('制度文件加载失败:', e);
+                ElMessage.error('制度文件加载失败，请刷新重试');
+            } finally {
+                procedureLoading.value = false;
+            }
+        };
+
         const isAdmin = computed(() => currentUser.role === 'admin');
         const canEdit = computed(() => currentUser.permissions?.can_edit ?? false);
         const canDelete = computed(() => currentUser.permissions?.can_delete ?? false);
@@ -1732,7 +1798,7 @@ const app = createApp({
                 }
                 return '配置管理';
             }
-            const map = { dashboard: '首页概览', tools: '工装台账', 'ab-class': 'A/B工装', borrows: '借用记录', inspections: '检定记录', 'inspection-reminder': '检定提醒', users: '用户管理', scraps: '报废审批', configs: '配置管理' };
+            const map = { dashboard: '首页概览', tools: '工装台账', 'ab-class': 'A/B工装', borrows: '借用记录', inspections: '检定记录', 'inspection-reminder': '检定提醒', users: '用户管理', scraps: '报废审批', configs: '配置管理', procedure: '工装管理程序' };
             return map[currentPage.value] || '';
         });
 
@@ -3382,6 +3448,7 @@ const app = createApp({
             if (page === 'inspection-reminder') loadInspectionReminders();
             if (page === 'users') loadUsers();
             if (page === 'configs') loadConfigs();
+            if (page === 'procedure') loadProcedure();   // 制度文件正文按需加载
         });
 
         // 子页面切换时加载对应数据
@@ -3441,6 +3508,7 @@ const app = createApp({
         return {
             loggedIn, loginLoading, loginForm, currentUser, currentPage, saving, isAdmin, pageTitle,
             about, aboutDialogVisible,
+            procedureHtml, procedureLoading, loadProcedure,
             canEdit, canDelete, canApproveScrap, canManageUsers, canManageConfig, canReturnBorrow, canExport, isNewTool, openNewToolPage,
             stats, loadStats, monthlyChart, loadMonthlyStats, trendMode, pct,
             statusChart, todoList, loadTodoList, recentActivities, loadRecentActivities, viewToolById,
