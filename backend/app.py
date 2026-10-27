@@ -5,7 +5,13 @@ import os
 from datetime import timedelta
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
-CORS(app, supports_credentials=True, origins='*')
+# CORS 收紧（2026-10-27 安全加固）：原为 origins='*' + supports_credentials=True，
+# 任何网站都能带凭证跨源读取。当前为前后端同源部署，跨域仅需支持本机（含桌面版 127.0.0.1:8765）；
+# 同源访问不受 CORS 影响；如后续有内网跨域需求，在此白名单追加来源即可。
+CORS(app, supports_credentials=True, origins=[
+    'http://localhost:5000', 'http://127.0.0.1:5000',
+    'http://localhost:8765', 'http://127.0.0.1:8765',
+])
 Compress(app)  # 启用gzip压缩
 app.url_map.strict_slashes = False  # 允许尾部斜杠
 
@@ -59,6 +65,31 @@ def log_request():
     from datetime import datetime
     if request.path.startswith('/api/'):
         print(f'[{datetime.now().strftime("%H:%M:%S")}] {request.method} {request.path}')
+
+# CSRF 来源校验（2026-10-27 安全加固）：
+# 会话基于 Cookie，无 CSRF Token。对写操作校验 Origin/Referer，阻止跨站请求伪造。
+# · 无 Origin/Referer（桌面版、curl、内网脚本等非浏览器客户端）→ 放行
+# · 与请求 Host 同源 → 放行（浏览器同源写请求会携带 Origin）
+# · hostname 为 localhost/127.0.0.1 → 放行（本机桌面版 / 本地调试）
+# · 其余跨站来源 → 拒绝
+@app.before_request
+def csrf_protect():
+    from urllib.parse import urlparse
+    from flask import jsonify, request
+    if request.method not in ('POST', 'PUT', 'DELETE', 'PATCH'):
+        return None
+    src = request.headers.get('Origin') or request.headers.get('Referer')
+    if not src:
+        return None  # 非浏览器客户端，无法校验来源
+    try:
+        o = urlparse(src)
+    except ValueError:
+        return jsonify({'code': 403, 'msg': '非法请求来源'}), 403
+    if o.netloc == request.host:
+        return None  # 同源
+    if o.hostname in ('localhost', '127.0.0.1'):
+        return None  # 本机
+    return jsonify({'code': 403, 'msg': '跨站请求被拒绝'}), 403
 
 from models import db
 db.init_app(app)
