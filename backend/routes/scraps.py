@@ -1,9 +1,44 @@
-﻿from flask import Blueprint, request, jsonify, session
-from models import db, Tool, ScrapRequest, BorrowRecord, Inspection
+﻿from flask import Blueprint, request, jsonify, session, current_app
+from models import db, Tool, ScrapRequest, BorrowRecord, Inspection, Attachment
 from routes.auth import login_required, admin_required, scrap_approve_required, add_log
 from datetime import datetime
+import os
 
 scraps_bp = Blueprint('scraps', __name__)
+
+
+def _delete_tool_resources(tool):
+    """删除工装及其全部关联资源（2026-10-27 修复7）：
+    与 routes/tools.py delete_tool 的清理逻辑保持一致——
+    子表记录（入库/借用）、附件记录与磁盘文件、照片文件，最后删除工装本体。"""
+    # 先删除关联的子表记录（入库/借用），避免外键约束导致删除失败
+    for rec in tool.in_storage_records:
+        db.session.delete(rec)
+    for br in tool.borrow_records:
+        db.session.delete(br)
+    # 删除关联附件记录与磁盘文件
+    for att in tool.attachments:
+        if os.path.exists(att.file_path):
+            try:
+                os.remove(att.file_path)
+            except OSError:
+                pass
+        db.session.delete(att)
+    # 删除照片文件
+    if tool.photo_path:
+        photo_path = os.path.join(current_app.config['UPLOAD_FOLDER'], tool.photo_path)
+        if os.path.exists(photo_path):
+            try:
+                os.remove(photo_path)
+            except OSError:
+                pass
+        photo_dir = os.path.dirname(photo_path)
+        if os.path.exists(photo_dir) and not os.listdir(photo_dir):
+            try:
+                os.rmdir(photo_dir)
+            except OSError:
+                pass
+    db.session.delete(tool)
 
 
 @scraps_bp.route('/', methods=['POST'])
@@ -27,7 +62,7 @@ def submit_scrap():
 
     if role == 'admin':
         if request_type == 'delete':
-            # admin 直接删除
+            # admin 直接删除（与 tools.py delete_tool 一致的完整清理）
             active_borrow = BorrowRecord.query.filter_by(
                 tool_id=tool_id, status='借用中'
             ).first()
@@ -37,9 +72,9 @@ def submit_scrap():
             active_inspection = Inspection.query.filter_by(tool_id=tool_id).first()
             if active_inspection:
                 return jsonify({'code': 400, 'msg': '该工装有检定记录，请先删除检定记录后再删除工装'})
-            db.session.delete(tool)
-            db.session.commit()
             add_log('删除工装', f'编号 {tool.code}，名称 {tool.name}')
+            _delete_tool_resources(tool)
+            db.session.commit()
             return jsonify({'code': 200, 'msg': '工装已删除'})
         else:
             # admin 直接报废
@@ -120,7 +155,7 @@ def approve_request(req_id):
     req.reviewer_id = session['user_id']
 
     if req.request_type == 'delete':
-        # 删除操作
+        # 删除操作（与 tools.py delete_tool 一致的完整清理）
         active_borrow = BorrowRecord.query.filter_by(
             tool_id=tool.id, status='借用中'
         ).first()
@@ -130,9 +165,9 @@ def approve_request(req_id):
         active_inspection = Inspection.query.filter_by(tool_id=tool.id).first()
         if active_inspection:
             return jsonify({'code': 400, 'msg': '该工装有检定记录，请先删除检定记录后再删除工装'})
-        db.session.delete(tool)
-        db.session.commit()
         add_log('审批删除', f'批准删除工装 编号 {tool.code}，名称 {tool.name}，申请人 {req.requester.username}')
+        _delete_tool_resources(tool)
+        db.session.commit()
         return jsonify({'code': 200, 'msg': '删除申请已批准，工装已删除'})
     else:
         # 报废操作
