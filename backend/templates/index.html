@@ -47,6 +47,10 @@
             --ease: cubic-bezier(.22,.61,.36,1);
         }
         body { font-family: var(--font); background: var(--c-bg); color: var(--c-text); line-height: 1.5; }
+        /* Vue 挂载完成前整屏隐藏：否则浏览器会先按原始 HTML 画出登录框，Vue 接管后才换掉，表现为「闪一下登录页」。
+           挂载前的空档由 body 下的 #boot-cover 铺品牌色遮住（该层不归 Vue 管，挂载后移除）。 */
+        [v-cloak] { display: none !important; }
+        #boot-cover { position: fixed; inset: 0; z-index: 9998; background: #1e3a8a; }
         .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--grad-brand); }
         /* 启动占位：登录态确认前铺满屏幕，替代原先直接露出登录表单（桌面版会闪一下登录页） */
         .boot-splash { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: var(--grad-brand); animation: bootFade .35s var(--ease) both; }
@@ -58,6 +62,9 @@
         .boot-hint { color: rgba(255,255,255,.72); font-size: 13px; }
         @keyframes bootSlide { 0% { transform: translateX(-110%); } 100% { transform: translateX(300%); } }
         @keyframes bootFade { from { opacity: 0; } to { opacity: 1; } }
+        /* 启动占位淡出：露出下面的主界面，避免硬切 */
+        .bootfade-leave-active { transition: opacity .28s var(--ease); }
+        .bootfade-leave-to { opacity: 0; }
         .login-box { background: var(--c-surface); border-radius: var(--radius-lg); padding: 40px; width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
         .login-title { text-align: center; font-size: 24px; font-weight: bold; color: var(--c-text); margin-bottom: 30px; }
         .login-footer { text-align: center; font-size: 12px; color: var(--c-text-3); margin-top: 4px; letter-spacing: .2px; }
@@ -358,20 +365,24 @@
     </style>
 </head>
 <body>
-<div id="app">
-    <!-- 启动占位：登录态确认前显示，避免桌面版闪一下登录页 -->
-    <div class="boot-splash" v-if="booting">
-        <div class="boot-logo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 7l-8-4-8 4 8 4 8-4z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/>
-            </svg>
+<!-- 挂载前遮罩：盖住「Vue 尚未接管」的空档，避免露出未编译的登录框 -->
+<div id="boot-cover"></div>
+<div id="app" v-cloak>
+    <!-- 启动占位：覆盖在主界面之上，等登录态确认后淡出，避免已登录时闪一下登录表单 -->
+    <transition name="bootfade">
+        <div class="boot-splash" v-if="booting">
+            <div class="boot-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 7l-8-4-8 4 8 4 8-4z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/>
+                </svg>
+            </div>
+            <div class="boot-name">工装管理系统</div>
+            <div class="boot-bar"><i></i></div>
+            <div class="boot-hint">正在载入…</div>
         </div>
-        <div class="boot-name">工装管理系统</div>
-        <div class="boot-bar"><i></i></div>
-        <div class="boot-hint">正在载入…</div>
-    </div>
+    </transition>
     <!-- 登录页 -->
-    <div class="login-container" v-else-if="!loggedIn">
+    <div class="login-container" v-if="!loggedIn">
         <div class="login-box">
             <div class="login-title" data-i18n="工装管理系统">工装管理系统</div>
             <el-form @submit.prevent="handleLogin">
@@ -3624,8 +3635,16 @@ const app = createApp({
         };
 
         onMounted(async () => {
+            const bootT0 = performance.now();
+            const cover = document.getElementById('boot-cover');   // 挂载前的品牌色遮罩
+            if (cover) cover.remove();                              // 此时启动占位已渲染，同色无缝
             try { await checkSession(); }   // 优先检查已有 session，再加载其他数据
-            finally { booting.value = false; }   // 无论有没有登录态，先撤启动占位
+            finally {
+                // 启动动画至少播 600ms，避免本地直连时一闪而过；随后交给 CSS 淡出
+                const rest = 600 - (performance.now() - bootT0);
+                if (rest > 0) await new Promise(r => setTimeout(r, rest));
+                booting.value = false;
+            }
             loadAbout();
             // 监听 api 拦截器发出的 401 登出事件
             window.addEventListener('app:logout', () => { loggedIn.value = false; currentPage.value = 'dashboard'; });
