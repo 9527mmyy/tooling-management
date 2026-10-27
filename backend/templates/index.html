@@ -48,6 +48,16 @@
         }
         body { font-family: var(--font); background: var(--c-bg); color: var(--c-text); line-height: 1.5; }
         .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--grad-brand); }
+        /* 启动占位：登录态确认前铺满屏幕，替代原先直接露出登录表单（桌面版会闪一下登录页） */
+        .boot-splash { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: var(--grad-brand); animation: bootFade .35s var(--ease) both; }
+        .boot-logo { width: 64px; height: 64px; border-radius: 16px; background: rgba(255,255,255,.16); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+        .boot-logo svg { width: 32px; height: 32px; }
+        .boot-name { color: #fff; font-size: 18px; font-weight: 600; letter-spacing: 1px; }
+        .boot-bar { width: 180px; height: 4px; border-radius: 4px; background: rgba(255,255,255,.22); overflow: hidden; }
+        .boot-bar i { display: block; width: 38%; height: 100%; border-radius: 4px; background: #fff; animation: bootSlide 1.1s ease-in-out infinite; }
+        .boot-hint { color: rgba(255,255,255,.72); font-size: 13px; }
+        @keyframes bootSlide { 0% { transform: translateX(-110%); } 100% { transform: translateX(300%); } }
+        @keyframes bootFade { from { opacity: 0; } to { opacity: 1; } }
         .login-box { background: var(--c-surface); border-radius: var(--radius-lg); padding: 40px; width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
         .login-title { text-align: center; font-size: 24px; font-weight: bold; color: var(--c-text); margin-bottom: 30px; }
         .login-footer { text-align: center; font-size: 12px; color: var(--c-text-3); margin-top: 4px; letter-spacing: .2px; }
@@ -349,8 +359,19 @@
 </head>
 <body>
 <div id="app">
+    <!-- 启动占位：登录态确认前显示，避免桌面版闪一下登录页 -->
+    <div class="boot-splash" v-if="booting">
+        <div class="boot-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 7l-8-4-8 4 8 4 8-4z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/>
+            </svg>
+        </div>
+        <div class="boot-name">工装管理系统</div>
+        <div class="boot-bar"><i></i></div>
+        <div class="boot-hint">正在载入…</div>
+    </div>
     <!-- 登录页 -->
-    <div class="login-container" v-if="!loggedIn">
+    <div class="login-container" v-else-if="!loggedIn">
         <div class="login-box">
             <div class="login-title" data-i18n="工装管理系统">工装管理系统</div>
             <el-form @submit.prevent="handleLogin">
@@ -1761,6 +1782,7 @@ const api = axios.create({
 const app = createApp({
     setup() {
         const loggedIn = ref(false);
+        const booting = ref(true);   // 登录态确认前保持启动占位，避免闪登录页
         const loginLoading = ref(false);
         const loginForm = reactive({ user_no: '', password: '' });
         const currentUser = reactive({ username: '', role: '' });
@@ -3601,15 +3623,16 @@ const app = createApp({
             } catch { /* 未登录，忽略 */ }
         };
 
-        onMounted(() => {
-            checkSession();  // 优先检查已有 session，再加载其他数据
+        onMounted(async () => {
+            try { await checkSession(); }   // 优先检查已有 session，再加载其他数据
+            finally { booting.value = false; }   // 无论有没有登录态，先撤启动占位
             loadAbout();
             // 监听 api 拦截器发出的 401 登出事件
             window.addEventListener('app:logout', () => { loggedIn.value = false; currentPage.value = 'dashboard'; });
         });
 
         return {
-            loggedIn, loginLoading, loginForm, currentUser, currentPage, saving, isAdmin, pageTitle,
+            loggedIn, booting, loginLoading, loginForm, currentUser, currentPage, saving, isAdmin, pageTitle,
             about, aboutDialogVisible,
             procedureHtml, procedureLoading, loadProcedure,
             canEdit, canDelete, canApproveScrap, canManageUsers, canManageConfig, canReturnBorrow, canExport, isNewTool, openNewToolPage,
