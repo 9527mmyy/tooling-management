@@ -47,13 +47,13 @@
             --ease: cubic-bezier(.22,.61,.36,1);
         }
         body { font-family: var(--font); background: var(--c-bg); color: var(--c-text); line-height: 1.5; }
-        /* Vue 挂载完成前整屏隐藏：否则浏览器会先按原始 HTML 画出登录框，Vue 接管后才换掉，表现为「闪一下登录页」。
-           挂载前的空档由 body 下的 #boot-cover 铺品牌色遮住（该层不归 Vue 管，挂载后移除）。 */
+        /* Vue 挂载完成前整屏隐藏：否则浏览器会先按原始 HTML 画出登录框，Vue 接管后才换掉，表现为「闪一下登录页」。 */
         [v-cloak] { display: none !important; }
-        #boot-cover { position: fixed; inset: 0; z-index: 9998; background: #1e3a8a; }
         .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--grad-brand); }
-        /* 启动占位：登录态确认前铺满屏幕，替代原先直接露出登录表单（桌面版会闪一下登录页） */
-        .boot-splash { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: var(--grad-brand); animation: bootFade .35s var(--ease) both; }
+        /* 启动画面：静态 HTML + 纯 CSS 动画，不归 Vue 管、不等 Element Plus 加载。
+           HTML 一到浏览器就立刻绘制 —— 既彻底挡住登录框，也让动画在首帧就出现，不用干等 1~2 秒。 */
+        .boot-splash { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: var(--grad-brand); transition: opacity .3s var(--ease); }
+        .boot-splash--out { opacity: 0; pointer-events: none; }
         .boot-logo { width: 64px; height: 64px; border-radius: 16px; background: rgba(255,255,255,.16); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
         .boot-logo svg { width: 32px; height: 32px; }
         .boot-name { color: #fff; font-size: 18px; font-weight: 600; letter-spacing: 1px; }
@@ -61,10 +61,6 @@
         .boot-bar i { display: block; width: 38%; height: 100%; border-radius: 4px; background: #fff; animation: bootSlide 1.1s ease-in-out infinite; }
         .boot-hint { color: rgba(255,255,255,.72); font-size: 13px; }
         @keyframes bootSlide { 0% { transform: translateX(-110%); } 100% { transform: translateX(300%); } }
-        @keyframes bootFade { from { opacity: 0; } to { opacity: 1; } }
-        /* 启动占位淡出：露出下面的主界面，避免硬切 */
-        .bootfade-leave-active { transition: opacity .28s var(--ease); }
-        .bootfade-leave-to { opacity: 0; }
         .login-box { background: var(--c-surface); border-radius: var(--radius-lg); padding: 40px; width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
         .login-title { text-align: center; font-size: 24px; font-weight: bold; color: var(--c-text); margin-bottom: 30px; }
         .login-footer { text-align: center; font-size: 12px; color: var(--c-text-3); margin-top: 4px; letter-spacing: .2px; }
@@ -73,6 +69,9 @@
         .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
         .sidebar-brand .logo { width: 30px; height: 30px; color: var(--c-primary); flex-shrink: 0; }
         .sidebar-brand .name { font-size: 16px; font-weight: 700; letter-spacing: .5px; }
+        /* 单机版（桌面窗口）：标题栏已经写了「工装管理系统」，侧边栏不再重复一次，直接收起品牌区 */
+        .is-desktop .sidebar-brand { display: none; }
+        .is-desktop .sidebar-menu { padding-top: 14px; }
         .tool-photo { border-radius: var(--radius-sm); }
         .tool-row-clickable { cursor: pointer !important; }
         .tool-row-clickable:hover { background-color: var(--c-fill) !important; }
@@ -365,22 +364,32 @@
     </style>
 </head>
 <body>
-<!-- 挂载前遮罩：盖住「Vue 尚未接管」的空档，避免露出未编译的登录框 -->
-<div id="boot-cover"></div>
+<!-- 启动画面：静态 HTML + 纯 CSS，不归 Vue 管。HTML 一解析就画出来，
+     既挡住登录框（桌面端免登录，不该让用户看到），也让动画在首帧出现而不是等 1~2 秒。 -->
+<div id="boot-splash" class="boot-splash">
+    <div class="boot-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 7l-8-4-8 4 8 4 8-4z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/>
+        </svg>
+    </div>
+    <div class="boot-name">工装管理系统</div>
+    <div class="boot-bar"><i></i></div>
+    <div class="boot-hint">正在载入…</div>
+</div>
+<script>
+/* 单机版由启动器带 ?app=1 打开：窗口标题栏已显示系统名，侧边栏品牌区收起，避免重复 */
+if (/[?&]app=1(?:&|$)/.test(location.search)) {
+    document.documentElement.classList.add('is-desktop');
+}
+/* 兜底：万一 Vue 侧脚本出错没走到移除逻辑，8 秒后自行淡出，避免永远卡在启动画面 */
+setTimeout(function () {
+    var el = document.getElementById('boot-splash');
+    if (!el || el.classList.contains('boot-splash--out')) return;
+    el.classList.add('boot-splash--out');
+    setTimeout(function () { el.remove(); }, 400);
+}, 8000);
+</script>
 <div id="app" v-cloak>
-    <!-- 启动占位：覆盖在主界面之上，等登录态确认后淡出，避免已登录时闪一下登录表单 -->
-    <transition name="bootfade">
-        <div class="boot-splash" v-if="booting">
-            <div class="boot-logo">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20 7l-8-4-8 4 8 4 8-4z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/>
-                </svg>
-            </div>
-            <div class="boot-name">工装管理系统</div>
-            <div class="boot-bar"><i></i></div>
-            <div class="boot-hint">正在载入…</div>
-        </div>
-    </transition>
     <!-- 登录页 -->
     <div class="login-container" v-if="!loggedIn">
         <div class="login-box">
@@ -1793,7 +1802,14 @@ const api = axios.create({
 const app = createApp({
     setup() {
         const loggedIn = ref(false);
-        const booting = ref(true);   // 登录态确认前保持启动占位，避免闪登录页
+        // 启动画面是 body 下的静态层（#boot-splash），不归 Vue 管：
+        // HTML 一解析就画出来，这里只负责在登录态确认后把它淡出移除。
+        const dismissBoot = () => {
+            const el = document.getElementById('boot-splash');
+            if (!el || el.classList.contains('boot-splash--out')) return;
+            el.classList.add('boot-splash--out');
+            setTimeout(() => el.remove(), 400);
+        };
         const loginLoading = ref(false);
         const loginForm = reactive({ user_no: '', password: '' });
         const currentUser = reactive({ username: '', role: '' });
@@ -3636,14 +3652,12 @@ const app = createApp({
 
         onMounted(async () => {
             const bootT0 = performance.now();
-            const cover = document.getElementById('boot-cover');   // 挂载前的品牌色遮罩
-            if (cover) cover.remove();                              // 此时启动占位已渲染，同色无缝
             try { await checkSession(); }   // 优先检查已有 session，再加载其他数据
             finally {
-                // 启动动画至少播 600ms，避免本地直连时一闪而过；随后交给 CSS 淡出
+                // 启动动画至少播 600ms，避免本地直连时一闪而过；随后淡出露出主界面
                 const rest = 600 - (performance.now() - bootT0);
                 if (rest > 0) await new Promise(r => setTimeout(r, rest));
-                booting.value = false;
+                dismissBoot();
             }
             loadAbout();
             // 监听 api 拦截器发出的 401 登出事件
@@ -3651,7 +3665,7 @@ const app = createApp({
         });
 
         return {
-            loggedIn, booting, loginLoading, loginForm, currentUser, currentPage, saving, isAdmin, pageTitle,
+            loggedIn, loginLoading, loginForm, currentUser, currentPage, saving, isAdmin, pageTitle,
             about, aboutDialogVisible,
             procedureHtml, procedureLoading, loadProcedure,
             canEdit, canDelete, canApproveScrap, canManageUsers, canManageConfig, canReturnBorrow, canExport, isNewTool, openNewToolPage,
