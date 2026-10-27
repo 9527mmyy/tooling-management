@@ -112,3 +112,6 @@ t3check.html
 temp_login_v2.png
 temp_*.png
 *_shot_*.png
+
+# Playwright CLI 测试产物（截图/快照/控制台日志）
+.playwright-cli/
