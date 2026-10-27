@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, session
 from models import db, Tool, BorrowRecord
-from routes.auth import login_required, return_required, add_log
+from routes.auth import login_required, edit_required, return_required, add_log
 from datetime import datetime
 
 borrows_bp = Blueprint('borrows', __name__)
@@ -44,9 +44,9 @@ def list_borrows():
 
 
 @borrows_bp.route('/', methods=['POST'])
-@login_required
+@edit_required
 def create_borrow():
-    """借用工装"""
+    """借用工装（admin/employee；viewer 无权借用）"""
     data = request.get_json()
     tool_id = data.get('tool_id')
     borrower = data.get('borrower', session.get('username', '')).strip()
