@@ -1420,11 +1420,11 @@ setTimeout(function () {
                     <el-table-column prop="team" label="使用班组" width="90"></el-table-column>
                     <el-table-column prop="receiver" label="领用人" width="90"></el-table-column>
                     <el-table-column prop="borrower" label="借用人" width="90"></el-table-column>
-                    <el-table-column prop="borrow_time" label="借用时间" width="180">
-                        <template #default="scope">{{ fmtDate(scope.row.borrow_time) }}</template>
+                    <el-table-column prop="borrow_time" label="借用时间" width="160">
+                        <template #default="scope">{{ fmtDateTime(scope.row.borrow_time) }}</template>
                     </el-table-column>
-                    <el-table-column prop="return_time" label="归还时间" width="180">
-                        <template #default="scope">{{ fmtDate(scope.row.return_time) }}</template>
+                    <el-table-column prop="return_time" label="归还时间" width="160">
+                        <template #default="scope">{{ fmtDateTime(scope.row.return_time) }}</template>
                     </el-table-column>
                     <el-table-column prop="status" label="状态" width="90">
                         <template #default="scope">
@@ -3461,6 +3461,9 @@ const app = createApp({
         const isOverdue = (dateStr) => { if (!dateStr) return false; return new Date(dateStr) < new Date(); };
         const formatRole = (row) => row.role === 'admin' ? '管理员' : row.role === 'employee' ? '一般员工' : '查阅';
         const fmtDate = (d) => { if (!d) return '-'; const m = d.match(/^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}):(\d{2}):?(\d{2})?)?/); if (!m) return d; const [, y, mo, da, h, mi] = m; return `${y}年${mo}月${da}日${h ? ' ' + h + ':' + mi : ''}`; };
+        // 借用 / 归还时间专用：ISO 风格 YYYY-MM-DD HH:mm（如 2026-10-09 11:23）。
+        // 比「2026年10月09日 11:23」窄 3 个字宽，列里能对齐，扫读和排序也更直观。
+        const fmtDateTime = (d) => { if (!d) return '-'; const m = d.match(/^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}):(\d{2}):?(\d{2})?)?/); if (!m) return d; const [, y, mo, da, h, mi] = m; return h ? `${y}-${mo}-${da} ${h}:${mi}` : `${y}-${mo}-${da}`; };
         // 完工日期专用：ISO 格式 YYYY-MM-DD（零填充），如 2026-07-31
         const fmtCompletionDate = (d) => { if (!d) return '-'; const m = d.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (!m) return d; const [, y, mo, da] = m; const p = (n) => String(n).padStart(2, '0'); return `${y}-${p(mo)}-${p(da)}`; };
         // 根据等级和基准日自动计算下次检定日期（A=半年，B=一年，C 不推算）
@@ -3686,7 +3689,7 @@ const app = createApp({
             users, loadUsers, userDialogVisible, userForm, openUserDialog, saveUser, deleteUser,
             changePwdDialogVisible, changePwdForm, submitChangePwd,
             downloadTemplate, importTools,
-            handleLogin, handleLogout, checkSession, statusTagType, isOverdue, formatRole, getTeamName, fmtDate, fmtCompletionDate, calcNextInspection,
+            handleLogin, handleLogout, checkSession, statusTagType, isOverdue, formatRole, getTeamName, fmtDate, fmtDateTime, fmtCompletionDate, calcNextInspection,
             onToolPageChange, onBorrowPageChange, onInspectionPageChange, onReminderPageChange, onScrapPageChange,
             factories, allTeams, teamsByFactory,
             configTab, configTypeNames, configLists, loadConfigs, openConfigDialog, saveConfig, deleteConfig, configDialogVisible, configForm, teamsInCurrentFactory, teamsOfFactory,
