@@ -358,6 +358,8 @@
         /* 表格列头清晰度：明确字重与底色，列更易区分、信息更易扫读 */
         .el-table th.el-table__cell { background: var(--c-fill-2); font-weight: 600; color: var(--c-text-2); }
         .el-table .cell { line-height: 1.55; }
+        /* 编号类短字段强制单行：12 位编号在窄列里会被折成两行，跨行错位很难读 */
+        .el-table .nowrap-cell .cell { white-space: nowrap; }
         .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell { background: var(--c-fill-2); }
         /* 列表项舒适行高，密集信息更易阅读 */
         .todo-item, .activity-item, .gs-item { line-height: 1.5; }
@@ -1414,8 +1416,8 @@ setTimeout(function () {
                     <el-button type="info" @click="exportBorrows" style="margin-left:4px">导出Excel</el-button>
                 </div>
                 <el-table :data="borrows" stripe border style="width:100%">
-                    <el-table-column prop="tool_code" label="工装编号" width="110"></el-table-column>
-                    <el-table-column prop="tool_name" label="工装名称" width="120"></el-table-column>
+                    <el-table-column prop="tool_code" label="工装编号" width="132" class-name="nowrap-cell"></el-table-column>
+                    <el-table-column prop="tool_name" label="工装名称" width="176"></el-table-column>
                     <el-table-column prop="factory" label="使用分厂" width="100"></el-table-column>
                     <el-table-column prop="team" label="使用班组" width="90"></el-table-column>
                     <el-table-column prop="receiver" label="领用人" width="90"></el-table-column>
