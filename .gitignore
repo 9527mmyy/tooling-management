@@ -66,10 +66,13 @@ database.db
 # 部署文档（含内网 IP、机器名等环境敏感信息）
 others/
 
-# 本机部署脚本（含 QClaw 绝对路径）
+# 本机部署/联运脚本（含绝对路径、内网地址、其他系统服务名）
 backend/start_flask.ps1
 backend/start_flask.bat
 backend/run_hidden.vbs
+check_status.bat
+fix_services.bat
+start_services.bat
 
 # 外来脚本（非本项目文件，原 workspace 误跟踪）
 _find_*.py
@@ -101,7 +104,7 @@ _test.txt
 # 保留迁移框架（backend/migrations/0001_*.py 等，勿忽略）
 !backend/migrations/
 
-# 含激活的 QClaw 绝对路径（与 start_flask.bat 同理，不上传）
+# 含本机绝对路径（与 start_flask.bat 同理，不上传）
 install_services.bat
 
 # 服务运行日志

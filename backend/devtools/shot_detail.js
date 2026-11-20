@@ -6,7 +6,7 @@ const { chromium } = require('playwright-core');
     chromium.launch({ channel: 'chrome' })
   );
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-  await page.goto('http://127.0.0.1:5001/', { waitUntil: 'networkidle' });
+  await page.goto('http://127.0.0.1:5000/', { waitUntil: 'networkidle' });
 
   // 登录
   const inputs = page.locator('.login-box input');

@@ -6,7 +6,7 @@ const { chromium } = require('playwright-core');
     chromium.launch({ channel: 'chrome' })
   );
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-  await page.goto('http://127.0.0.1:5001/', { waitUntil: 'networkidle' });
+  await page.goto('http://127.0.0.1:5000/', { waitUntil: 'networkidle' });
 
   // 1. 登录页（含页脚版权）
   await page.waitForTimeout(800);

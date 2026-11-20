@@ -8,10 +8,7 @@ set "SVC=ToolingManagement"
 REM --- pick python interpreter (adjust for your machine) ---
 set "PY="
 if exist "%ROOT%venv\Scripts\python.exe" set "PY=%ROOT%venv\Scripts\python.exe"
-if not defined PY if exist "C:\Users\CRUN\.workbuddy\binaries\python\envs\default\Scripts\python.exe" set "PY=C:\Users\CRUN\.workbuddy\binaries\python\envs\default\Scripts\python.exe"
 if not defined PY set "PY=python.exe"
-REM On the deployment machine that uses QClaw's bundled python, uncomment the line below:
-REM set "PY=C:\Program Files\QClaw\v0.2.35.624\resources\python\python.exe"
 
 where nssm >nul 2>nul
 if errorlevel 1 (

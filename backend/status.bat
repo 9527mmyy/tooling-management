@@ -4,7 +4,7 @@ title Tooling System - Port Status
 echo ============================================
 echo   Tooling Management - Port Status
 echo ============================================
-for %%P in (5000 5001 5002 5283) do (
+for %%P in (5000) do (
   set "PID="
   for /f "tokens=5" %%A in ('netstat -ano 2^>nul ^| findstr "LISTENING" ^| findstr /r ":%%P[ ]"') do (
     set "PID=%%A"
@@ -16,6 +16,6 @@ for %%P in (5000 5001 5002 5283) do (
   )
 )
 echo ============================================
-echo 5000=tooling  5001=debug  5002=cost  5283=QClaw
+echo 5000=tooling management
 echo Press any key to exit...
 pause >nul
