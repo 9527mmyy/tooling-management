@@ -1,6 +1,7 @@
 ﻿from flask import Blueprint, request, jsonify, session, current_app
 from models import db, Tool, ScrapRequest, BorrowRecord, Inspection, Attachment
 from routes.auth import login_required, admin_required, scrap_approve_required, add_log
+from routes.tools import cleanup_tool_resources
 from datetime import datetime
 import os
 
@@ -8,44 +9,16 @@ scraps_bp = Blueprint('scraps', __name__)
 
 
 def _delete_tool_resources(tool):
-    """删除工装及其全部关联资源（2026-10-27 修复7）：
-    与 routes/tools.py delete_tool 的清理逻辑保持一致——
-    子表记录（入库/借用）、附件记录与磁盘文件、照片文件，最后删除工装本体。"""
-    # 先删除关联的子表记录（入库/借用），避免外键约束导致删除失败
-    for rec in tool.in_storage_records:
-        db.session.delete(rec)
-    for br in tool.borrow_records:
-        db.session.delete(br)
-    # 删除关联附件记录与磁盘文件
-    for att in tool.attachments:
-        if os.path.exists(att.file_path):
-            try:
-                os.remove(att.file_path)
-            except OSError:
-                pass
-        db.session.delete(att)
-    # 删除照片文件
-    if tool.photo_path:
-        photo_path = os.path.join(current_app.config['UPLOAD_FOLDER'], tool.photo_path)
-        if os.path.exists(photo_path):
-            try:
-                os.remove(photo_path)
-            except OSError:
-                pass
-        photo_dir = os.path.dirname(photo_path)
-        if os.path.exists(photo_dir) and not os.listdir(photo_dir):
-            try:
-                os.rmdir(photo_dir)
-            except OSError:
-                pass
-    db.session.delete(tool)
+    """删除工装及其关联资源。2026-11-04 起与 routes/tools.py 共用一份实现，
+    避免两份清理逻辑各自漂移（原 tools.py 版本漏删 attachments 表记录）。"""
+    cleanup_tool_resources(tool)
 
 
 @scraps_bp.route('/', methods=['POST'])
 @login_required
 def submit_scrap():
     """提交报废/删除申请 或 admin直接执行"""
-    data = request.get_json()
+    data = request.get_json() or {}
     tool_id = data.get('tool_id')
     reason = data.get('reason', '').strip()
     request_type = data.get('request_type', 'scrap')  # scrap 或 delete
@@ -112,8 +85,10 @@ def list_scraps():
     """获取申请列表（管理员）"""
     status = request.args.get('status', '').strip()
     request_type = request.args.get('request_type', '').strip()
-    page = int(request.args.get('page', 1))
-    per_page = int(request.args.get('per_page', 20))
+    # 2026-11-04 修复：type=int 容错非数字（原裸 int() 传 page=abc 直接 500）；
+    # per_page 钳制到 [1,100]，防一次拉全库。
+    page = request.args.get('page', 1, type=int) or 1
+    per_page = min(max(request.args.get('per_page', 20, type=int) or 20, 1), 100)
 
     query = ScrapRequest.query
 

@@ -4,6 +4,7 @@
 """
 from flask import Blueprint, jsonify, request, current_app
 from models import db, SystemConfig
+from routes.auth import login_required
 
 org_bp = Blueprint('org', __name__)
 
@@ -91,6 +92,7 @@ def _load_org_from_db():
 
 
 @org_bp.route('/structure', methods=['GET'])
+@login_required
 def get_structure():
     """获取组织架构（分厂+班组树）"""
     # 尝试从数据库加载
@@ -120,6 +122,7 @@ def get_structure():
 
 
 @org_bp.route('/factories', methods=['GET'])
+@login_required
 def get_factories():
     """获取分厂列表"""
     # 尝试从数据库加载
@@ -139,6 +142,7 @@ def get_factories():
 
 
 @org_bp.route('/teams', methods=['GET'])
+@login_required
 def get_teams():
     """获取所有班组或指定分厂的班组"""
     factory = request.args.get('factory', '').strip()

@@ -119,6 +119,16 @@
         .about-meta { display: grid; grid-template-columns: 72px 1fr; gap: 10px 16px; font-size: 13px; padding-top: 4px; }
         .about-meta dt { color: var(--c-text-3); }
         .about-meta dd { color: var(--c-text); margin: 0; }
+        /* 版本更新记录：数据源 backend/version.py 的 CHANGELOG，不在前端另写一份 */
+        .about-history { margin-top: 14px; border-top: 1px solid var(--c-border); padding-top: 12px; }
+        .about-history summary { cursor: pointer; color: var(--c-primary); font-size: 13px; font-weight: 600; }
+        .about-history-list { max-height: 200px; overflow-y: auto; margin-top: 8px; padding-right: 4px; }
+        .about-history-item { padding: 8px 0; border-bottom: 1px dashed var(--c-border); }
+        .about-history-item:last-child { border-bottom: none; }
+        .about-history-head { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; }
+        .about-history-ver { font-weight: 600; color: var(--c-text); }
+        .about-history-date { color: var(--c-text-3); font-variant-numeric: tabular-nums; }
+        .about-history-notes { font-size: 12px; color: var(--c-text-2); line-height: 1.6; margin-top: 4px; }
         .content { flex: 1; padding: 24px; overflow-y: auto; }
         /* 整页固定布局（工装详情页）：交出内边距与滚动权，由页面自己用 flex 分配高度，
            避免子元素 100vh 叠加父级 padding 顶出整页滚动条（2026-10-27） */
@@ -429,6 +439,10 @@ setTimeout(function () {
                     <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
                     <span data-i18n="工装台账">工装台账</span>
                 </div>
+                <div class="menu-item" :class="{active: currentPage==='tool-summary'}" @click="currentPage='tool-summary'">
+                    <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-6 4 3 5-8"/></svg>
+                    <span data-i18n="工装汇总">工装汇总</span>
+                </div>
                 <div class="menu-item" :class="{active: currentPage==='ab-class'}" @click="currentPage='ab-class'">
                     <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>
                     <span data-i18n="A/B工装">A/B工装</span>
@@ -682,21 +696,21 @@ setTimeout(function () {
             <!-- 工装台账 -->
             <div v-if="currentPage==='tools' || currentPage==='ab-class'">
                 <div class="toolbar">
-                    <el-input v-model="activeSearch.keyword" placeholder="搜索编号/名称/图号/规格" style="width:250px" clearable @clear="loadTools" @keyup.enter="loadTools"></el-input>
-                    <el-select v-model="activeSearch.status" placeholder="状态筛选" style="width:140px" clearable @change="loadTools">
+                    <el-input v-model="activeSearch.keyword" placeholder="搜索编号/名称/图号/规格" style="width:250px" clearable @clear="filterFromFirstPage(activeSearch, loadTools)" @keyup.enter="filterFromFirstPage(activeSearch, loadTools)"></el-input>
+                    <el-select v-model="activeSearch.status" placeholder="状态筛选" style="width:140px" clearable @change="filterFromFirstPage(activeSearch, loadTools)">
                         <el-option label="在库" value="在库"></el-option>
                         <el-option label="借出" value="借出"></el-option>
                         <el-option label="维修" value="维修"></el-option>
                         <el-option label="报废" value="报废"></el-option>
                     </el-select>
-                    <el-select v-model="activeSearch.factory" placeholder="分厂筛选" style="width:150px" clearable @change="activeSearch.team=''; loadTools()">
+                    <el-select v-model="activeSearch.factory" placeholder="分厂筛选" style="width:150px" clearable @change="activeSearch.team=''; filterFromFirstPage(activeSearch, loadTools)">
                         <el-option v-for="f in factories" :key="f" :label="f" :value="f"></el-option>
                     </el-select>
-                    <el-select v-model="activeSearch.team" placeholder="班组筛选" style="width:150px" clearable @change="loadTools">
+                    <el-select v-model="activeSearch.team" placeholder="班组筛选" style="width:150px" clearable @change="filterFromFirstPage(activeSearch, loadTools)">
                         <el-option v-for="t in allTeams" :key="t" :label="t" :value="t"></el-option>
                     </el-select>
-                    <el-button type="primary" @click="loadTools" data-i18n="搜索">搜索</el-button>
-                    <el-switch v-model="showScrapped" active-text="显示报废" inactive-text="" @change="loadTools" style="margin-left:10px"></el-switch>
+                    <el-button type="primary" @click="filterFromFirstPage(activeSearch, loadTools)" data-i18n="搜索">搜索</el-button>
+                    <el-switch v-model="showScrapped" active-text="显示报废" inactive-text="" @change="filterFromFirstPage(activeSearch, loadTools)" style="margin-left:10px"></el-switch>
                     <el-button type="success" @click="openNewToolPage()" v-if="canEdit && !isAbView" data-i18n="新建">新增工装</el-button>
                     <el-button type="info" @click="exportTools" style="margin-left:4px" data-i18n="导出">导出Excel</el-button>
                     <el-button type="warning" @click="downloadTemplate" v-if="canEdit && !isAbView" style="margin-left:4px" data-i18n="下载模板">下载模板</el-button>
@@ -719,7 +733,7 @@ setTimeout(function () {
                     </div>
                 </div>
                 <el-table v-else :data="tools" stripe border style="width:100%" @row-click="onToolRowClick" :row-class-name="()=>'tool-row-clickable'">
-                    <el-table-column prop="code" label="编号" width="120"></el-table-column>
+                    <el-table-column prop="code" label="编号" width="160" class-name="nowrap-cell"></el-table-column>
                     <el-table-column prop="drawing_no" label="图号" width="160"></el-table-column>
                     <el-table-column prop="name" label="名称" width="200"></el-table-column>
                     <el-table-column prop="spec" label="规格型号" width="160"></el-table-column>
@@ -743,9 +757,96 @@ setTimeout(function () {
                     </el-table-column>
                 </el-table>
                 <div class="page-container">
-                    <el-pagination background layout="total, prev, pager, next" :total="toolTotal" :page-size="20" @current-change="onToolPageChange"></el-pagination>
+                    <el-pagination background layout="total, prev, pager, next" :current-page="activeSearch.page" :total="toolTotal" :page-size="20" @current-change="onToolPageChange"></el-pagination>
                 </div>
             </div>
+
+            <!-- 工装汇总（按图号聚合，2026-11-02）：一个图号对应多个编号，此处不显示编号 -->
+            <div v-if="currentPage==='tool-summary'">
+                <div class="toolbar">
+                    <el-input v-model="summarySearch.keyword" placeholder="搜索图号/名称/规格/编号" style="width:250px" clearable @clear="filterFromFirstPage(summarySearch, loadToolSummary)" @keyup.enter="filterFromFirstPage(summarySearch, loadToolSummary)"></el-input>
+                    <el-select v-model="summarySearch.factory" placeholder="分厂筛选" style="width:150px" clearable @change="filterFromFirstPage(summarySearch, loadToolSummary)">
+                        <el-option v-for="f in factories" :key="f" :label="f" :value="f"></el-option>
+                    </el-select>
+                    <el-select v-model="summarySearch.status" placeholder="状态筛选" style="width:140px" clearable @change="filterFromFirstPage(summarySearch, loadToolSummary)">
+                        <el-option label="在库" value="在库"></el-option>
+                        <el-option label="借出" value="借出"></el-option>
+                        <el-option label="维修" value="维修"></el-option>
+                        <el-option label="报废" value="报废"></el-option>
+                    </el-select>
+                    <el-switch v-model="summaryShowScrapped" active-text="合计报废" inactive-text="" @change="filterFromFirstPage(summarySearch, loadToolSummary)" style="margin-left:10px"></el-switch>
+                    <el-button type="primary" @click="filterFromFirstPage(summarySearch, loadToolSummary)" data-i18n="搜索">搜索</el-button>
+                </div>
+                <el-table :data="toolSummary" stripe border style="width:100%" @row-click="openSummaryDetail" :row-class-name="()=>'tool-row-clickable'">
+                    <el-table-column prop="drawing_no" label="图号" width="170" show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="name" label="名称" width="230" show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="count" label="数量" width="80">
+                        <template #default="scope">
+                            <el-tag :type="scope.row.count > 1 ? 'danger' : 'info'" size="small">{{ scope.row.count }}</el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="spec" label="规格型号" width="180" show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="category" label="类别" width="100"></el-table-column>
+                    <el-table-column label="在库" width="70">
+                        <template #default="scope">{{ scope.row.in_stock || '-' }}</template>
+                    </el-table-column>
+                    <el-table-column label="借出" width="70">
+                        <template #default="scope">{{ scope.row.borrowed || '-' }}</template>
+                    </el-table-column>
+                    <el-table-column label="维修" width="70">
+                        <template #default="scope">{{ scope.row.repairing || '-' }}</template>
+                    </el-table-column>
+                    <el-table-column prop="scrapped" label="报废" width="70">
+                        <template #default="scope">{{ scope.row.scrapped || '-' }}</template>
+                    </el-table-column>
+                </el-table>
+                <div class="page-container">
+                    <el-pagination background layout="total, prev, pager, next" :current-page="summarySearch.page" :total="summaryTotal" :page-size="20" @current-change="onSummaryPageChange"></el-pagination>
+                </div>
+            </div>
+
+            <!-- 工装汇总下钻弹窗（2026-11-02）：点图号行查看该图号下全部工装及借用情况 -->
+            <el-dialog v-model="summaryDetailVisible" :title="summaryDetailTitle" width="860px">
+                <div v-if="summaryDetailLoading" v-loading="true" style="min-height:200px"></div>
+                <el-table v-else :data="summaryDetailItems" stripe border style="width:100%" max-height="480">
+                    <el-table-column prop="code" label="编号" width="120"></el-table-column>
+                    <el-table-column prop="status" label="状态" width="80">
+                        <template #default="scope">
+                            <el-tag :type="statusTagType(scope.row.status)" size="small">{{ scope.row.status }}</el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="借用分厂" width="110">
+                        <template #default="scope">
+                            <span v-if="scope.row.status==='借出'">{{ scope.row.factory || (scope.row.last_borrow && scope.row.last_borrow.factory) || '-' }}</span>
+                            <span v-else style="color:#c0c4cc">-</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="借用班组" width="100">
+                        <template #default="scope">
+                            <span v-if="scope.row.status==='借出'">{{ scope.row.team || (scope.row.last_borrow && scope.row.last_borrow.team) || '-' }}</span>
+                            <span v-else style="color:#c0c4cc">-</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="借用人" width="90">
+                        <template #default="scope">
+                            <span v-if="scope.row.last_borrow && scope.row.last_borrow.status==='借用中'">{{ scope.row.last_borrow.borrower }}</span>
+                            <span v-else style="color:#c0c4cc">-</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="借用时间" width="120">
+                        <template #default="scope">
+                            <span v-if="scope.row.last_borrow && scope.row.last_borrow.status==='借用中'">{{ scope.row.last_borrow.borrow_time }}</span>
+                            <span v-else style="color:#c0c4cc">-</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="最近归还记录" min-width="160">
+                        <template #default="scope">
+                            <span v-if="scope.row.last_borrow && scope.row.last_borrow.status==='已归还'" style="color:#8c8c8c">{{ scope.row.last_borrow.borrower }} 于 {{ scope.row.last_borrow.borrow_time }} 借用（已归还）</span>
+                            <span v-else style="color:#c0c4cc">-</span>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </el-dialog>
 
             <!-- 工装详情页（整页固定）：高度由 flex 分配，顶部栏固定，左右列各自内部滚动（2026-10-27） -->
             <div v-if="currentPage==='tool-detail'" style="flex:1;min-height:0;padding:24px;background:#f0f2f5;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box">
@@ -1147,7 +1248,7 @@ setTimeout(function () {
                         <el-table-column prop="remark" label="备注" show-overflow-tooltip></el-table-column>
                         <el-table-column label="操作" width="120" fixed="right">
                             <template #default="scope">
-                                <el-button size="small" link type="primary" @click="openEditInspection(scope.row)" v-if="canEdit">编辑</el-button>
+                                <el-button size="small" link type="primary" @click="openEditInspection(scope.row)" v-if="isAdmin">编辑</el-button>
                                 <el-button size="small" link type="danger" @click="deleteInspection(scope.row)" v-if="isAdmin">删除</el-button>
                             </template>
                         </el-table-column>
@@ -1369,7 +1470,10 @@ setTimeout(function () {
                     <el-form-item label="检定结果" required>
                         <el-select v-model="inspectionForm.result"><el-option label="合格" value="合格"></el-option><el-option label="不合格" value="不合格"></el-option><el-option label="待修" value="待修"></el-option></el-select>
                     </el-form-item>
-                    <el-form-item label="下次检定"><el-date-picker v-model="inspectionForm.next_date" type="date" value-format="YYYY-MM-DD"></el-date-picker></el-form-item>
+                    <el-form-item label="下次检定">
+                        <el-date-picker v-model="inspectionForm.next_date" type="date" value-format="YYYY-MM-DD" disabled></el-date-picker>
+                        <div style="font-size:12px;color:#999;width:100%;margin-top:2px">按检定日期与等级自动计算：A级 +6个月，B级 +12个月，C级不排期</div>
+                    </el-form-item>
                     <el-form-item label="检定人"><el-input v-model="inspectionForm.inspector"></el-input></el-form-item>
                     <el-form-item label="备注"><el-input v-model="inspectionForm.remark" type="textarea" :rows="2"></el-input></el-form-item>
                     <el-form-item label="附件" required>
@@ -1404,15 +1508,15 @@ setTimeout(function () {
             <!-- 借用记录页 -->
             <div v-if="currentPage==='borrows'">
                 <div class="toolbar">
-                    <el-select v-model="borrowSearch.status" placeholder="状态筛选" style="width:140px" clearable @change="loadBorrows">
+                    <el-select v-model="borrowSearch.status" placeholder="状态筛选" style="width:140px" clearable @change="filterFromFirstPage(borrowSearch, loadBorrows)">
                         <el-option label="借用中" value="借用中"></el-option>
                         <el-option label="已归还" value="已归还"></el-option>
                     </el-select>
-                    <el-select v-model="borrowSearch.team" placeholder="班组筛选" style="width:150px" clearable @change="loadBorrows">
+                    <el-select v-model="borrowSearch.team" placeholder="班组筛选" style="width:150px" clearable @change="filterFromFirstPage(borrowSearch, loadBorrows)">
                         <el-option v-for="t in allTeams" :key="t" :label="t" :value="t"></el-option>
                     </el-select>
-                    <el-input v-model="borrowSearch.borrower" placeholder="搜索借用人" style="width:200px" clearable @clear="loadBorrows" @keyup.enter="loadBorrows"></el-input>
-                    <el-button type="primary" @click="loadBorrows">搜索</el-button>
+                    <el-input v-model="borrowSearch.borrower" placeholder="搜索借用人" style="width:200px" clearable @clear="filterFromFirstPage(borrowSearch, loadBorrows)" @keyup.enter="filterFromFirstPage(borrowSearch, loadBorrows)"></el-input>
+                    <el-button type="primary" @click="filterFromFirstPage(borrowSearch, loadBorrows)">搜索</el-button>
                     <el-button type="info" @click="exportBorrows" style="margin-left:4px">导出Excel</el-button>
                 </div>
                 <el-table :data="borrows" stripe border style="width:100%">
@@ -1440,24 +1544,24 @@ setTimeout(function () {
                     </el-table-column>
                 </el-table>
                 <div class="page-container">
-                    <el-pagination background layout="total, prev, pager, next" :total="borrowTotal" :page-size="20" @current-change="onBorrowPageChange"></el-pagination>
+                    <el-pagination background layout="total, prev, pager, next" :current-page="borrowSearch.page" :total="borrowTotal" :page-size="20" @current-change="onBorrowPageChange"></el-pagination>
                 </div>
             </div>
 
             <!-- 检定记录页 -->
             <div v-if="currentPage==='inspections'">
                 <div class="toolbar">
-                    <el-select v-model="inspectionSearch.result" placeholder="检定结果" style="width:140px" clearable @change="loadInspections">
+                    <el-select v-model="inspectionSearch.result" placeholder="检定结果" style="width:140px" clearable @change="filterFromFirstPage(inspectionSearch, loadInspections)">
                         <el-option label="合格" value="合格"></el-option>
                         <el-option label="不合格" value="不合格"></el-option>
                         <el-option label="待修" value="待修"></el-option>
                     </el-select>
-                    <el-button type="primary" @click="loadInspections">搜索</el-button>
+                    <el-button type="primary" @click="filterFromFirstPage(inspectionSearch, loadInspections)">搜索</el-button>
                     <el-button type="info" @click="exportInspections" style="margin-left:4px">导出Excel</el-button>
                 </div>
                 <el-table :data="inspections" stripe border style="width:100%">
                     <el-table-column prop="tool_code" label="工装编号" width="120"></el-table-column>
-                    <el-table-column prop="tool_name" label="工装名称" width="150"></el-table-column>
+                    <el-table-column prop="tool_name" label="工装名称" width="210"></el-table-column>
                     <el-table-column prop="inspect_date" label="检定日期" width="110"></el-table-column>
                     <el-table-column prop="result" label="结果" width="80">
                         <template #default="scope">
@@ -1466,29 +1570,40 @@ setTimeout(function () {
                     </el-table-column>
                     <el-table-column prop="next_date" label="下次检定" width="110"></el-table-column>
                     <el-table-column prop="inspector" label="检定人" width="80"></el-table-column>
-                    <el-table-column prop="remark" label="备注" show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="remark" label="备注" width="100" show-overflow-tooltip></el-table-column>
+                    <el-table-column label="附件" width="240">
+                        <template #default="scope">
+                            <template v-if="scope.row.attachments && scope.row.attachments.length">
+                                <div v-for="att in scope.row.attachments" :key="att.id" style="display:flex;align-items:center;gap:4px;padding:1px 6px;background:#f5f7fa;border:1px solid #e4e7ed;border-radius:4px;font-size:12px;color:#1677ff;cursor:pointer;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" @click="downloadFile(att)" :title="att.file_name">
+                                    <span style="font-size:13px">📎</span>
+                                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ att.file_name }}</span>
+                                </div>
+                            </template>
+                            <span v-else style="color:#c0c4cc">-</span>
+                        </template>
+                    </el-table-column>
                     <el-table-column label="操作" width="120" fixed="right">
                         <template #default="scope">
-                            <el-button size="small" link type="primary" @click="openEditInspection(scope.row)" v-if="canEdit">编辑</el-button>
+                            <el-button size="small" link type="primary" @click="openEditInspection(scope.row)" v-if="isAdmin">编辑</el-button>
                             <el-button size="small" link type="danger" @click="deleteInspection(scope.row)" v-if="isAdmin">删除</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
                 <div class="page-container">
-                    <el-pagination background layout="total, prev, pager, next" :total="inspectionTotal" :page-size="20" @current-change="onInspectionPageChange"></el-pagination>
+                    <el-pagination background layout="total, prev, pager, next" :current-page="inspectionSearch.page" :total="inspectionTotal" :page-size="20" @current-change="onInspectionPageChange"></el-pagination>
                 </div>
             </div>
 
             <!-- 检定提醒页 -->
             <div v-if="currentPage==='inspection-reminder'">
                 <div class="toolbar">
-                    <el-radio-group v-model="reminderFilter" @change="loadInspectionReminders">
+                    <el-radio-group v-model="reminderFilter" @change="resetReminderAndLoad">
                         <el-radio-button value="overdue">已逾期</el-radio-button>
                         <el-radio-button value="30">30天内到期</el-radio-button>
                         <el-radio-button value="60">60天内到期</el-radio-button>
                         <el-radio-button value="all">全部</el-radio-button>
                     </el-radio-group>
-                    <el-button type="primary" @click="loadInspectionReminders" style="margin-left:10px">刷新</el-button>
+                    <el-button type="primary" @click="resetReminderAndLoad" style="margin-left:10px">刷新</el-button>
                 </div>
                 <el-table :data="inspectionReminders" stripe border style="width:100%">
                     <el-table-column prop="code" label="工装编号" width="120"></el-table-column>
@@ -1520,7 +1635,7 @@ setTimeout(function () {
                     </el-table-column>
                 </el-table>
                 <div class="page-container">
-                    <el-pagination background layout="total, prev, pager, next" :total="reminderTotal" :page-size="20" @current-change="onReminderPageChange"></el-pagination>
+                    <el-pagination background layout="total, prev, pager, next" :current-page="reminderPage" :total="reminderTotal" :page-size="20" @current-change="onReminderPageChange"></el-pagination>
                 </div>
             </div>
 
@@ -1552,12 +1667,12 @@ setTimeout(function () {
             <!-- 报废审批页 -->
             <div v-if="currentPage==='scraps'">
                 <div class="toolbar">
-                    <el-select v-model="scrapSearch.status" placeholder="状态筛选" style="width:140px" clearable @change="loadScraps">
+                    <el-select v-model="scrapSearch.status" placeholder="状态筛选" style="width:140px" clearable @change="filterFromFirstPage(scrapSearch, loadScraps)">
                         <el-option label="待审核" value="待审核"></el-option>
                         <el-option label="已批准" value="已批准"></el-option>
                         <el-option label="已拒绝" value="已拒绝"></el-option>
                     </el-select>
-                    <el-button type="primary" @click="loadScraps">刷新</el-button>
+                    <el-button type="primary" @click="filterFromFirstPage(scrapSearch, loadScraps)">刷新</el-button>
                 </div>
                 <el-table :data="scraps" stripe border style="width:100%">
                     <el-table-column prop="tool_code" label="工装编号" width="120"></el-table-column>
@@ -1582,7 +1697,7 @@ setTimeout(function () {
                     </el-table-column>
                 </el-table>
                 <div class="page-container">
-                    <el-pagination background layout="total, prev, pager, next" :total="scrapTotal" :page-size="20" @current-change="onScrapPageChange"></el-pagination>
+                    <el-pagination background layout="total, prev, pager, next" :current-page="scrapSearch.page" :total="scrapTotal" :page-size="20" @current-change="onScrapPageChange"></el-pagination>
                 </div>
             </div>
 
@@ -1614,7 +1729,7 @@ setTimeout(function () {
             </el-dialog>
 
             <!-- 关于本系统 -->
-            <el-dialog v-model="aboutDialogVisible" title="关于" width="460px">
+            <el-dialog v-model="aboutDialogVisible" title="关于" width="520px">
                 <div class="about-head">
                     <div class="a-logo">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
@@ -1632,6 +1747,18 @@ setTimeout(function () {
                     <dt>许可协议</dt><dd>{{ about.license }}</dd>
                     <dt>版权</dt><dd>{{ about.copyright }}</dd>
                 </dl>
+                <details class="about-history">
+                    <summary>版本更新记录（{{ about.changelog.length }}）</summary>
+                    <div class="about-history-list">
+                        <div v-for="item in about.changelog" :key="item.version" class="about-history-item">
+                            <div class="about-history-head">
+                                <span class="about-history-ver">v{{ item.version }}</span>
+                                <span class="about-history-date">{{ item.date }}</span>
+                            </div>
+                            <div class="about-history-notes">{{ item.notes }}</div>
+                        </div>
+                    </div>
+                </details>
                 <template #footer>
                     <el-button type="primary" @click="aboutDialogVisible=false">确定</el-button>
                 </template>
@@ -1826,7 +1953,8 @@ const app = createApp({
         const about = reactive({
             app_name: '工装管理系统', app_name_en: 'Tooling Management System',
             app_desc: '', version: '-', build_date: '-',
-            publisher: '-', copyright: '', license: '-', tech_stack: '-'
+            publisher: '-', copyright: '', license: '-', tech_stack: '-',
+            changelog: []
         });
         const loadAbout = async () => {
             try {
@@ -1888,7 +2016,7 @@ const app = createApp({
                 }
                 return '配置管理';
             }
-            const map = { dashboard: '首页概览', tools: '工装台账', 'ab-class': 'A/B工装', borrows: '借用记录', inspections: '检定记录', 'inspection-reminder': '检定提醒', users: '用户管理', scraps: '报废审批', configs: '配置管理', procedure: '文档' };
+            const map = { dashboard: '首页概览', tools: '工装台账', 'tool-summary': '工装汇总', 'ab-class': 'A/B工装', borrows: '借用记录', inspections: '检定记录', 'inspection-reminder': '检定提醒', users: '用户管理', scraps: '报废审批', configs: '配置管理', procedure: '文档' };
             return map[currentPage.value] || '';
         });
 
@@ -2073,22 +2201,30 @@ const app = createApp({
         const quickPickTitle = ref('');
         const quickPickAction = ref('borrow');
         const quickPickId = ref(null);
+        // 2026-11-04 修复：原先写死 per_page=300，库里 459 条工装时旧数据在下拉里
+        // 根本选不到。改为按总数自适应拉全量（先取一页拿 total，再一次取齐），
+        // 不依赖后端新增接口，数据继续增长也不会被截断。
+        const fetchPickList = async (params) => {
+            const first = await api.get('/tools', { params: { ...params, page: 1, per_page: 100 } });
+            const total = first.data.data.total || 0;
+            if (total <= 100) return first.data.data.items || [];
+            const all = await api.get('/tools', { params: { ...params, page: 1, per_page: total } });
+            return all.data.data.items || [];
+        };
         const openQuickPick = async (action) => {
             quickPickAction.value = action;
             quickPickId.value = null;
             try {
-                let r;
                 if (action === 'borrow') {
                     quickPickTitle.value = '选择要借出的工装（在库）';
-                    r = await api.get('/tools', { params: { status: '在库', per_page: 300 } });
+                    quickPickList.value = await fetchPickList({ status: '在库' });
                 } else if (action === 'inspect') {
                     quickPickTitle.value = '选择要登记检定的工装';
-                    r = await api.get('/tools', { params: { per_page: 300 } });
+                    quickPickList.value = await fetchPickList({});
                 } else {
                     quickPickTitle.value = '选择要报废的工装（在库）';
-                    r = await api.get('/tools', { params: { status: '在库', per_page: 300 } });
+                    quickPickList.value = await fetchPickList({ status: '在库' });
                 }
-                quickPickList.value = r.data.data.items || [];
                 if (!quickPickList.value.length) { ElMessage.info('没有符合条件的工装'); return; }
                 quickPickDialogVisible.value = true;
             } catch(e) { ElMessage.error('加载工装列表失败'); }
@@ -2235,6 +2371,41 @@ const app = createApp({
             } catch(e) { ElMessage.error('加载失败'); }
             finally { toolsLoading.value = false; }
         };
+        // 工装汇总（按图号聚合，2026-11-02）：一个图号对应多个编号，列表不显示编号
+        const toolSummary = ref([]);
+        const summaryTotal = ref(0);
+        const summarySearch = reactive({ keyword: '', factory: '', status: '', page: 1 });
+        const summaryShowScrapped = ref(false);
+        const loadToolSummary = async () => {
+            try {
+                const params = { ...summarySearch };
+                if (summaryShowScrapped.value) params.include_scrapped = 1;
+                const r = await api.get('/tools/summary', { params });
+                toolSummary.value = r.data.data.items;
+                summaryTotal.value = r.data.data.total;
+            } catch(e) { ElMessage.error('加载失败'); }
+        };
+        const onSummaryPageChange = (p) => { summarySearch.page = p; loadToolSummary(); };
+
+        // 汇总下钻弹窗（2026-11-02）：点击图号行，查看该图号下全部工装及借用情况
+        const summaryDetailVisible = ref(false);
+        const summaryDetailLoading = ref(false);
+        const summaryDetailItems = ref([]);
+        const summaryDetailTitle = ref('图号明细');
+        const openSummaryDetail = async (row) => {
+            summaryDetailTitle.value = `图号明细：${row.drawing_no}（共 ${row.count} 件）`;
+            summaryDetailVisible.value = true;
+            summaryDetailLoading.value = true;
+            summaryDetailItems.value = [];
+            try {
+                const params = {};
+                if (summaryShowScrapped.value) params.include_scrapped = 1;
+                const r = await api.get('/tools/summary/detail', { params: { drawing_no: row.drawing_no, ...params } });
+                summaryDetailItems.value = r.data.data.items;
+            } catch(e) { ElMessage.error('加载失败'); }
+            finally { summaryDetailLoading.value = false; }
+        };
+
         const toolDialogVisible = ref(false);
         const toolDetailVisible = ref(false);
         const currentTool = ref(null);
@@ -2644,7 +2815,7 @@ const app = createApp({
             formData.append('file_type', item.type === 'borrow' ? '入库资料' : '检定报告');
             formData.append('uploader', currentUser.username);
             try {
-                await api.post('/attachments', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                await api.post('/attachments/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
                 ElMessage.success('上传成功');
                 // 重新加载工装详情
                 const r = await api.get(`/tools/${currentTool.value.id}`);
@@ -2717,6 +2888,12 @@ const app = createApp({
                     loadTools(); 
                     loadBorrows(); 
                     loadStats();
+                    // 与退库一致：借用后同步刷新当前详情，记录时间线立即出现「借用」节点
+                    if (currentPage.value === 'tool-detail' && currentTool.value && currentTool.value.id === borrowForm.tool_id) {
+                        const d = await api.get(`/tools/${currentTool.value.id}`);
+                        currentTool.value = d.data.data;
+                        nextTick(() => { updateRecordOverflow(); });
+                    }
                 } else {
                     ElMessage.error(res.data.msg || '借用失败');
                 }
@@ -2786,7 +2963,18 @@ const app = createApp({
         const onInspectionFileChange = (file, fileList) => {
             inspectionFiles.value = fileList;
         };
-        const inspectionForm = reactive({ id: null, tool_id: null, tool_code: '', tool_name: '', inspect_date: '', result: '合格', next_date: '', inspector: '', remark: '' });
+        const inspectionForm = reactive({ id: null, tool_id: null, tool_code: '', tool_name: '', tool_level: '', inspect_date: '', result: '合格', next_date: '', inspector: '', remark: '' });
+
+        // 下次检定日期自动计算（2026-11-02）：以「本次检定日期」为基准，按等级加周期
+        //（A=6个月、B=12个月、C不排期），字段只读，不再手动填写。
+        // _inspWatchLock 用于抑制弹窗装配（Object.assign）期间 watch 的误触发。
+        let _inspWatchLock = false;
+        watch(() => inspectionForm.inspect_date, () => {
+            if (_inspWatchLock) return;
+            const lv = inspectionForm.tool_level;
+            inspectionForm.next_date = (inspectionForm.inspect_date && (lv === 'A' || lv === 'B'))
+                ? calcNextInspection(lv, inspectionForm.inspect_date) : '';
+        });
 
         const loadInspections = async () => {
             try { const r = await api.get('/inspections/', { params: inspectionSearch }); inspections.value = r.data.data.items; inspectionTotal.value = r.data.data.total; } catch(e) { ElMessage.error('加载失败'); }
@@ -2871,27 +3059,33 @@ const app = createApp({
         };
 
         const openInspectionDialog = (tool) => {
-            // 预填下次检定时间：已检定过的工装以最近一次检定日期为基准，否则以入库时间为基准
-            const inspList = (tool.inspections || []).slice().sort((a, b) => (a.inspect_date < b.inspect_date ? 1 : -1));
-            const lastInsp = inspList[0];
-            const refDate = (lastInsp && lastInsp.inspect_date) || tool.storage_date || tool.purchase_date || '';
-            const autoNext = tool.level !== 'C' ? calcNextInspection(tool.level, refDate) : '';
-            Object.assign(inspectionForm, { id: null, tool_id: tool.id, tool_code: tool.code, tool_name: tool.name, inspect_date: '', result: '合格', next_date: autoNext, inspector: '', remark: '' });
+            // 检定日期默认今天；下次检定日期按「检定日期 + 等级周期」自动计算（2026-11-02，
+            // 原先以入库时间为基准预填，长期未检定的工装会预填出一个已过期的日期，照存就继续报逾期）
+            _inspWatchLock = true;
+            const _now = new Date();
+            const todayStr = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`;
+            const lv = tool.level || '';
+            Object.assign(inspectionForm, { id: null, tool_id: tool.id, tool_code: tool.code, tool_name: tool.name, tool_level: lv, inspect_date: todayStr, result: '合格', next_date: '', inspector: '', remark: '' });
+            inspectionForm.next_date = (lv === 'A' || lv === 'B') ? calcNextInspection(lv, todayStr) : '';
             inspectionDialogTitle.value = '新增检定记录';
             inspectionFiles.value = [];  // 清空文件列表
             inspectionDialogVisible.value = true;
+            nextTick(() => { _inspWatchLock = false; });
         };
 
         // 编辑检定记录（2026-10-27 修复6）：复用检定弹窗，附件非必填
         const openEditInspection = (insp) => {
+            _inspWatchLock = true;
             Object.assign(inspectionForm, {
                 id: insp.id, tool_id: insp.tool_id, tool_code: insp.tool_code, tool_name: insp.tool_name,
+                tool_level: insp.tool_level || '',
                 inspect_date: insp.inspect_date, result: insp.result, next_date: insp.next_date || '',
                 inspector: insp.inspector || '', remark: insp.remark || ''
             });
             inspectionDialogTitle.value = '编辑检定记录';
             inspectionFiles.value = [];
             inspectionDialogVisible.value = true;
+            nextTick(() => { _inspWatchLock = false; });
         };
 
         // 删除检定记录（2026-10-27 修复6）：解锁「有鉴定记录即无法删除工装」的死锁
@@ -3318,6 +3512,7 @@ const app = createApp({
         };
 
         const loadOrgStructure = async () => {
+            if (!loggedIn.value) return;
             try {
                 const r = await api.get('/org/structure');
                 if (r.data.code === 200) {
@@ -3353,6 +3548,7 @@ const app = createApp({
         };
 
         const loadConfigs = async () => {
+            if (!loggedIn.value) return;
             try {
                 const r = await api.get('/configs');
                 if (r.data.success) {
@@ -3589,16 +3785,31 @@ const app = createApp({
                 URL.revokeObjectURL(url);
             } catch(e) { ElMessage.error('导出失败'); }
         };
+        // 2026-11-09 修复：筛选条件变化后必须回到第 1 页再查询。
+        // 曾出现在第 3 页做筛选，结果集只剩 11 条（每页 20 条），后端返回空 items，表格显示 No Data。
+        // 翻页回调 onXxxPageChange 不走这里，保持用户所选页码。
+        // search 可以是 reactive 对象，也可以是 computed/ref（模板里会自动解包），两者都兼容。
+        const filterFromFirstPage = (search, loader) => {
+            const s = (search && typeof search === 'object' && 'value' in search) ? search.value : search;
+            if (s && typeof s === 'object') s.page = 1;
+            return loader();
+        };
+        const resetReminderAndLoad = () => {
+            reminderPage.value = 1;
+            return loadInspectionReminders();
+        };
+
         const onToolPageChange = (p) => { activeSearch.value.page = p; loadTools(); };
         const onBorrowPageChange = (p) => { borrowSearch.page = p; loadBorrows(); };
         const onInspectionPageChange = (p) => { inspectionSearch.page = p; loadInspections(); };
-        const onReminderPageChange = (p) => { reminderPage = p; loadInspectionReminders(); };
+        const onReminderPageChange = (p) => { reminderPage.value = p; loadInspectionReminders(); };
         const onScrapPageChange = (p) => { scrapSearch.page = p; loadScraps(); };
 
         // 页面切换加载
         watch(currentPage, (page) => {
             if (page === 'dashboard') { loadStats(); loadTodoList(); loadRecentActivities(); loadMonthlyStats(); }
             if (page === 'tools') loadTools();
+            if (page === 'tool-summary') loadToolSummary();   // 工装汇总：按图号聚合
             if (page === 'ab-class') loadTools();   // 与工装台账共用表格与加载逻辑，仅筛选不同
             if (page === 'borrows') loadBorrows();
             if (page === 'inspections') loadInspections();
@@ -3680,7 +3891,7 @@ const app = createApp({
             goToTools, goToReminder, quickInspectFromTodo,
             quickPickDialogVisible, quickPickList, quickPickTitle, quickPickId, openQuickPick, confirmQuickPick,
             globalSearch, globalSearchInput, fetchGlobalSuggestions, onGlobalSearchSelect, onGlobalSearchEnter,
-            tools, toolTotal, toolSearch, abSearch, isAbView, activeSearch, loadTools, toolsLoading, toolDialogVisible, toolDetailVisible, currentTool, isDedicated, toolForm, openToolDialog, saveTool, deleteTool, viewTool, openEditTool, backToTools, onToolRowClick, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail, editingTool, startEditTool, cancelEditTool, saveToolDetailInline, getMergedRecords, onRecordFileChange, recordFileRefs,
+            tools, toolTotal, toolSearch, abSearch, isAbView, activeSearch, loadTools, toolsLoading, toolSummary, summaryTotal, summarySearch, summaryShowScrapped, loadToolSummary, onSummaryPageChange, summaryDetailVisible, summaryDetailLoading, summaryDetailItems, summaryDetailTitle, openSummaryDetail, toolDialogVisible, toolDetailVisible, currentTool, isDedicated, toolForm, openToolDialog, saveTool, deleteTool, viewTool, openEditTool, backToTools, onToolRowClick, uploadFileType, onUploadSuccess, beforeUpload, downloadFile, deleteAttachment, toolDetailEditing, saveToolDetail, editingTool, startEditTool, cancelEditTool, saveToolDetailInline, getMergedRecords, onRecordFileChange, recordFileRefs,
             photoInputRef, onPhotoChange, deleteToolPhoto, onDialogPhotoChange, dialogDeletePhoto, dialogPhotoInput, saveAndUploadPhoto, saveAndUploadFile, onDetailFileChange, onDialogFileChange,
             showScrapped,
             borrows, borrowTotal, borrowSearch, loadBorrows, borrowDialogVisible, borrowForm, openBorrowDialog, submitBorrow, returnTool, openNewToolDialog, openReturnDialog, returnDialogVisible, returnRemark, returnCheck, confirmReturn,
@@ -3693,6 +3904,7 @@ const app = createApp({
             downloadTemplate, importTools,
             handleLogin, handleLogout, checkSession, statusTagType, isOverdue, formatRole, getTeamName, fmtDate, fmtDateTime, fmtCompletionDate, calcNextInspection,
             onToolPageChange, onBorrowPageChange, onInspectionPageChange, onReminderPageChange, onScrapPageChange,
+            filterFromFirstPage, resetReminderAndLoad,
             factories, allTeams, teamsByFactory,
             configTab, configTypeNames, configLists, loadConfigs, openConfigDialog, saveConfig, deleteConfig, configDialogVisible, configForm, teamsInCurrentFactory, teamsOfFactory,
             currentSubPage, configMenuOpen, factoryMenuOpen, toggleConfigMenu, toggleFactoryMenu, goToConfig,

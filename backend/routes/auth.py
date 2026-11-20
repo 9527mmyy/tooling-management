@@ -10,83 +10,107 @@ auth_bp = Blueprint('auth', __name__)
 SESSION_TIMEOUT = timedelta(minutes=30)
 
 
+def _check_session():
+    """统一会话校验（2026-11-04）：登录态 → 30 分钟无操作超时 → 用户是否仍存在
+    → 角色是否已被管理员改动。所有权限装饰器共用这一处。
+
+    原实现只有 login_required 检查超时，且角色完全取自 session 快照：
+    所有写接口（admin/edit/delete/...）既不超时，也会在管理员降级或删除用户后
+    继续按旧角色放行，最长可达 cookie 的 1 天有效期。
+    返回 (user, error)；正常时 error 为 None。
+    """
+    if 'user_id' not in session:
+        return None, (jsonify({'code': 401, 'msg': '请先登录'}), 401)
+
+    last_activity = session.get('last_activity')
+    if last_activity:
+        try:
+            if datetime.now() - datetime.fromisoformat(last_activity) > SESSION_TIMEOUT:
+                session.clear()
+                return None, (jsonify({'code': 401, 'msg': '登录已超时，请重新登录'}), 401)
+        except (ValueError, TypeError):
+            pass
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        session.clear()
+        return None, (jsonify({'code': 401, 'msg': '用户不存在或已被删除'}), 401)
+    if session.get('role') != user.role:
+        session['role'] = user.role
+
+    session['last_activity'] = datetime.now().isoformat()
+    return user, None
+
+
 def login_required(f):
-    """登录验证装饰器（含30分钟无操作自动登出）"""
+    """登录验证（含会话超时与角色复核）"""
     @wraps(f)
     def decorated(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'code': 401, 'msg': '请先登录'}), 401
-        # 检查30分钟无操作超时
-        last_activity = session.get('last_activity')
-        if last_activity:
-            try:
-                last_time = datetime.fromisoformat(last_activity)
-                if datetime.now() - last_time > SESSION_TIMEOUT:
-                    session.clear()
-                    return jsonify({'code': 401, 'msg': '登录已超时，请重新登录'}), 401
-            except (ValueError, TypeError):
-                pass
-        # 更新最后活动时间
-        session['last_activity'] = datetime.now().isoformat()
-        return f(*args, **kwargs)
+        _, err = _check_session()
+        return err if err else f(*args, **kwargs)
     return decorated
 
 
 def admin_required(f):
-    """管理员权限装饰器"""
+    """管理员权限（以数据库当前角色为准）"""
     @wraps(f)
     def decorated(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'code': 401, 'msg': '请先登录'}), 401
-        if session.get('role') != 'admin':
+        user, err = _check_session()
+        if err:
+            return err
+        if user.role != 'admin':
             return jsonify({'code': 403, 'msg': '需要管理员权限'}), 403
         return f(*args, **kwargs)
     return decorated
 
 
 def edit_required(f):
-    """编辑权限装饰器（admin或employee）"""
+    """编辑权限（admin 或 employee）"""
     @wraps(f)
     def decorated(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'code': 401, 'msg': '请先登录'}), 401
-        if session.get('role') not in ('admin', 'employee'):
+        user, err = _check_session()
+        if err:
+            return err
+        if user.role not in ('admin', 'employee'):
             return jsonify({'code': 403, 'msg': '无编辑权限'}), 403
         return f(*args, **kwargs)
     return decorated
 
 
 def delete_required(f):
-    """删除权限装饰器（仅admin）"""
+    """删除权限（仅 admin）"""
     @wraps(f)
     def decorated(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'code': 401, 'msg': '请先登录'}), 401
-        if session.get('role') != 'admin':
+        user, err = _check_session()
+        if err:
+            return err
+        if user.role != 'admin':
             return jsonify({'code': 403, 'msg': '无删除权限'}), 403
         return f(*args, **kwargs)
     return decorated
 
 
 def scrap_approve_required(f):
-    """报废审批权限装饰器（仅admin）"""
+    """报废审批权限（仅 admin）"""
     @wraps(f)
     def decorated(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'code': 401, 'msg': '请先登录'}), 401
-        if session.get('role') != 'admin':
+        user, err = _check_session()
+        if err:
+            return err
+        if user.role != 'admin':
             return jsonify({'code': 403, 'msg': '无审批权限'}), 403
         return f(*args, **kwargs)
     return decorated
 
 
 def return_required(f):
-    """借用归还权限装饰器（admin或employee）"""
+    """借用归还权限（admin 或 employee）"""
     @wraps(f)
     def decorated(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'code': 401, 'msg': '请先登录'}), 401
-        if session.get('role') not in ('admin', 'employee'):
+        user, err = _check_session()
+        if err:
+            return err
+        if user.role not in ('admin', 'employee'):
             return jsonify({'code': 403, 'msg': '无归还权限'}), 403
         return f(*args, **kwargs)
     return decorated
@@ -107,9 +131,11 @@ def add_log(action, detail=''):
 @auth_bp.route('/login', methods=['POST'])
 def login():
     """登录（仅支持工号）"""
-    data = request.get_json()
-    user_no = data.get('user_no', '').strip()
-    password = data.get('password', '').strip()
+    # 2026-11-04 修复：body 为 JSON null 时 request.get_json() 返回 None，
+    # 原实现直接 .get() 抛 AttributeError → 500（日志 2026-10-29 实证）。统一 or {} 兜底。
+    data = request.get_json() or {}
+    user_no = (data.get('user_no') or '').strip()
+    password = (data.get('password') or '').strip()
 
     if not user_no or not password:
         return jsonify({'code': 400, 'msg': '工号和密码不能为空'})
@@ -161,7 +187,7 @@ def login():
 @login_required
 def change_password():
     """修改当前用户密码"""
-    data = request.get_json()
+    data = request.get_json() or {}
     old_password = data.get('old_password', '').strip()
     new_password = data.get('new_password', '').strip()
     confirm_password = data.get('confirm_password', '').strip()
@@ -238,7 +264,7 @@ def list_users():
 @admin_required
 def create_user():
     """创建用户（管理员）"""
-    data = request.get_json()
+    data = request.get_json() or {}
     user_no = data.get('user_no', '').strip()
     username = data.get('username', '').strip()
     password = data.get('password', '').strip()
@@ -268,7 +294,7 @@ def create_user():
 def update_user(user_id):
     """更新用户（管理员）"""
     user = User.query.get_or_404(user_id)
-    data = request.get_json()
+    data = request.get_json() or {}
 
     if 'user_no' in data:
         new_no = data['user_no'].strip()
@@ -276,7 +302,9 @@ def update_user(user_id):
             return jsonify({'code': 400, 'msg': '用户编号已存在'})
         user.user_no = new_no
     if 'password' in data and data['password'].strip():
-        user.set_password(data['password'])
+        # 2026-11-04 修复：登录/改密侧都对密码 .strip()，此处重置时也 strip，
+        # 否则带首尾空格的密码设置后永远登录不上（口径不一致导致的静默锁死）。
+        user.set_password(data['password'].strip())
     if 'role' in data:
         user.role = data['role']
 

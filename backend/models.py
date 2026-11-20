@@ -184,6 +184,7 @@ class Inspection(db.Model):
             'tool_id': self.tool_id,
             'tool_code': self.tool.code if self.tool else '',
             'tool_name': self.tool.name if self.tool else '',
+            'tool_level': self.tool.level if self.tool else '',  # 供前端按等级自动计算下次检定日期
             'inspect_date': self.inspect_date.strftime('%Y-%m-%d'),
             'result': self.result,
             'next_date': self.next_date.strftime('%Y-%m-%d') if self.next_date else '',

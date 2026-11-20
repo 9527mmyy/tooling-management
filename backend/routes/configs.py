@@ -4,12 +4,13 @@
 """
 from flask import Blueprint, request, jsonify
 from models import db, SystemConfig
-from routes.auth import admin_required
+from routes.auth import admin_required, login_required
 
 configs_bp = Blueprint('configs', __name__)
 
 
 @configs_bp.route('/', methods=['GET'])
+@login_required
 def get_configs():
     """获取所有配置，按key分组"""
     configs = SystemConfig.query.order_by(SystemConfig.config_key, SystemConfig.sort_order, SystemConfig.id).all()
@@ -25,6 +26,7 @@ def get_configs():
 
 
 @configs_bp.route('/<key>', methods=['GET'])
+@login_required
 def get_config_by_key(key):
     """获取指定key的所有配置值"""
     configs = SystemConfig.query.filter_by(config_key=key).order_by(SystemConfig.sort_order, SystemConfig.id).all()
@@ -38,7 +40,7 @@ def get_config_by_key(key):
 @admin_required
 def add_config():
     """新增配置项"""
-    data = request.get_json()
+    data = request.get_json() or {}
     
     if not data or not data.get('config_key') or not data.get('config_value'):
         return jsonify({'success': False, 'message': '缺少必填字段'}), 400
@@ -68,7 +70,7 @@ def add_config():
 def update_config(id):
     """更新配置项"""
     config = SystemConfig.query.get_or_404(id)
-    data = request.get_json()
+    data = request.get_json() or {}
     
     if data.get('config_value'):
         # 检查是否与其他冲突

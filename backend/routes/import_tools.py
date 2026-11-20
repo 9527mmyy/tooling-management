@@ -2,7 +2,7 @@
 from flask import Blueprint, request, jsonify, send_file, session
 from models import db, Tool
 from routes.auth import login_required, edit_required, add_log
-from datetime import datetime
+from datetime import datetime, timedelta
 import openpyxl
 from io import BytesIO
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
@@ -22,11 +22,14 @@ TEMPLATE_COLUMNS = [
     ('领用人', 'receiver', False, '可选'),
     ('状态', 'status', False, '可选，默认"在库"'),
     ('完工日期', 'purchase_date', False, '可选，格式YYYY-MM-DD'),
+    ('入库日期', 'storage_date', False, '可选，格式YYYY-MM-DD；A/B级工装建议填写，作为检定排期基准'),
     ('下次检定日期', 'next_inspection_date', False, '可选，格式YYYY-MM-DD'),
+    ('通用性', 'universality', False, '可选，通用/专用，默认通用'),
+    ('专用产品图号', 'product_drawing_no', False, '可选，通用性为「专用」时必填'),
     ('备注', 'remark', False, '可选'),
 ]
 
-DATE_FIELDS = ('purchase_date', 'next_inspection_date')
+DATE_FIELDS = ('purchase_date', 'storage_date', 'next_inspection_date')
 
 # 示例行哨兵：模板示例行的备注含此字符串，导入时自动跳过，避免用户忘记删示例行导致垃圾数据
 EXAMPLE_SENTINEL = 'TEMPLATE_EXAMPLE_DO_NOT_IMPORT'
@@ -61,7 +64,7 @@ def download_template():
     # 示例数据（第2行，浅灰提示）
     example = ['GZ2026072001', 'DWG-001', '卡箍接头φ51转φ38焊接', 'φ51→φ38',
                '焊接类', 'A', '一厂', '一班', '张三', '在库',
-               '2026-07-20', '2026-10-20', EXAMPLE_SENTINEL]
+               '2026-07-20', '2026-07-21', '2027-01-21', '通用', '', EXAMPLE_SENTINEL]
     ws.append(example)
     for col in range(1, len(TEMPLATE_COLUMNS) + 1):
         ws.cell(row=2, column=col).fill = PatternFill(
@@ -69,7 +72,7 @@ def download_template():
         ws.cell(row=2, column=col).alignment = Alignment(horizontal='center')
 
     # 列宽
-    widths = [14, 14, 22, 16, 12, 6, 12, 12, 10, 8, 14, 16, 24]
+    widths = [14, 14, 22, 16, 12, 6, 12, 12, 10, 8, 14, 14, 16, 8, 14, 24]
     for i, w in enumerate(widths, 1):
         ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
     ws.row_dimensions[1].height = 28
@@ -89,6 +92,28 @@ def download_template():
 @edit_required
 def import_tools():
     """上传Excel批量导入工装"""
+
+    def _parse_date_cell(raw, r_idx, code, field):
+        """日期单元格兼容解析（2026-11-04 修复）：
+        - 文本 "2026-07-20" → 直接解析
+        - 真日期单元格：openpyxl 返回 datetime，str() 后是 "2026-07-20 00:00:00"
+        - Excel 日期序列号（int/float，1900 纪元）→ 按天数换算
+        解析失败时记录错误并返回 None。"""
+        s = str(raw).strip()
+        for fmt in ('%Y-%m-%d', '%Y/%m/%d', '%Y-%m-%d %H:%M:%S', '%Y/%m/%d %H:%M:%S'):
+            try:
+                return datetime.strptime(s, fmt).date()
+            except ValueError:
+                continue
+        try:
+            v = float(s)
+            if 20000 < v < 60000:   # 1954~2064 年范围，合理 Excel 日期序列号
+                return (datetime(1899, 12, 30) + timedelta(days=int(v))).date()
+        except ValueError:
+            pass
+        errors.append(f'第{r_idx}行（编号{code}）：{field}无法识别的日期「{s}」，应为YYYY-MM-DD')
+        return None
+
     if 'file' not in request.files:
         return jsonify({'code': 400, 'msg': '未找到上传文件'})
 
@@ -125,6 +150,7 @@ def import_tools():
     success = 0
     skipped = 0
     errors = []
+    seen_codes = set()   # 本批内已收集编号（批内查重，防 UNIQUE 冲突整批回滚）
 
     for r_idx, row in enumerate(rows[1:], start=2):
         if row is None:
@@ -157,9 +183,19 @@ def import_tools():
             errors.append(f'第{r_idx}行（编号{code}）：名称不能为空')
             continue
 
-        # 编号重复检查
-        if Tool.query.filter_by(code=code).first():
+        # 编号重复检查（2026-11-04 修复）：
+        # ① 查库（历史数据）；② 查本批已收集的编号（原先只查库，文件内两行同编号
+        #   都能通过检查，commit 时 UNIQUE 冲突导致整批回滚——一行坏，全军覆没）
+        if Tool.query.filter_by(code=code).first() or code in seen_codes:
             skipped += 1
+            continue
+        seen_codes.add(code)
+
+        universality = (get_val('universality') or '通用').strip()
+        product_drawing_no = get_val('product_drawing_no')
+        # 与手工新增接口同口径：专用工装必须填专用产品图号
+        if universality == '专用' and not product_drawing_no:
+            errors.append(f'第{r_idx}行（编号{code}）：通用性为「专用」时必须填写专用产品图号')
             continue
 
         tool = Tool(
@@ -174,15 +210,21 @@ def import_tools():
             receiver=get_val('receiver'),
             status=get_val('status') or '在库',
             remark=get_val('remark'),
+            universality=universality,
+            product_drawing_no=product_drawing_no,
         )
 
-        # 日期解析
+        # 日期解析（2026-11-04 修复）：兼容三种来源——
+        # 文本 "2026-07-20" / 真日期单元格（openpyxl 返回 datetime，str() 后带 00:00:00）/ Excel 日期序列号
         ok = True
         for df in DATE_FIELDS:
             raw = get_val(df)
             if raw:
                 try:
-                    d = datetime.strptime(raw, '%Y-%m-%d').date()
+                    d = _parse_date_cell(raw, r_idx, code, df)
+                    if d is None:
+                        ok = False
+                        break
                     setattr(tool, df, d)
                 except ValueError:
                     errors.append(f'第{r_idx}行（编号{code}）：{df}格式应为YYYY-MM-DD，当前值「{raw}」')
@@ -190,6 +232,11 @@ def import_tools():
                     break
         if not ok:
             continue
+
+        # 与手工新增接口同口径：A/B 级未指定下次检定日期时，按等级与入库日期推算
+        if not tool.next_inspection_date:
+            from routes.tools import calc_next_inspection
+            tool.next_inspection_date = calc_next_inspection(tool.level, tool.storage_date)
 
         db.session.add(tool)
         success += 1

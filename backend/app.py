@@ -37,20 +37,43 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB 上传限制
 # 会话密钥：优先环境变量（nssm AppEnvironmentExtra，2026-09-30 实测生效）；
 # 环境变量缺失时回退到「仓库外的密钥文件」，避免回落到代码里那个**已公开**的兜底常量。
 # 密钥不进代码库、不进 git。
-def _read_secret(env_name, fallback):
-    import os as _os
-    v = _os.environ.get(env_name)
-    if not v:
-        try:
-            with open(_os.path.join(r'D:\web_sys\_secrets', env_name + '.key'),
-                      encoding='utf-8') as f:
-                v = f.read().strip()
-        except OSError:
-            v = ''
-    return v or fallback
+def _read_secret(env_name):
+    """会话密钥来源：环境变量 > 仓库外密钥文件 > 现场生成并落盘。
+
+    2026-11-04 修复：原实现的最终兜底是代码里那个已公开的硬编码常量，
+    一旦新部署漏带环境变量或密钥文件，任何人都能用它伪造 admin 会话。
+    现在绝不回落到常量；密钥目录默认取 backend 上两级的 _secrets，
+    与现有部署一致，迁移到别的机器也能自适应。
+    """
+    import secrets as _secrets
+
+    v = (os.environ.get(env_name) or '').strip()
+    if v:
+        return v
+
+    secret_dir = (os.environ.get('TOOLING_SECRET_DIR')
+                  or os.path.join(os.path.dirname(os.path.dirname(basedir)), '_secrets'))
+    key_path = os.path.join(secret_dir, env_name + '.key')
+    try:
+        with open(key_path, encoding='utf-8') as f:
+            v = f.read().strip()
+        if v:
+            return v
+    except OSError:
+        pass
+
+    v = _secrets.token_hex(32)
+    try:
+        os.makedirs(secret_dir, exist_ok=True)
+        with open(key_path, 'w', encoding='utf-8') as f:
+            f.write(v)
+        print('[WARN] 未找到会话密钥，已生成新密钥并写入 ' + key_path)
+    except OSError:
+        print('[WARN] 会话密钥无法落盘，本次使用临时密钥；重启后所有会话将失效')
+    return v
 
 
-app.config['SECRET_KEY'] = _read_secret('TOOLING_SECRET_KEY', 'tooling-management-secret-key-2026')
+app.config['SECRET_KEY'] = _read_secret('TOOLING_SECRET_KEY')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)  # cookie有效期（实际超时由服务端last_activity控制）
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # 允许同站请求携带cookie
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -186,11 +209,12 @@ with app.app_context():
         db.session.commit()
         print('✅ 默认管理员创建: admin / admin123（工号 admin）')
 
-if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=5000, threaded=True)
-
 @app.route('/test')
 def test_page():
     response = make_response(send_from_directory('templates', 'test.html'))
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     return response
+
+
+if __name__ == '__main__':
+    app.run(debug=False, host='0.0.0.0', port=5000, threaded=True)

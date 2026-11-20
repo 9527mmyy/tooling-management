@@ -14,8 +14,10 @@ def list_borrows():
     borrower = request.args.get('borrower', '').strip()
     factory = request.args.get('factory', '').strip()
     team = request.args.get('team', '').strip()
-    page = int(request.args.get('page', 1))
-    per_page = int(request.args.get('per_page', 20))
+    # 2026-11-04 修复：type=int 容错非数字（原裸 int() 传 page=abc 直接 500）；
+    # per_page 钳制到 [1,100]，防一次拉全库。
+    page = request.args.get('page', 1, type=int) or 1
+    per_page = min(max(request.args.get('per_page', 20, type=int) or 20, 1), 100)
 
     query = BorrowRecord.query
 
@@ -47,7 +49,7 @@ def list_borrows():
 @edit_required
 def create_borrow():
     """借用工装（admin/employee；viewer 无权借用）"""
-    data = request.get_json()
+    data = request.get_json() or {}
     tool_id = data.get('tool_id')
     borrower = data.get('borrower', session.get('username', '')).strip()
 
@@ -69,14 +71,16 @@ def create_borrow():
         receiver=data.get('receiver', ''),
         status='借用中'
     )
-    # 更新工装状态和归属信息
+    # 更新工装状态。使用分厂/班组/领用人属于台账固有归属：
+    # 已有值不覆盖（避免一次借用把原归属改写掉），但台账里为空的
+    # （批量导入的新工装）用本次借用信息回填，让台账直接看到在用归属。
     tool.status = '借出'
-    if data.get('factory'):
-        tool.factory = data.get('factory', '')
-    if data.get('team'):
-        tool.team = data.get('team', '')
-    if data.get('receiver'):
-        tool.receiver = data.get('receiver', '')
+    if not tool.factory and data.get('factory'):
+        tool.factory = data['factory']
+    if not tool.team and data.get('team'):
+        tool.team = data['team']
+    if not tool.receiver and data.get('receiver'):
+        tool.receiver = data['receiver']
 
     db.session.add(record)
     db.session.commit()
@@ -104,13 +108,11 @@ def return_borrow(record_id):
     record.return_remark = (data.get('remark') or '').strip()
     record.return_check = (data.get('check') or '').strip()
 
-    # 更新工装状态，清除借用信息
+    # 更新工装状态。台账归属（factory/team/receiver）是工装固有信息，
+    # 2026-11-04 修复：归还不清除，否则归还一次台账就永久丢三个字段。
     tool = Tool.query.get(record.tool_id)
     if tool:
         tool.status = '在库'
-        tool.factory = None
-        tool.team = None
-        tool.receiver = None
 
     db.session.commit()
 

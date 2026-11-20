@@ -1,5 +1,5 @@
 ﻿from flask import Blueprint, request, jsonify, session, send_file, current_app
-from models import db, Tool, BorrowRecord, Attachment, Inspection, OperationLog, InStorageRecord
+from models import db, Tool, BorrowRecord, Attachment, Inspection, OperationLog, InStorageRecord, ScrapRequest
 from routes.auth import login_required, admin_required, edit_required, add_log
 from datetime import datetime
 import calendar
@@ -35,8 +35,10 @@ def list_tools():
     exclude_status = request.args.get('exclude_status', '').strip()
     # 等级筛选：逗号分隔多值，如 levels=A,B（供「A/B类」视图复用本接口）
     levels = request.args.get('levels', '').strip()
-    page = int(request.args.get('page', 1))
-    per_page = int(request.args.get('per_page', 20))
+    # 2026-11-04 修复：type=int 容错非数字（原裸 int() 传 page=abc 直接 500）；
+    # per_page 钳制到 [1,100]，防一次拉全库。
+    page = request.args.get('page', 1, type=int) or 1
+    per_page = min(max(request.args.get('per_page', 20, type=int) or 20, 1), 100)
 
     query = Tool.query
 
@@ -88,8 +90,19 @@ def get_tool(tool_id):
     data['borrow_records'] = [r.to_dict() for r in tool.borrow_records]
     # 附带入库记录
     data['in_storage_records'] = [r.to_dict() for r in tool.in_storage_records]
-    # 附带检定记录
-    data['inspections'] = [i.to_dict() for i in tool.inspections]
+    # 附带检定记录（含各自关联的附件）
+    # 2026-11-02 修复：检定弹窗上传的附件挂在 inspection_id 上（tool_id 为空），
+    # 此前详情接口不返回它们，详情页检定记录卡片永远看不到附件。
+    insp_ids = [i.id for i in tool.inspections]
+    insp_atts = {}
+    if insp_ids:
+        for a in Attachment.query.filter(Attachment.inspection_id.in_(insp_ids)).all():
+            insp_atts.setdefault(a.inspection_id, []).append(a.to_dict())
+    data['inspections'] = []
+    for i in tool.inspections:
+        d = i.to_dict()
+        d['attachments'] = insp_atts.get(i.id, [])
+        data['inspections'].append(d)
     # 附带附件列表
     data['attachments'] = [a.to_dict() for a in tool.attachments]
     return jsonify({'code': 200, 'data': data})
@@ -99,7 +112,7 @@ def get_tool(tool_id):
 @edit_required
 def create_tool():
     """新增工装（管理员）"""
-    data = request.get_json()
+    data = request.get_json() or {}
     code = data.get('code', '').strip()
     name = data.get('name', '').strip()
 
@@ -215,12 +228,132 @@ def get_inspection_reminders():
     })
 
 
+@tools_bp.route('/summary', methods=['GET'])
+@login_required
+def tool_summary():
+    """工装汇总：按图号聚合（2026-11-02）。一个图号可能对应多个工装编号；
+    返回每图号的数量、名称/规格（取组内众数口径：第一条非空值）与状态分布。"""
+    from collections import OrderedDict
+
+    keyword = request.args.get('keyword', '').strip()
+    factory = request.args.get('factory', '').strip()
+    status = request.args.get('status', '').strip()
+    include_scrapped = request.args.get('include_scrapped', type=int)  # 0/1，默认0（不合计报废）
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+
+    query = Tool.query
+    if keyword:
+        query = query.filter(
+            db.or_(
+                Tool.code.contains(keyword),
+                Tool.drawing_no.contains(keyword),
+                Tool.name.contains(keyword),
+                Tool.spec.contains(keyword)
+            )
+        )
+    if factory:
+        query = query.filter(Tool.factory.contains(factory))
+    if status:
+        query = query.filter_by(status=status)
+    elif not include_scrapped:
+        query = query.filter(Tool.status != '报废')
+
+    tools = query.order_by(Tool.id.asc()).all()
+
+    # 内存聚合（数据量为数百条级，一次取全量即可，无需 GROUP BY 分页两跳）
+    groups = OrderedDict()
+    for t in tools:
+        # 图号为空归到「无图号」组，避免散落成多行
+        key = (t.drawing_no or '').strip() or '（无图号）'
+        g = groups.setdefault(key, {
+            'drawing_no': key, 'name': '', 'spec': '', 'category': '',
+            'count': 0, 'in_stock': 0, 'borrowed': 0, 'repairing': 0, 'scrapped': 0,
+        })
+        g['count'] += 1
+        if t.status in ('在库', '借出', '维修', '报废'):
+            g[{'在库': 'in_stock', '借出': 'borrowed', '维修': 'repairing', '报废': 'scrapped'}[t.status]] += 1
+        # 名称/规格/类别取组内第一条非空值
+        if not g['name'] and t.name:
+            g['name'] = t.name
+        if not g['spec'] and (t.spec or '').strip():
+            g['spec'] = t.spec
+        if not g['category'] and (t.category or '').strip():
+            g['category'] = t.category
+
+    items_all = list(groups.values())
+    total = len(items_all)
+    start = (page - 1) * per_page
+    items = items_all[start:start + per_page]
+
+    return jsonify({
+        'code': 200,
+        'data': {
+            'items': items,
+            'total': total,
+            'page': page,
+            'per_page': per_page
+        }
+    })
+
+
+@tools_bp.route('/summary/detail', methods=['GET'])
+@login_required
+def tool_summary_detail():
+    """工装汇总下钻（2026-11-02）：查某图号下全部工装编号及其当前借用信息。
+    借用信息取每条工装最近一条借用记录（借用中则显示借用人/分厂/时间，已归还显示最近一次）。"""
+    drawing_no = (request.args.get('drawing_no') or '').strip()
+    if not drawing_no:
+        return jsonify({'code': 400, 'msg': '请指定图号'})
+
+    query = Tool.query
+    if drawing_no == '（无图号）':
+        # 汇总页把空图号归为「（无图号）」组，下钻时按空值查询
+        query = query.filter(db.or_(Tool.drawing_no == '', Tool.drawing_no.is_(None)))
+    else:
+        query = query.filter(Tool.drawing_no == drawing_no)
+    include_scrapped = request.args.get('include_scrapped', type=int)
+    if not include_scrapped:
+        query = query.filter(Tool.status != '报废')
+    tools = query.order_by(Tool.code.asc()).all()
+
+    # 2026-11-04 修复：原实现用 status.desc() 让「借用中」优先，但 Unicode 里
+    # '已'(U+5DF2) > '借'(U+501F)，'已归还' 反而排在前面，借出中的工装会显示成已归还。
+    # 改为一次取回本图号下全部借用记录，在 Python 里按「借用中优先、否则最近一条」挑选。
+    tool_ids = [t.id for t in tools]
+    borrows_by_tool = {}
+    if tool_ids:
+        for b in BorrowRecord.query.filter(
+                BorrowRecord.tool_id.in_(tool_ids)).order_by(BorrowRecord.id.desc()).all():
+            borrows_by_tool.setdefault(b.tool_id, []).append(b)
+
+    items = []
+    for t in tools:
+        d = t.to_dict()
+        recs = borrows_by_tool.get(t.id, [])
+        last_borrow = next((b for b in recs if b.status == '借用中'), None) or (recs[0] if recs else None)
+        if last_borrow:
+            d['last_borrow'] = {
+                'borrower': last_borrow.borrower,
+                'factory': last_borrow.factory or '',
+                'team': last_borrow.team or '',
+                'receiver': last_borrow.receiver or '',
+                'borrow_time': last_borrow.borrow_time.strftime('%Y-%m-%d %H:%M') if last_borrow.borrow_time else '',
+                'status': last_borrow.status,
+            }
+        else:
+            d['last_borrow'] = None
+        items.append(d)
+
+    return jsonify({'code': 200, 'data': {'drawing_no': drawing_no, 'items': items}})
+
+
 @tools_bp.route('/<int:tool_id>', methods=['PUT'])
 @edit_required
 def update_tool(tool_id):
     """更新工装（admin/employee可编辑）"""
     tool = Tool.query.get_or_404(tool_id)
-    data = request.get_json()
+    data = request.get_json() or {}
 
     # 通用性校验前置（在任何字段赋值之前），避免改了一半再回滚。
     # 取「本次传入值，否则沿用库中现值」作为生效值。
@@ -267,23 +400,22 @@ def update_tool(tool_id):
         tool.purchase_date = None
     if 'next_inspection_date' in data and data['next_inspection_date']:
         tool.next_inspection_date = datetime.strptime(data['next_inspection_date'], '%Y-%m-%d').date()
-    elif 'next_inspection_date' in data and not data['next_inspection_date']:
-        tool.next_inspection_date = None
     if 'storage_date' in data and data['storage_date']:
         tool.storage_date = datetime.strptime(data['storage_date'], '%Y-%m-%d').date()
     elif 'storage_date' in data and not data['storage_date']:
         tool.storage_date = None
 
-    # 兜底：未检定过的工装，在等级/入库时间变化、或此前漏算（日期为空）时，
-    # 按当前等级与入库时间重算下次检定日期。显式传入 next_inspection_date 时以其为准；
-    # C 级不推算，保持原值不动。
-    if 'next_inspection_date' not in data:
-        changed = (tool.level != old_level) or (tool.storage_date != old_storage_date)
+    # 下次检定兜底（2026-11-05 修复）：详情页编辑表单会把空的「下次检定」原样提交，
+    # 原实现遇到空值直接置 None 并跳过重算，导致 B 类填了入库日期仍显示「-」。
+    # 现在：显式传值以其为准；未传/传空时，未被检定记录覆盖过的工装按等级+入库日期重算
+    #（A=半年、B=1 年、C 级不推算）；有检定记录的仅在显式清空时置空。
+    if not data.get('next_inspection_date'):
         has_inspection = Inspection.query.filter_by(tool_id=tool_id).count() > 0
-        if (changed or not tool.next_inspection_date) and not has_inspection:
-            recalc = calc_next_inspection(tool.level, tool.storage_date)
-            if recalc:
-                tool.next_inspection_date = recalc
+        changed = (tool.level != old_level) or (tool.storage_date != old_storage_date)
+        if not has_inspection and (changed or not tool.next_inspection_date):
+            tool.next_inspection_date = calc_next_inspection(tool.level, tool.storage_date)
+        elif 'next_inspection_date' in data:
+            tool.next_inspection_date = None
 
     db.session.commit()
 
@@ -376,48 +508,60 @@ def get_photo(tool_id):
     return send_file(abs_path)
 
 
+def cleanup_tool_resources(tool):
+    """删除工装及其全部关联资源（2026-11-04 统一，供两条删除路径共用）。
+
+    原实现在 routes/tools.py 与 routes/scraps.py 各写一份，且 tools.py 那份
+    只删附件文件、不删 attachments 表记录；SQLite 外键默认关闭不会报错，
+    于是留下 tool_id 指向已删工装的孤儿记录。
+    """
+    for rec in tool.in_storage_records:
+        db.session.delete(rec)
+    for br in tool.borrow_records:
+        db.session.delete(br)
+    for req in ScrapRequest.query.filter_by(tool_id=tool.id).all():
+        db.session.delete(req)
+
+    for att in tool.attachments:
+        try:
+            if os.path.exists(att.file_path):
+                os.remove(att.file_path)
+        except OSError:
+            pass
+        db.session.delete(att)
+
+    if tool.photo_path:
+        photo_path = os.path.join(current_app.config['UPLOAD_FOLDER'], tool.photo_path)
+        try:
+            if os.path.exists(photo_path):
+                os.remove(photo_path)
+            photo_dir = os.path.dirname(photo_path)
+            if os.path.exists(photo_dir) and not os.listdir(photo_dir):
+                os.rmdir(photo_dir)
+        except OSError:
+            pass
+
+    db.session.delete(tool)
+
+
 @tools_bp.route('/<int:tool_id>', methods=['DELETE'])
 @admin_required
 def delete_tool(tool_id):
     """删除工装（管理员）"""
     tool = Tool.query.get_or_404(tool_id)
 
-    # 检查是否有未归还的借用
     active_borrow = BorrowRecord.query.filter_by(
         tool_id=tool_id, status='借用中'
     ).first()
     if active_borrow:
         return jsonify({'code': 400, 'msg': '该工装有未归还的借用记录，不能删除'})
 
-    # 检查是否有检定记录
     inspection = Inspection.query.filter_by(tool_id=tool_id).first()
     if inspection:
         return jsonify({'code': 400, 'msg': '该工装有检定记录，请先删除检定记录后再删除工装'})
 
     add_log('删除工装', f'编号 {tool.code}，名称 {tool.name}')
-
-    # 先删除关联的子表记录（入库/借用/附件），避免外键约束导致删除失败
-    for rec in tool.in_storage_records:
-        db.session.delete(rec)
-    for br in tool.borrow_records:
-        db.session.delete(br)
-
-    # 删除关联附件文件
-    for att in tool.attachments:
-        if os.path.exists(att.file_path):
-            os.remove(att.file_path)
-
-    # 删除照片文件
-    if tool.photo_path:
-        photo_path = os.path.join(current_app.config['UPLOAD_FOLDER'], tool.photo_path)
-        if os.path.exists(photo_path):
-            os.remove(photo_path)
-        # 删除照片目录（如果为空）
-        photo_dir = os.path.dirname(photo_path)
-        if os.path.exists(photo_dir) and not os.listdir(photo_dir):
-            os.rmdir(photo_dir)
-
-    db.session.delete(tool)
+    cleanup_tool_resources(tool)
     db.session.commit()
 
     return jsonify({'code': 200, 'msg': '删除成功'})
@@ -537,10 +681,12 @@ def tool_stats_monthly():
     scrap_data = [scraps.get(m['year_month'], 0) for m in months]
     borrow_data = [borrows.get(m['year_month'], 0) for m in months]
 
-    # 计算累计工装数量
+    # 计算累计工装数量（2026-11-04 修复）：
+    # 原实现从 0 起只累计窗口内 12 个月的新增，前端标为「总数」——库里 459 件
+    # 却只显示窗口增量，口径错。正确做法：以「窗口起点之前的历史存量」为基数累计。
+    window_start = months[0]['start']
+    running_total = Tool.query.filter(Tool.created_at < window_start).count()
     cumulative = []
-    running_total = 0
-    # 从最早月份开始累计
     for m in months:
         running_total += new_tools.get(m['year_month'], 0)
         cumulative.append(running_total)
