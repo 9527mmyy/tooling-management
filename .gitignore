@@ -118,3 +118,8 @@ temp_*.png
 
 # Playwright CLI 测试产物（截图/快照/控制台日志）
 .playwright-cli/
+
+# 单机版打包工程（desktop/）：构建产物与同步中间产物不入库，可由 build.bat 重建
+desktop/build/
+desktop/src/
+desktop/tools/InnoSetup/
